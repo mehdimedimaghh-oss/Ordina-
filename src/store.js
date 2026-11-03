@@ -1,6 +1,7 @@
 // Data layer: Supabase + offline copy + offline queue + live updates.
 import { createClient } from '@supabase/supabase-js';
 import { today, ms, uid as newUid } from './data.js';
+import { t } from './i18n.js';
 
 const URL = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '');
 const KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
@@ -129,7 +130,7 @@ export async function flush() {
         if (res.error.code === '42501' || /JWT|not allowed|log in/i.test(res.error.message)) {
           setSync('error', res.error.message); sb.auth.refreshSession().catch(() => {}); break;   // try again at the next check
         }
-        S.lastError = res.error.message; notify('Not saved: ' + res.error.message);   // a real refusal: drop it
+        S.lastError = res.error.message; notify(t('notSaved', { msg: res.error.message }));   // a real refusal: drop it
       } else if (q.kind === 'op') {
         const row = res.data;
         if (row && row.data && Object.keys(row.data).length) S.server[q.table] = row; else delete S.server[q.table];
@@ -232,20 +233,20 @@ async function afterLogin() {
 export async function login(email, password) {
   const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
   if (error) {
-    if (error.message === 'Invalid login credentials') throw new Error('Wrong email or password');
-    if (/email logins are disabled/i.test(error.message)) throw new Error('Email login is turned off in Supabase. Owner: Supabase → Authentication → Sign In / Providers → Email → turn it ON (keep "Allow new users to sign up" OFF).');
+    if (error.message === 'Invalid login credentials') throw new Error(t('errWrongLogin'));
+    if (/email logins are disabled/i.test(error.message)) throw new Error(t('errEmailOff'));
     throw new Error(error.message);
   }
   S.session = data.session;
   await afterLogin();
-  if (S.role === 'none') throw new Error('This login has no role yet. The owner must give it the role "staff" or "owner" (see SETUP.md, step 4).');
+  if (S.role === 'none') throw new Error(t('errNoRole'));
 }
 
 export async function logout() {
-  if (S.queue.length && !confirm(`${S.queue.length} changes are not uploaded yet. Log out anyway and lose them?`)) return false;
+  if (S.queue.length && !confirm(t('confirmLogout', { n: S.queue.length }))) return false;
   if (channel) sb.removeChannel(channel);
   await sb.auth.signOut().catch(() => {});
-  try { Object.keys(localStorage).filter(k => k.startsWith(P) && k !== P + 'theme').forEach(k => localStorage.removeItem(k)); } catch { /* ignore */ }
+  try { Object.keys(localStorage).filter(k => k.startsWith(P) && k !== P + 'theme' && !k.startsWith(P + 'lang')).forEach(k => localStorage.removeItem(k)); } catch { /* ignore */ }
   location.reload();
   return true;
 }
@@ -269,8 +270,8 @@ export async function waiterLogin(w, pin) {
   }
   // offline: check against the PIN this device saw the last time it was online
   const k = known[w.id];
-  if (!k) throw new Error('No internet. This waiter must log in once online on this device.');
-  if (await sha(k.salt + pin) !== k.h) throw new Error('Wrong PIN');
+  if (!k) throw new Error(t('errOfflinePin'));
+  if (await sha(k.salt + pin) !== k.h) throw new Error(t('errWrongPin'));
   S.waiter = { id: w.id, name: w.name, token: k.token }; LS.set('waiter', S.waiter); emit(); return S.waiter;
 }
 export function waiterLogout() { S.waiter = null; LS.del('waiter'); emit(); }

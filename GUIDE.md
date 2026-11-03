@@ -8,6 +8,11 @@
 3. Another waiter on the same tablet? Tap the **name at the top** (gold, next to *COMANDE*) → choose the name → PIN. That's the quick switch.
    Leaving the tablet? **☰ → Lock** — the next person must type their PIN.
 
+**Language / Lingua**
+- Tap **IT** or **EN** (top right on the tablet, or **☰ → Lingua / Language** on the phone, or on the login screen).
+- Each waiter keeps their own language: when you log in with your PIN, the app switches to your language by itself.
+- The dish names don't change: Italian with English under it.
+
 **Take an order**
 - **Tablet:** the first screen is the **map of the 30 tables**. Tap a table. Menu on the **left**, the order on the **right**.
   Tap **‹ Tavoli** (top left) to go back to the map.

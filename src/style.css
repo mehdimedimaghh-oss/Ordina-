@@ -438,3 +438,11 @@ body.tablet.scr-order .toast{left:calc((100vw - var(--pw)) / 2)}
 .obanner .ov span{font-family:var(--display);font-size:24px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
 .obanner .ov small{display:block;font-family:var(--body);font-size:12px;letter-spacing:.14em;color:#E7C77E;font-weight:700;margin-top:4px}
 @media (max-width:560px){.hlogo{width:26px;height:26px}.obanner{height:110px}.obanner .ov span{font-size:18px}}
+
+/* ---------- language switch ---------- */
+.glang{position:absolute;top:12px;right:12px;display:flex;gap:2px;background:var(--bg);border-radius:999px;padding:3px}
+.glang button{min-width:44px;min-height:36px;border:0;border-radius:999px;background:none;font-weight:800;font-size:13px;color:var(--muted);letter-spacing:.06em}
+.glang button.on{background:var(--bar);color:var(--bar-ink)}
+.gate .card2{position:relative}
+.ibtn.lang{font-weight:800;font-size:13px;letter-spacing:.06em;color:var(--gold);border-color:var(--gold)}
+@media (max-width:560px){.ibtn.lang{display:none}}

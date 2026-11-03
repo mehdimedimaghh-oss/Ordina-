@@ -4,6 +4,7 @@ import { S, configured, start, onChange, onNotify, login, logout, reload, STAFF_
 import { mountWork, render, modeChanged, pinPicker, isTablet } from './waiter.js';
 import { mountOwner, ownerRender } from './owner.js';
 import { toast } from './ui.js';
+import { t, getLang, chooseLang, onLang, langForWaiter } from './i18n.js';
 
 const app = $('#app');
 let mounted = '';
@@ -30,12 +31,12 @@ function route() {
   mounted = s; document.body.style.overflow = ''; document.querySelectorAll('.scrim,.recv').forEach(e => e.remove());
   document.body.classList.remove('scr-map', 'scr-order');
   scrollTo(0, 0);
-  if (s === 'setup') app.innerHTML = gate(`<p>The app is not connected to the database yet.</p><p class="hint">Add <b>VITE_SUPABASE_URL</b> and <b>VITE_SUPABASE_ANON_KEY</b> in Vercel → Settings → Environment Variables, then redeploy. See SETUP.md.</p>`);
-  else if (s === 'loading') app.innerHTML = gate('<p class="hint" style="text-align:center">Loading…</p>');
+  if (s === 'setup') app.innerHTML = gate(t('notConnected'));
+  else if (s === 'loading') app.innerHTML = gate(`<p class="hint" style="text-align:center">${t('loading')}</p>`);
   else if (s === 'login') loginScreen();
-  else if (s === 'norole') { app.innerHTML = gate(`<p>This login (<b>${esc(S.email)}</b>) has no role yet.</p><p class="hint">The owner must run step 4 of SETUP.md for it.</p><button class="btn block" id="lo">Log out</button>`); $('#lo').onclick = logout; }
+  else if (s === 'norole') { app.innerHTML = gate(`${t('noRole', { email: esc(S.email) })}<button class="btn block" id="lo">${t('logOut')}</button>`); $('#lo').onclick = logout; }
   else if (s === 'pin') {
-    app.innerHTML = gate(`<div id="pinBox"></div>${S.role === 'owner' ? '<button class="btn block" id="toOwn" style="margin-top:14px">Owner dashboard</button>' : ''}<button class="linkbtn" id="lo">Log out this device</button>`, 'Who is working?');
+    app.innerHTML = gate(`<div id="pinBox"></div>${S.role === 'owner' ? `<button class="btn block" id="toOwn" style="margin-top:14px">${t('ownerDashboard')}</button>` : ''}<button class="linkbtn" id="lo">${t('logoutDevice')}</button>`, t('whoWorking'));
     pinPicker($('#pinBox'), route);
     if (navigator.onLine) reload('waiters');
     const to = $('#toOwn'); if (to) to.onclick = () => { location.hash = '#owner'; };
@@ -46,17 +47,17 @@ function route() {
 }
 
 function gate(inner, sub) {
-  return `<div class="bgphoto" aria-hidden="true"></div><div class="gate"><div class="card2"><img class="glogo" src="/logo.png" alt="Concordia Hotel &amp; Private Dependance" width="104" height="104"><h1>Comande</h1><p class="sub">${esc(sub || 'Ristorante Concordia · Fugari Bistrot')}</p>${inner}</div></div>`;
+  return `<div class="bgphoto" aria-hidden="true"></div><div class="gate"><div class="card2"><div class="glang">${[['it', 'IT'], ['en', 'EN']].map(([l, n]) => `<button data-glang="${l}" class="${l === getLang() ? 'on' : ''}" aria-label="${l === 'it' ? 'Italiano' : 'English'}">${n}</button>`).join('')}</div><img class="glogo" src="/logo.png" alt="Concordia Hotel &amp; Private Dependance" width="104" height="104"><h1>Comande</h1><p class="sub">${esc(sub || 'Ristorante Concordia · Fugari Bistrot')}</p>${inner}</div></div>`;
 }
 
 function loginScreen() {
   let kind = 'staff';
   const draw = () => {
-    app.innerHTML = gate(`<div class="seg"><button data-k="staff" class="${kind === 'staff' ? 'on' : ''}">Waiter device</button><button data-k="owner" class="${kind === 'owner' ? 'on' : ''}">Owner</button></div>
-      <form id="lf">${kind === 'staff' && STAFF_EMAIL ? '' : `<label class="field">Email<input id="le" type="email" autocomplete="username" required value="${kind === 'staff' ? '' : esc(S.email || '')}"></label>`}
-      <label class="field">${kind === 'staff' ? 'Restaurant password' : 'Password'}<input id="lp" type="password" autocomplete="current-password" required></label>
-      <p class="err" id="lerr"></p><button class="btn primary block" type="submit">Log in</button></form>
-      <p class="hint" style="margin-top:14px">${kind === 'staff' ? 'One time per tablet or phone. Ask the owner for the restaurant password. After this, waiters only use their PIN.' : 'Owner: your own email and password. You see all the history.'}</p>`);
+    app.innerHTML = gate(`<div class="seg"><button data-k="staff" class="${kind === 'staff' ? 'on' : ''}">${t('waiterDevice')}</button><button data-k="owner" class="${kind === 'owner' ? 'on' : ''}">${t('owner')}</button></div>
+      <form id="lf">${kind === 'staff' && STAFF_EMAIL ? '' : `<label class="field">${t('email')}<input id="le" type="email" autocomplete="username" required value="${kind === 'staff' ? '' : esc(S.email || '')}"></label>`}
+      <label class="field">${kind === 'staff' ? t('restaurantPassword') : t('password')}<input id="lp" type="password" autocomplete="current-password" required></label>
+      <p class="err" id="lerr"></p><button class="btn primary block" type="submit">${t('logIn')}</button></form>
+      <p class="hint" style="margin-top:14px">${kind === 'staff' ? t('staffHint') : t('ownerHint')}</p>`);
     app.querySelectorAll('[data-k]').forEach(b => { b.onclick = () => { kind = b.dataset.k; draw(); }; });
     $('#lf').onsubmit = async e => {
       e.preventDefault(); const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true; $('#lerr').textContent = '';
@@ -74,6 +75,11 @@ document.addEventListener('visibilitychange', wake);
 addEventListener('pointerdown', wake, { once: true });
 
 onNotify(m => toast(m, null, null, 4000));
+// language buttons on the login / PIN screens
+app.addEventListener('click', e => { const b = e.target.closest('[data-glang]'); if (b) chooseLang(b.dataset.glang, S.waiter?.id); });
+// new language: draw the screen again (the open table and the tablet screen are kept)
+onLang(() => { mounted = ''; route(); });
+langForWaiter(S.waiter?.id);
 onChange(route);
 addEventListener('hashchange', route);
 route();

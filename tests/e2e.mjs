@@ -216,6 +216,32 @@ ok(await phone.p.evaluate(() => document.documentElement.dataset.theme) === 'dar
 await phone.p.click('#moreSheet [data-close]');
 await shot(phone.p, 'phone-dark');
 
+console.log('13. Language per waiter (IT / EN)');
+await tab.p.click('#waiterBtn'); await tab.p.click('#waiterSheet .wpick:has-text("Mehdi")');
+for (const k of '0000') await tab.p.click(`#waiterSheet [data-k="${k}"]`);
+await tab.p.waitForTimeout(500);
+await tab.p.click('#langBtn');
+ok(await until(async () => (await tab.p.textContent('#stockBtn')).includes('Scorte')), 'Mehdi taps IT → buttons in Italian');
+if (!(await tab.p.isVisible('#mapView .tile'))) await tab.p.click('#tableBtn');
+await tab.p.click('.tile[data-t="9"]'); await tab.p.click('.cell[data-id="espresso"] .card');
+ok(await until(async () => (await tab.p.textContent('#orderPanel')).includes('Invia alla reception')), 'order panel in Italian');
+ok((await tab.p.textContent('.toast')).includes('Annulla'), 'undo toast in Italian');
+await tab.p.click('#tableBtn');
+await tab.p.click('#waiterBtn'); await tab.p.click('#waiterSheet .wpick:has-text("Nikola")');
+for (const k of '0000') await tab.p.click(`#waiterSheet [data-k="${k}"]`);
+ok(await until(async () => (await tab.p.textContent('#stockBtn')).includes('Stock')), 'Nikola logs in → his own language (English, device default)');
+await tab.p.click('#waiterBtn'); await tab.p.click('#waiterSheet .wpick:has-text("Mehdi")');
+for (const k of '0000') await tab.p.click(`#waiterSheet [data-k="${k}"]`);
+ok(await until(async () => (await tab.p.textContent('#stockBtn')).includes('Scorte')), 'Mehdi again → Italian comes back by itself');
+ok(await until(async () => (await tab.p.textContent('#mapView')).includes('Libero')), 'table map in Italian');
+await shot(tab.p, 'tablet-italian');
+await tab.p.click('#moreBtn'); await tab.p.click('#moreSheet [data-lang="en"]');
+ok(await until(async () => (await tab.p.textContent('#stockBtn')).includes('Stock')), 'More → English works');
+const login = await device({ viewport: { width: 400, height: 800 } });
+await login.p.goto(APP); await login.p.click('[data-glang="it"]');
+ok(await until(async () => (await login.p.textContent('.gate')).includes('Password del ristorante')), 'login screen IT button');
+await shot(login.p, 'login-italian');
+
 ok(errors.length === 0, 'no JavaScript errors' + (errors.length ? ': ' + errors.join(' | ') : ''));
 sql(`delete from waiters where name='Giulia'; delete from menu_items where id='panna-cotta'`);
 await browser.close();

@@ -1,4 +1,5 @@
 import { $, $$, esc, eur, hhmm, roomLabel, dayKey } from './data.js';
+import { t } from './i18n.js';
 
 // ---------- toast (with optional action like Undo) ----------
 let tt;
@@ -17,7 +18,7 @@ export function sheet(id, title) {
   if (!el) {
     el = document.createElement('div'); el.className = 'scrim'; el.id = id; el.hidden = true;
     el.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="${id}-t"><div class="grab"></div>
-      <div class="sh-head"><h3 id="${id}-t"></h3><button class="x" data-close aria-label="Close">×</button></div><div class="sh-body"></div></div>`;
+      <div class="sh-head"><h3 id="${id}-t"></h3><button class="x" data-close aria-label="${t('close')}">×</button></div><div class="sh-body"></div></div>`;
     el.addEventListener('click', e => { if (e.target === el || e.target.closest('[data-close]')) closeSheet(el); });
     document.body.appendChild(el);
   }
@@ -44,7 +45,7 @@ export function armed(btn, label, onGo) {
 
 export async function copyText(txt, fallbackBox) {
   try { await navigator.clipboard.writeText(txt); return true; } catch {
-    if (fallbackBox) { fallbackBox.innerHTML = '<textarea class="copybox" readonly></textarea>'; const ta = fallbackBox.firstChild; ta.value = txt; ta.focus(); ta.select(); toast('Select all and copy'); }
+    if (fallbackBox) { fallbackBox.innerHTML = '<textarea class="copybox" readonly></textarea>'; const ta = fallbackBox.firstChild; ta.value = txt; ta.focus(); ta.select(); toast(t('selectCopy')); }
     return false;
   }
 }
@@ -70,7 +71,7 @@ export function receptionView(o) {
   $('.recv')?.remove();
   const el = document.createElement('div'); el.className = 'recv'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Reception view');
   el.innerHTML = `<div class="in">
-    <div class="top"><div><div class="lbl">Reception · Tavolo</div><h2>${esc(o.table)}</h2></div><button class="x" aria-label="Close">×</button></div>
+    <div class="top"><div><div class="lbl">${t('receptionTable')}</div><h2>${esc(o.table)}</h2></div><button class="x" aria-label="${t('close')}">×</button></div>
     ${o.client ? `<div class="who">${esc(o.client)}</div>` : ''}
     ${roomLabel(o) ? `<div class="room">Camera ${esc(roomLabel(o))}</div>` : ''}
     <ul>${o.items.map(l => `<li><b>${l.qty}×</b><span>${esc(l.it)}${l.note ? `<i>${esc(l.note)}</i>` : ''}</span><span class="num">${eur(l.qty * l.p)}</span></li>`).join('')}
@@ -78,7 +79,7 @@ export function receptionView(o) {
     ${o.note ? `<div class="note">Note: ${esc(o.note)}</div>` : ''}
     <div class="grand"><span>Totale</span><b class="num">${eur(o.total)}</b></div>
     <div class="pay">Da pagare alla reception · To pay at reception</div>
-    <div class="meta">${o.waiter ? 'Cameriere: ' + esc(o.waiter) + ' · ' : ''}${o.closedAt ? dayKey(o.closedAt).split('-').reverse().join('/') + ' ' + hhmm(o.closedAt) : 'Not sent yet'}</div>
+    <div class="meta">${o.waiter ? t('waiterLbl') + ': ' + esc(o.waiter) + ' · ' : ''}${o.closedAt ? dayKey(o.closedAt).split('-').reverse().join('/') + ' ' + hhmm(o.closedAt) : t('notSentShort')}</div>
   </div>`;
   el.querySelector('.x').onclick = () => el.remove();
   document.body.appendChild(el);

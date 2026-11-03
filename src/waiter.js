@@ -5,6 +5,7 @@ import {
   reopenOrder, deleteOrder, waiterLogin, waiterLogout, logout, openedMs, flush, reload,
 } from './store.js';
 import { toast, sheet, sheetBody, openSheet, closeSheet, armed, copyText, ticketText, receptionView, buzz } from './ui.js';
+import { t, tServer, getLang, chooseLang, langForWaiter } from './i18n.js';
 
 let cur = String(LS.get('cur', '1'));
 let screen = 'map';                       // tablet only: 'map' or 'order'
@@ -25,11 +26,11 @@ function total(d) {
   if (d.room && count(d)) s += fee();
   return s;
 }
-const mins = row => { const t = openedMs(row); return t ? Math.max(0, Math.floor((Date.now() - t) / 60000)) : 0; };
-const waitLabel = row => { const m = mins(row); return m < 1 ? 'just now' : m + ' min'; };
-const orderedLabel = row => { const m = mins(row); return m < 1 ? 'Ordered just now' : 'Ordered ' + m + ' min ago'; };
+const mins = row => { const o = openedMs(row); return o ? Math.max(0, Math.floor((Date.now() - o) / 60000)) : 0; };
+const waitLabel = row => { const m = mins(row); return m < 1 ? t('justNow') : t('minN', { m }); };
+const orderedLabel = row => { const m = mins(row); return m < 1 ? t('orderedNow') : t('orderedAgo', { m }); };
 function toServe(d) { let w = 0; for (const [id, q] of Object.entries(d.items)) w += Math.max(0, q - (d.served[id] || 0)); return w; }
-const who = d => [d.client && d.client.trim(), roomLabel(d) ? 'Room ' + roomLabel(d) : ''].filter(Boolean).join(' · ');
+const who = d => [d.client && d.client.trim(), roomLabel(d) ? t('room') + ' ' + roomLabel(d) : ''].filter(Boolean).join(' · ');
 
 // Typing (names, notes) is sent after a short pause, not at every letter
 const drafts = {};
@@ -69,30 +70,31 @@ export function mountWork(app) {
   app.innerHTML = `
   <div id="menuCol">
     <header id="hdr">
-      <div class="brand"><div class="wbox"><h1><img class="hlogo" src="/logo.png" alt="" width="30" height="30">Comande</h1><button class="wchip" id="waiterBtn" aria-label="Change waiter"><span id="waiterName"></span> ▾</button><span class="sync" id="sync" hidden></span></div>
-        <div class="right"><button class="hbtn" id="stockBtn"><svg><use href="#i-stock"/></svg><span class="t">Stock</span></button><button class="hbtn" id="histBtn"><svg><use href="#i-hist"/></svg><span class="t">History</span></button><button class="ibtn" id="moreBtn" aria-label="More"><svg><use href="#i-more"/></svg></button></div></div>
+      <div class="brand"><div class="wbox"><h1><img class="hlogo" src="/logo.png" alt="" width="30" height="30">Comande</h1><button class="wchip" id="waiterBtn" aria-label="${t('changeWaiter')}"><span id="waiterName"></span> ▾</button><span class="sync" id="sync" hidden></span></div>
+        <div class="right"><button class="hbtn" id="stockBtn"><svg><use href="#i-stock"/></svg><span class="t">${t('stock')}</span></button><button class="hbtn" id="histBtn"><svg><use href="#i-hist"/></svg><span class="t">${t('history')}</span></button><button class="ibtn lang" id="langBtn" aria-label="${t('language')}">${getLang().toUpperCase()}</button><button class="ibtn" id="moreBtn" aria-label="${t('more')}"><svg><use href="#i-more"/></svg></button></div></div>
       <div class="row">
-        <button class="tablebtn" id="tableBtn" aria-label="Choose table"><small id="tableLbl">Tavolo ▾</small><b id="tableNum">1</b></button>
-        <div class="search"><input id="q" type="search" placeholder="Find dish or drink…" autocomplete="off" aria-label="Search the menu"><button id="qx" aria-label="Clear search" hidden>×</button></div>
+        <button class="tablebtn" id="tableBtn" aria-label="${t('chooseTable')}"><small id="tableLbl">${t('tableBtn')}</small><b id="tableNum">1</b></button>
+        <div class="search"><input id="q" type="search" placeholder="${t('search')}" autocomplete="off" aria-label="${t('searchLabel')}"><button id="qx" aria-label="${t('clearSearch')}" hidden>×</button></div>
       </div>
       <nav class="tabs" id="tabs" aria-label="Menu sections"></nav>
     </header>
     <div id="mapView"></div>
-    <div id="menuArea"><main id="menu"></main><p class="empty-search" id="noRes">Nothing found. Try another word.</p></div>
+    <div id="menuArea"><main id="menu"></main><p class="empty-search" id="noRes">${t('nothingFound')}</p></div>
   </div>
   <aside id="orderPanel" aria-label="Current order"><div class="sh-head"><h3 id="opTitle"></h3></div><div class="sh-body" id="opBody"></div></aside>
-  <div class="bar empty" id="bar"><button id="barBtn"><span class="l"><small id="barTable">Tavolo 1</small><b id="barText">Tap a dish to add it</b></span><span class="r num" id="barTotal">€ 0,00</span></button></div>`;
+  <div class="bar empty" id="bar"><button id="barBtn"><span class="l"><small id="barTable">Tavolo 1</small><b id="barText">${t('tapDish')}</b></span><span class="r num" id="barTotal">€ 0,00</span></button></div>`;
 
   $('#menu').addEventListener('click', e => {
     const cell = e.target.closest('.cell'); if (!cell) return;
     if (e.target.closest('.minus')) add(cell.dataset.id, -1); else if (e.target.closest('.card')) add(cell.dataset.id, 1);
   });
-  $('#tableBtn').onclick = () => { if (isTablet()) { flushDrafts(); screen = 'map'; render(); scrollTo(0, 0); } else { renderTables(); openSheet(sheet('tableSheet', 'Choose table')); } };
+  $('#tableBtn').onclick = () => { if (isTablet()) { flushDrafts(); screen = 'map'; render(); scrollTo(0, 0); } else { renderTables(); openSheet(sheet('tableSheet', t('chooseTable'))); } };
   $('#barBtn').onclick = () => { const s = sheet('orderSheet'); openSheet(s); renderOrder(sheetBody(s), true); };
-  $('#stockBtn').onclick = () => { openSheet(sheet('stockSheet', 'Stock')); renderStock(); };
-  $('#histBtn').onclick = () => { openSheet(sheet('histSheet', 'History · today')); renderHistory(); };
+  $('#stockBtn').onclick = () => { openSheet(sheet('stockSheet', t('stock'))); renderStock(); };
+  $('#histBtn').onclick = () => { openSheet(sheet('histSheet', t('history') + ' · ' + (getLang() === 'it' ? 'oggi' : 'today'))); renderHistory(); };
   $('#waiterBtn').onclick = () => openWaiterSheet();
-  $('#moreBtn').onclick = () => { openSheet(sheet('moreSheet', 'More')); renderMore(); };
+  $('#moreBtn').onclick = () => { openSheet(sheet('moreSheet', t('more'))); renderMore(); };
+  $('#langBtn').onclick = () => toggleLang();
   const q = $('#q');
   q.addEventListener('input', doSearch);
   $('#qx').onclick = () => { q.value = ''; doSearch(); q.focus(); };
@@ -117,16 +119,16 @@ function buildMenu() {
     const sec = document.createElement('section'); sec.id = 's-' + s.id; sec.style.setProperty('--h', s.h);
     sec.innerHTML = `<h2>${s.it} <em>${s.en}</em></h2><div class="grid">${items.map(m => `
       <div class="cell" data-id="${esc(m.id)}" data-q="${esc((m.name_it + ' ' + m.name_en + ' ' + s.it).toLowerCase())}">
-      <button class="card" aria-label="Add ${esc(m.name_it)}"><span class="toprow"><span class="ic"><svg><use href="#i-${s.icon}"/></svg></span><span class="stk" hidden></span></span>
+      <button class="card" aria-label="${esc(t('add', { name: m.name_it }))}"><span class="toprow"><span class="ic"><svg><use href="#i-${s.icon}"/></svg></span><span class="stk" hidden></span></span>
       <span class="nm">${esc(m.name_it)}</span><span class="en">${esc(m.name_en)}</span><span class="pr num">${eur(m.price)}</span></button>
-      <span class="qty num"></span><button class="minus" aria-label="Remove one ${esc(m.name_it)}">−</button></div>`).join('')}</div>`;
+      <span class="qty num"></span><button class="minus" aria-label="${esc(t('removeOne', { name: m.name_it }))}">−</button></div>`).join('')}</div>`;
     menuEl.appendChild(sec);
-    const t = document.createElement('button'); t.className = 'tab'; t.dataset.s = s.id; t.style.setProperty('--h', s.h);
-    t.innerHTML = `<svg><use href="#i-${s.icon}"/></svg>${s.tab}<span class="dot num" hidden></span>`;
-    t.onclick = () => document.getElementById('s-' + s.id).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-    tabsEl.appendChild(t);
+    const tb = document.createElement('button'); tb.className = 'tab'; tb.dataset.s = s.id; tb.style.setProperty('--h', s.h);
+    tb.innerHTML = `<svg><use href="#i-${s.icon}"/></svg>${s.tab}<span class="dot num" hidden></span>`;
+    tb.onclick = () => document.getElementById('s-' + s.id).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    tabsEl.appendChild(tb);
   }
-  if (!S.menu.length) menuEl.innerHTML = '<p class="empty-order">Loading the menu… (needs internet the first time)</p>';
+  if (!S.menu.length) menuEl.innerHTML = `<p class="empty-order">${t('loadingMenu')}</p>`;
   activeId = ''; doSearch();
 }
 
@@ -135,10 +137,10 @@ function add(id, d, silent) {
   const m = ITEM()[id]; const name = m ? m.name_it : id;
   const before = stockLeft(id);
   let msg = `${d > 0 ? '+1' : '−1'} ${name}`;
-  if (d > 0 && before != null && before <= 0) msg = 'Finished! Check with the kitchen · ' + name;
-  else if (d > 0 && before === 1) msg = 'That was the last one · ' + name;
+  if (d > 0 && before != null && before <= 0) msg = t('finishedKitchen', { name });
+  else if (d > 0 && before === 1) msg = t('lastOne', { name });
   tableOp(cur, { t: 'item', id, d }); buzz();
-  if (!silent) toast(msg, 'Undo', () => { add(id, -d, true); toast('Undone'); });
+  if (!silent) toast(msg, t('undo'), () => { add(id, -d, true); toast(t('undone')); });
 }
 
 // ---------- render everything ----------
@@ -149,7 +151,7 @@ export function render() {
   document.body.classList.toggle('scr-order', isTablet() && screen === 'order');
   const row = tableRow(cur), d = tableData(cur);
   $('#tableNum').textContent = cur;
-  $('#tableLbl').textContent = isTablet() ? '‹ Tavoli' : 'Tavolo ▾';
+  $('#tableLbl').textContent = isTablet() ? t('tablesBack') : t('tableBtn');
   $$('.cell').forEach(c => { const q = d.items[c.dataset.id] || 0; c.classList.toggle('has', q > 0); c.querySelector('.qty').textContent = q || ''; });
   $$('.tab').forEach(tb => { const q = itemsOf(tb.dataset.s).reduce((a, m) => a + (d.items[m.id] || 0), 0); const dot = tb.querySelector('.dot'); dot.hidden = !q; dot.textContent = q; });
   updateBar(row, d); paintStock(); showWaiter(); showSync();
@@ -174,15 +176,15 @@ function updateBar(row, d) {
   const n = count(d), w = who(d);
   $('#bar').classList.toggle('empty', !n);
   $('#barTable').textContent = 'Tavolo ' + cur + (w ? ' · ' + w : '');
-  $('#barText').textContent = n ? `${n} item${n > 1 ? 's' : ''} · ${waitLabel(row)} · View order` : 'Tap a dish to add it';
+  $('#barText').textContent = n ? `${n === 1 ? t('items1') : t('itemsN', { n })} · ${waitLabel(row)} · ${t('viewOrder')}` : t('tapDish');
   $('#barTotal').textContent = eur(total(d));
 }
-function showWaiter() { $('#waiterName').textContent = S.waiter?.name || 'Who are you?'; $('#waiterBtn').classList.toggle('unset', !S.waiter); }
+function showWaiter() { $('#waiterName').textContent = S.waiter?.name || t('whoAreYou'); $('#waiterBtn').classList.toggle('unset', !S.waiter); }
 function showSync() {
   const el = $('#sync'), n = S.queue.length;
-  if (S.sync === 'error') { el.hidden = false; el.className = 'sync err'; el.textContent = 'Log in again'; }
-  else if (n && (S.sync === 'offline' || !navigator.onLine)) { el.hidden = false; el.className = 'sync'; el.textContent = `Offline · ${n} waiting`; }
-  else if (!navigator.onLine) { el.hidden = false; el.className = 'sync'; el.textContent = 'Offline'; }
+  if (S.sync === 'error') { el.hidden = false; el.className = 'sync err'; el.textContent = t('loginAgain'); }
+  else if (n && (S.sync === 'offline' || !navigator.onLine)) { el.hidden = false; el.className = 'sync'; el.textContent = t('offlineWaiting', { n }); }
+  else if (!navigator.onLine) { el.hidden = false; el.className = 'sync'; el.textContent = t('offline'); }
   else el.hidden = true;
 }
 
@@ -210,7 +212,7 @@ function doSearch() {
 // ---------- stock colors on cards ----------
 const alertN = () => Number(S.settings.stock_alert ?? 2);
 function level(n) { if (n == null) return ''; if (n <= 0) return 'out'; if (n <= alertN()) return 'warn'; return 'ok'; }
-const stockLabel = n => n <= 0 ? 'Finished' : n + ' left';
+const stockLabel = n => n <= 0 ? t('finished') : t('left', { n });
 function paintStock() {
   $$('.cell').forEach(c => {
     const n = stockLeft(c.dataset.id), lv = level(n), p = c.querySelector('.stk');
@@ -226,12 +228,12 @@ function renderOrder(body, force) {
   const n = cur, row = tableRow(n), d = tableData(n), k = count(d);
   const os = document.getElementById('orderSheet'); if (os) os.querySelector('h3').textContent = 'Tavolo ' + n;
   const ws = k ? toServe(d) : 0;
-  let h = (k ? `<p class="ostat"><span class="osWait">${orderedLabel(row)}</span>${row?.waiter_name ? ' · ' + esc(row.waiter_name) : ''} · ${ws ? `<b>${ws} to serve</b>` : '<b class="done">All served ✓</b>'}</p>` : '') +
-    `<div class="fields"><label>Client name<input id="cname" type="text" autocomplete="off" placeholder="e.g. Rossi" value="${esc(d.client)}"></label>
-    <label>Room<input id="croom" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 214" value="${esc(d.roomNo)}"></label></div>
-    <div class="bld" id="bld" role="group" aria-label="Building"><span>Building</span><button data-b="HCO" class="${d.building === 'HCO' ? 'on' : ''}"><b>HCO</b> Concordia</button><button data-b="DEP" class="${d.building === 'DEP' ? 'on' : ''}"><b>DEP</b> Dépendance</button></div>`;
+  let h = (k ? `<p class="ostat"><span class="osWait">${orderedLabel(row)}</span>${row?.waiter_name ? ' · ' + esc(row.waiter_name) : ''} · ${ws ? `<b>${t('toServe', { n: ws })}</b>` : `<b class="done">${t('allServed')}</b>`}</p>` : '') +
+    `<div class="fields"><label>${t('clientName')}<input id="cname" type="text" autocomplete="off" placeholder="${t('egClient')}" value="${esc(d.client)}"></label>
+    <label>${t('room')}<input id="croom" type="text" inputmode="numeric" autocomplete="off" placeholder="${t('egRoom')}" value="${esc(d.roomNo)}"></label></div>
+    <div class="bld" id="bld" role="group" aria-label="${t('building')}"><span>${t('building')}</span><button data-b="HCO" class="${d.building === 'HCO' ? 'on' : ''}"><b>HCO</b> Concordia</button><button data-b="DEP" class="${d.building === 'DEP' ? 'on' : ''}"><b>DEP</b> Dépendance</button></div>`;
   if (!k) {
-    body.innerHTML = h + `<p class="empty-order">No items yet.<br>${isTablet() ? 'Tap dishes on the menu on the left.' : 'Close this and tap dishes on the menu.'}</p>`;
+    body.innerHTML = h + `<p class="empty-order">${t('noItems')}<br>${isTablet() ? t('tapLeft') : t('closeAndTap')}</p>`;
     bindFields(body, n); return;
   }
   for (const s of SECTIONS) {
@@ -240,19 +242,19 @@ function renderOrder(body, force) {
     for (const m of lines) {
       const q = d.items[m.id], sv = d.served[m.id] || 0, nt = d.notes[m.id] || '', id = esc(m.id);
       h += `<div class="line${sv >= q ? ' served' : ''}"><div class="t">${esc(m.name_it)}<small>${esc(m.name_en)}</small></div>
-      <div class="step"><button data-d="-1" data-id="${id}" aria-label="One less">−</button><span class="n num">${q}</span><button data-d="1" data-id="${id}" aria-label="One more">+</button></div>
+      <div class="step"><button data-d="-1" data-id="${id}" aria-label="${t('oneLess')}">−</button><span class="n num">${q}</span><button data-d="1" data-id="${id}" aria-label="${t('oneMore')}">+</button></div>
       <div class="lt num">${q} × ${eur(m.price)} = <b>${eur(q * m.price)}</b></div>
-      <div class="lx"><button class="srv${sv >= q ? ' on' : ''}" data-srv="${id}">${sv >= q ? '✓ Served' : `Served ${sv}/${q}`}</button><button class="nb" data-nb="${id}">${nt ? 'Edit note' : '+ Note'}</button></div>
-      <input class="inote" data-inote="${id}" type="text" autocomplete="off" placeholder="Note for this dish (e.g. no pepper)" value="${esc(nt)}" ${nt ? '' : 'hidden'}></div>`;
+      <div class="lx"><button class="srv${sv >= q ? ' on' : ''}" data-srv="${id}">${sv >= q ? t('served') : t('servedXY', { a: sv, b: q })}</button><button class="nb" data-nb="${id}">${nt ? t('editNote') : t('addNote')}</button></div>
+      <input class="inote" data-inote="${id}" type="text" autocomplete="off" placeholder="${t('dishNote')}" value="${esc(nt)}" ${nt ? '' : 'hidden'}></div>`;
     }
   }
-  h += `<div class="opt"><label for="room">Room service<small>Supplemento servizio in camera ${eur(fee())}</small></label><input type="checkbox" id="room" ${d.room ? 'checked' : ''}></div>
-  <textarea id="note" placeholder="Notes for kitchen (e.g. no cheese, allergy)…">${esc(d.note)}</textarea>
+  h += `<div class="opt"><label for="room">${t('roomService')}<small>${t('roomFee', { fee: eur(fee()) })}</small></label><input type="checkbox" id="room" ${d.room ? 'checked' : ''}></div>
+  <textarea id="note" placeholder="${t('kitchenNote')}">${esc(d.note)}</textarea>
   <div class="total"><span>Totale</span><b class="num">${eur(total(d))}</b></div>
-  <div class="actions"><button class="btn" id="copyBtn">Copy order</button><button class="btn primary" id="closeBtn">Send to reception</button>
-  <button class="btn wide" id="recvBtn">Reception view (big text)</button></div>
-  <p class="status">“Send to reception” saves the order in History and copies it. Clients pay at reception.</p>
-  <button class="linkbtn" id="clearBtn">Delete order without saving</button>
+  <div class="actions"><button class="btn" id="copyBtn">${t('copyOrder')}</button><button class="btn primary" id="closeBtn">${t('sendReception')}</button>
+  <button class="btn wide" id="recvBtn">${t('receptionBig')}</button></div>
+  <p class="status">${t('sendHint')}</p>
+  <button class="linkbtn" id="clearBtn">${t('deleteNoSave')}</button>
   <div id="copyFallback"></div>`;
   const keep = body.scrollTop; body.innerHTML = h; body.scrollTop = keep;
   bindFields(body, n);
@@ -264,8 +266,8 @@ function renderOrder(body, force) {
   const note = $('#note', body); note.oninput = () => { const v = note.value; draft('note' + n, () => tableOp(n, { t: 'set', fields: { note: v } })); }; note.onblur = flushDrafts;
   $('#closeBtn', body).onclick = () => closeTable(n);
   $('#recvBtn', body).onclick = () => { flushDrafts(); receptionView({ ...snapshot(n), closedAt: 0 }); };
-  armed($('#clearBtn', body), 'Tap again to delete', () => { flushDrafts(); tableOp(n, { t: 'clear' }); toast('Tavolo ' + n + ' deleted'); if (isTablet()) screen = 'map'; else closeSheet(sheet('orderSheet')); render(); });
-  $('#copyBtn', body).onclick = async () => { flushDrafts(); if (await copyText(ticketText(snapshot(n)), $('#copyFallback', body))) toast('Order copied'); };
+  armed($('#clearBtn', body), t('tapAgainDelete'), () => { flushDrafts(); tableOp(n, { t: 'clear' }); toast(t('tableDeleted', { n })); if (isTablet()) screen = 'map'; else closeSheet(sheet('orderSheet')); render(); });
+  $('#copyBtn', body).onclick = async () => { flushDrafts(); if (await copyText(ticketText(snapshot(n)), $('#copyFallback', body))) toast(t('orderCopied')); };
 }
 
 function bindFields(body, n) {
@@ -284,14 +286,14 @@ async function closeTable(n) {
   const d = tableData(n); if (!count(d)) return;
   if (d.roomNo.trim() && !d.building) {
     const b = $('#bld'); if (b) { b.classList.add('need'); b.scrollIntoView({ block: 'center' }); }
-    toast('Choose the building: HCO or DEP'); return;
+    toast(t('chooseBuilding')); return;
   }
   const o = snapshot(n);
   copyText(ticketText(o));
   submitOrder(o);
   if (isTablet()) { screen = 'map'; scrollTo(0, 0); } else closeSheet(sheet('orderSheet'));
   render();
-  toast(`Tavolo ${n} sent · ${eur(o.total)} · order copied`, 'Show', () => receptionView(o), 6000);
+  toast(t('tableSent', { n, tot: eur(o.total) }), t('show'), () => receptionView(o), 6000);
 }
 
 export function openTable(n) {
@@ -307,21 +309,21 @@ function renderMap() {
   for (let i = 1; i <= TABLES; i++) {
     const row = v[i], d = tableData(i), k = count(d), m = mins(row), late = k && m >= LATE_MIN, ws = toServe(d);
     if (k) { open++; sum += total(d); }
-    tiles += `<button class="tile${k ? ' open' : ''}${late ? ' late' : ''}" data-t="${i}" aria-label="Table ${i}${k ? ', open' : ''}">
+    tiles += `<button class="tile${k ? ' open' : ''}${late ? ' late' : ''}" data-t="${i}" aria-label="${t('tableLabel', { n: i })}${k ? t('tableOpen') : ''}">
       <b class="n">${i}</b>${k ? `<span class="min num${late ? ' late' : ''}">${m}′</span>` : ''}
-      ${d.client ? `<span class="c">${esc(d.client)}</span>` : ''}${roomLabel(d) ? `<span class="m">Room ${esc(roomLabel(d))}</span>` : ''}
+      ${d.client ? `<span class="c">${esc(d.client)}</span>` : ''}${roomLabel(d) ? `<span class="m">${t('room')} ${esc(roomLabel(d))}</span>` : ''}
       ${k && row?.waiter_name ? `<span class="m">${esc(row.waiter_name)}</span>` : ''}
-      ${k ? `<span class="serve${ws ? '' : ' done'}">${ws ? ws + ' to serve' : 'All served ✓'}</span><span class="tot num">${eur(total(d))}</span>` : '<span class="free">Free</span>'}</button>`;
+      ${k ? `<span class="serve${ws ? '' : ' done'}">${ws ? t('toServe', { n: ws }) : t('allServed')}</span><span class="tot num">${eur(total(d))}</span>` : `<span class="free">${t('free')}</span>`}</button>`;
   }
-  $('#mapView').innerHTML = `<div class="maplegend"><span><i></i>Free</span><span><i class="o"></i>Open order</span><span><i class="l"></i>Waiting ${LATE_MIN}+ min</span>
-    <span style="margin-left:auto"><b class="num">${open}</b> open · <b class="num">${eur(sum)}</b> not sent yet</span></div><div class="map">${tiles}</div>`;
+  $('#mapView').innerHTML = `<div class="maplegend"><span><i></i>${t('free')}</span><span><i class="o"></i>${t('openOrder')}</span><span><i class="l"></i>${t('waitingMin', { m: LATE_MIN })}</span>
+    <span style="margin-left:auto">${t('openNotSent', { open: `<b class="num">${open}</b>`, sum: `<b class="num">${eur(sum)}</b>` })}</span></div><div class="map">${tiles}</div>`;
   $$('#mapView .tile').forEach(b => { b.onclick = () => openTable(b.dataset.t); });
 }
 
 // phone: choose table sheet
 function renderTables() {
   const s = sheet('tableSheet'); const v = views().tables;
-  let h = '<p class="hint">Gold tables have an open order. The number under it is the bill so far.</p><div class="tgrid">';
+  let h = `<p class="hint">${t('goldHint')}</p><div class="tgrid">`;
   for (let i = 1; i <= TABLES; i++) {
     const k = String(i), d = tableData(i), o = count(d) > 0, m = mins(v[i]);
     h += `<button class="tg${o ? ' open' : ''}${k === cur ? ' cur' : ''}" data-t="${k}"><b>${i}</b><small class="num">${o ? eurShort(total(d)) : ''}</small>${o ? `<small class="tw${m >= LATE_MIN ? ' late' : ''}">${m}′</small>` : ''}</button>`;
@@ -343,26 +345,26 @@ function dayText(list) {
   return out + `\nTOTALE GIORNO ${eur(list.reduce((a, o) => a + o.total, 0))} (${list.length} tavoli)`;
 }
 export function orderCard(o, opts = {}) {
-  return `<div class="ho${o.status === 'reopened' ? ' reopened' : ''}"><div class="ho-top"><div class="ho-t">Tavolo ${esc(o.table)}<small>${opts.withDay ? esc(dayLabel(o.day)) + ' · ' : ''}${hhmm(o.closedAt)} · ${esc(o.waiter || '—')}${o.pending ? '<span class="waitbadge">waiting to upload</span>' : ''}${o.status === 'reopened' ? '<span class="waitbadge">reopened · not counted</span>' : ''}${o.source === 'import' ? ' · old app' : ''}</small></div><div class="ho-tot num">${eur(o.total)}</div>
-    ${(o.client || roomLabel(o)) ? `<div class="ho-who">${esc(o.client || '—')}${roomLabel(o) ? `<span class="rm">Room ${esc(roomLabel(o))}</span>` : ''}</div>` : ''}</div>
+  return `<div class="ho${o.status === 'reopened' ? ' reopened' : ''}"><div class="ho-top"><div class="ho-t">Tavolo ${esc(o.table)}<small>${opts.withDay ? esc(dayLabel(o.day)) + ' · ' : ''}${hhmm(o.closedAt)} · ${esc(o.waiter || '—')}${o.pending ? `<span class="waitbadge">${t('waitingUpload')}</span>` : ''}${o.status === 'reopened' ? `<span class="waitbadge">${t('reopenedNotCounted')}</span>` : ''}${o.source === 'import' ? ' · ' + t('oldApp') : ''}</small></div><div class="ho-tot num">${eur(o.total)}</div>
+    ${(o.client || roomLabel(o)) ? `<div class="ho-who">${esc(o.client || '—')}${roomLabel(o) ? `<span class="rm">${t('room')} ${esc(roomLabel(o))}</span>` : ''}</div>` : ''}</div>
     <ul class="ho-items">${o.items.map(l => `<li><b>${l.qty}×</b> ${esc(l.it)}${l.note ? ` <i>(${esc(l.note)})</i>` : ''} <span class="num">· ${eur(l.qty * l.p)}</span></li>`).join('')}
-    ${o.roomService ? `<li><b>+</b> Room service · ${eur(o.roomFee || 10)}</li>` : ''}</ul>
+    ${o.roomService ? `<li><b>+</b> ${t('roomService')} · ${eur(o.roomFee || 10)}</li>` : ''}</ul>
     ${o.note ? `<div class="ho-note">Note: ${esc(o.note)}</div>` : ''}
-    <div class="ho-act"><button data-recv="${o.key}">Reception view</button>${!o.pending && o.status === 'closed' && opts.reopen !== false ? `<button data-reopen="${o.key}">Reopen</button>` : ''}${S.role === 'owner' && !o.pending ? `<button class="del" data-del="${o.key}">Delete</button>` : ''}</div></div>`;
+    <div class="ho-act"><button data-recv="${o.key}">${t('receptionView')}</button>${!o.pending && o.status === 'closed' && opts.reopen !== false ? `<button data-reopen="${o.key}">${t('reopen')}</button>` : ''}${S.role === 'owner' && !o.pending ? `<button class="del" data-del="${o.key}">${t('delete')}</button>` : ''}</div></div>`;
 }
 export function bindOrderCards(body, list, after) {
   const byKey = Object.fromEntries(list.map(o => [o.key, o]));
   body.querySelectorAll('[data-recv]').forEach(b => { b.onclick = () => receptionView(byKey[b.dataset.recv]); });
   body.querySelectorAll('[data-reopen]').forEach(b => { b.onclick = async () => {
     const o = byKey[b.dataset.reopen]; b.disabled = true;
-    try { await reopenOrder(o.id); closeSheet(sheet('histSheet')); toast(`Tavolo ${o.table} reopened`); if (location.hash === '#owner') location.hash = ''; openTable(o.table); }
-    catch (e) { toast(e.message); b.disabled = false; }
+    try { await reopenOrder(o.id); closeSheet(sheet('histSheet')); toast(t('tableReopened', { n: o.table })); if (location.hash === '#owner') location.hash = ''; openTable(o.table); }
+    catch (e) { toast(tServer(e.message)); b.disabled = false; }
   }; });
-  body.querySelectorAll('[data-del]').forEach(b => armed(b, 'Tap again', async () => {
+  body.querySelectorAll('[data-del]').forEach(b => armed(b, t('tapAgain'), async () => {
     const o = byKey[b.dataset.del];
-    const reason = prompt(`Delete the order of Tavolo ${o.table} (${eur(o.total)})?\nIt stays in the audit log.\nReason (optional):`, '');
+    const reason = prompt(t('deletePrompt', { n: o.table, tot: eur(o.total) }), '');
     if (reason === null) return;
-    try { await deleteOrder(o.id, reason); toast('Order deleted · saved in the audit log'); after && after(); } catch (e) { toast(e.message); }
+    try { await deleteOrder(o.id, reason); toast(t('orderDeleted')); after && after(); } catch (e) { toast(e.message); }
   }));
 }
 function renderHistory() {
@@ -373,55 +375,55 @@ function renderHistory() {
   const list = all.filter(o => histWaiter === 'all' || o.waiter === histWaiter);
   const cl = list.filter(o => o.status === 'closed');
   const sum = cl.reduce((a, o) => a + o.total, 0), items = cl.reduce((a, o) => a + o.items.reduce((b, l) => b + l.qty, 0), 0);
-  let h = `<div class="days">${['all', ...names].map(w => { const tot = counted.filter(o => w === 'all' || o.waiter === w).reduce((a, o) => a + o.total, 0); return `<button class="day${w === histWaiter ? ' on' : ''}" data-w="${esc(w)}">${w === 'all' ? 'Everyone' : esc(w)} · <span class="num">${eurShort(tot)}</span></button>`; }).join('')}</div>
-    <div class="sum"><small>Total · Today</small><b class="num">${eur(sum)}</b><span class="num">${cl.length} table${cl.length === 1 ? '' : 's'} sent · ${items} items</span></div>`;
-  if (S.role === 'owner') h += `<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="toOwner">Full history & dashboard →</button></div>`;
+  let h = `<div class="days">${['all', ...names].map(w => { const tot = counted.filter(o => w === 'all' || o.waiter === w).reduce((a, o) => a + o.total, 0); return `<button class="day${w === histWaiter ? ' on' : ''}" data-w="${esc(w)}">${w === 'all' ? t('everyone') : esc(w)} · <span class="num">${eurShort(tot)}</span></button>`; }).join('')}</div>
+    <div class="sum"><small>${t('totalToday')}</small><b class="num">${eur(sum)}</b><span class="num">${cl.length === 1 ? t('tablesSent1', { i: items }) : t('tablesSentN', { n: cl.length, i: items })}</span></div>`;
+  if (S.role === 'owner') h += `<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="toOwner">${t('fullHistory')}</button></div>`;
   const v = views().tables, open = Object.keys(v).filter(k => count(tableData(k))).sort((a, b) => a - b);
   if (open.length) {
-    h += '<div class="subhead">Not sent yet · not in total</div>';
+    h += `<div class="subhead">${t('notSentYet')}</div>`;
     open.forEach(n => { const d = tableData(n);
-      h += `<div class="ho open"><div class="ho-top"><div class="ho-t">Tavolo ${n}<small>${waitLabel(v[n])}${toServe(d) ? ` · ${toServe(d)} to serve` : ''}${v[n]?.waiter_name ? ' · ' + esc(v[n].waiter_name) : ''}</small></div><div class="ho-tot num">${eur(total(d))}</div>
-        ${who(d) ? `<div class="ho-who">${esc(d.client || '')}${roomLabel(d) ? `<span class="rm">Room ${esc(roomLabel(d))}</span>` : ''}</div>` : ''}</div>
-        <div class="ho-act"><button data-go="${n}">Go to table</button></div></div>`; });
+      h += `<div class="ho open"><div class="ho-top"><div class="ho-t">Tavolo ${n}<small>${waitLabel(v[n])}${toServe(d) ? ' · ' + t('toServe', { n: toServe(d) }) : ''}${v[n]?.waiter_name ? ' · ' + esc(v[n].waiter_name) : ''}</small></div><div class="ho-tot num">${eur(total(d))}</div>
+        ${who(d) ? `<div class="ho-who">${esc(d.client || '')}${roomLabel(d) ? `<span class="rm">${t('room')} ${esc(roomLabel(d))}</span>` : ''}</div>` : ''}</div>
+        <div class="ho-act"><button data-go="${n}">${t('goToTable')}</button></div></div>`; });
   }
-  h += '<div class="subhead">Sent to reception</div>';
-  if (!list.length) h += '<p class="empty-order">Nothing sent yet today.<br>When the order is complete, open it and tap “Send to reception”.</p>';
+  h += `<div class="subhead">${t('sentReception')}</div>`;
+  if (!list.length) h += `<p class="empty-order">${t('nothingSent')}</p>`;
   h += list.map(o => orderCard(o)).join('');
-  if (cl.length) h += `<div class="actions" style="grid-template-columns:1fr"><button class="btn primary" id="copyDay">Copy day summary</button></div><div id="dayFallback"></div>`;
+  if (cl.length) h += `<div class="actions" style="grid-template-columns:1fr"><button class="btn primary" id="copyDay">${t('copyDay')}</button></div><div id="dayFallback"></div>`;
   h += `<p class="status">${syncText()}</p>`;
   const keep = body.scrollTop; body.innerHTML = h; body.scrollTop = keep;
   body.querySelectorAll('[data-w]').forEach(b => { b.onclick = () => { histWaiter = b.dataset.w; renderHistory(); }; });
   body.querySelectorAll('[data-go]').forEach(b => { b.onclick = () => { closeSheet(s); openTable(b.dataset.go); if (!isTablet()) { const os = sheet('orderSheet'); openSheet(os); renderOrder(sheetBody(os), true); } }; });
   bindOrderCards(body, list);
   const to = $('#toOwner', body); if (to) to.onclick = () => { closeSheet(s); goOwner(); };
-  const cd = $('#copyDay', body); if (cd) cd.onclick = async () => { if (await copyText(dayText(cl), $('#dayFallback', body))) toast('Day summary copied'); };
+  const cd = $('#copyDay', body); if (cd) cd.onclick = async () => { if (await copyText(dayText(cl), $('#dayFallback', body))) toast(t('dayCopied')); };
 }
 export function syncText() {
   const n = S.queue.length;
-  if (S.sync === 'error') return 'Your login expired: open More → Log out, then log in again. ' + (n ? n + ' changes are kept on this device.' : '');
-  if (n) return `${n} change${n > 1 ? 's' : ''} waiting to upload. ${navigator.onLine ? 'Uploading…' : 'No internet: they are kept on this device and sent when internet is back.'}`;
-  return navigator.onLine ? 'Everything saved online. Safe even if you close the app.' : 'No internet now. New changes are kept on this device.';
+  if (S.sync === 'error') return t('syncExpired') + (n ? ' ' + t('syncKept', { n }) : '');
+  if (n) return `${n === 1 ? t('syncWaiting1') : t('syncWaitingN', { n })} ${navigator.onLine ? t('uploading') : t('noNetKept')}`;
+  return navigator.onLine ? t('allSaved') : t('noNetNow');
 }
 
 // ---------- stock ----------
 function renderStock() {
   const s = sheet('stockSheet'), body = sheetBody(s);
-  let h = `<p class="hint">Tap + or − to set how many portions are left. Each dish you add to an order takes one away by itself.</p>
-  <div class="legend"><span class="stk ok">In stock</span><span class="stk warn">Almost finished</span><span class="stk out">Finished</span></div>
-  <div class="srow"><div class="t">Orange when left is<small>“Almost finished” warning</small></div>
-    <div class="step"><button data-alert="-1" aria-label="Lower">−</button><span class="n num">${alertN()}</span><button data-alert="1" aria-label="Higher">+</button></div></div>`;
+  let h = `<p class="hint">${t('stockHint')}</p>
+  <div class="legend"><span class="stk ok">${t('inStock')}</span><span class="stk warn">${t('almostFinished')}</span><span class="stk out">${t('finished')}</span></div>
+  <div class="srow"><div class="t">${t('orangeWhen')}<small>${t('almostWarn')}</small></div>
+    <div class="step"><button data-alert="-1" aria-label="${t('lower')}">−</button><span class="n num">${alertN()}</span><button data-alert="1" aria-label="${t('higher')}">+</button></div></div>`;
   for (const sec of SECTIONS.filter(x => x.food)) {
     h += `<div class="grp">${sec.it}</div>`;
     for (const m of itemsOf(sec.id)) {
       const n = stockLeft(m.id), lv = level(n), id = esc(m.id);
-      h += `<div class="srow"><div class="t">${esc(m.name_it)}<small>${lv ? `<span class="stk ${lv}">${stockLabel(n)}</span> <button class="stop" data-stop="${id}">stop counting</button>` : 'Not counted'}</small></div>
-        <div class="step"><button data-s="${id}" data-d="-1" aria-label="One less">−</button><span class="${lv ? 'n num' : 'off'}">${lv ? Math.max(0, n) : '—'}</span><button data-s="${id}" data-d="1" aria-label="One more">+</button></div></div>`;
+      h += `<div class="srow"><div class="t">${esc(m.name_it)}<small>${lv ? `<span class="stk ${lv}">${stockLabel(n)}</span> <button class="stop" data-stop="${id}">${t('stopCounting')}</button>` : t('notCounted')}</small></div>
+        <div class="step"><button data-s="${id}" data-d="-1" aria-label="${t('oneLess')}">−</button><span class="${lv ? 'n num' : 'off'}">${lv ? Math.max(0, n) : '—'}</span><button data-s="${id}" data-d="1" aria-label="${t('oneMore')}">+</button></div></div>`;
     }
   }
-  h += `<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="newCount">Start new day count</button></div>
-  <p class="status">New day: tap this (all counts go back to “not counted”), then set today's numbers.</p>`;
+  h += `<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="newCount">${t('newDayCount')}</button></div>
+  <p class="status">${t('newDayHint')}</p>`;
   const keep = body.scrollTop; body.innerHTML = h; body.scrollTop = keep;
-  body.querySelectorAll('[data-alert]').forEach(b => { b.onclick = () => setAlert(Math.max(0, Math.min(10, alertN() + +b.dataset.alert))).catch(e => toast('Needs internet: ' + e.message)); });
+  body.querySelectorAll('[data-alert]').forEach(b => { b.onclick = () => setAlert(Math.max(0, Math.min(10, alertN() + +b.dataset.alert))).catch(e => toast(t('needsInternet', { msg: e.message }))); });
   body.querySelectorAll('[data-s]').forEach(b => { b.onclick = () => {
     const id = b.dataset.s, n = stockLeft(id), d = +b.dataset.d;
     if (n == null) { if (d > 0) stockSet(id, 1); return; }
@@ -429,19 +431,19 @@ function renderStock() {
   }; });
   body.querySelectorAll('[data-stop]').forEach(b => { b.onclick = () => stockSet(b.dataset.stop, null); });
   const nb = $('#newCount', body); nb.classList.add('warn');
-  armed(nb, 'Tap again to start new count', () => { stockNewDay(); toast('New count started'); });
+  armed(nb, t('tapAgainCount'), () => { stockNewDay(); toast(t('countStarted')); });
 }
 
 // ---------- waiter switch with PIN ----------
 export function pinPicker(container, onDone) {
   const list = S.waiters.filter(w => w.active);
-  container.innerHTML = `<p class="hint">Choose your name, then type your 4-number PIN.</p>
-    <div class="pinwho">${list.map(w => `<button class="wpick${w.id === S.waiter?.id ? ' on' : ''}" data-w="${w.id}">${esc(w.name)}</button>`).join('') || '<p class="hint">No waiters yet. The owner adds them in Owner → Waiters.</p>'}</div>`;
+  container.innerHTML = `<p class="hint">${t('pinHint')}</p>
+    <div class="pinwho">${list.map(w => `<button class="wpick${w.id === S.waiter?.id ? ' on' : ''}" data-w="${w.id}">${esc(w.name)}</button>`).join('') || `<p class="hint">${t('noWaiters')}</p>`}</div>`;
   container.querySelectorAll('[data-w]').forEach(b => { b.onclick = () => pad(list.find(w => w.id === b.dataset.w)); });
   function pad(w) {
     let pin = '';
     container.innerHTML = `<div class="pinpad"><h4>${esc(w.name)}</h4><div class="dots">${'<i></i>'.repeat(4)}</div><p class="err" style="text-align:center"></p>
-      <div class="keys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(k => `<button data-k="${k}">${k}</button>`).join('')}<button class="ghost" data-back>‹ Names</button><button data-k="0">0</button><button class="ghost" data-del aria-label="Delete digit">⌫</button></div></div>`;
+      <div class="keys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(k => `<button data-k="${k}">${k}</button>`).join('')}<button class="ghost" data-back>${t('names')}</button><button data-k="0">0</button><button class="ghost" data-del aria-label="${t('delDigit')}">⌫</button></div></div>`;
     const dots = container.querySelectorAll('.dots i'), err = container.querySelector('.err');
     const show = () => dots.forEach((d, i) => d.classList.toggle('on', i < pin.length));
     container.querySelector('[data-back]').onclick = () => pinPicker(container, onDone);
@@ -449,13 +451,13 @@ export function pinPicker(container, onDone) {
     container.querySelectorAll('[data-k]').forEach(b => { b.onclick = async () => {
       if (pin.length >= 4) return; pin += b.dataset.k; show(); err.textContent = '';
       if (pin.length < 4) return;
-      try { await waiterLogin(w, pin); onDone(); toast('Hi ' + w.name + '!'); }
-      catch (e) { err.textContent = e.message; pin = ''; show(); const p = container.querySelector('.pinpad'); p.classList.remove('shake'); void p.offsetWidth; p.classList.add('shake'); }
+      try { await waiterLogin(w, pin); langForWaiter(w.id); onDone(); toast(t('hi', { name: w.name })); }
+      catch (e) { err.textContent = tServer(e.message); pin = ''; show(); const p = container.querySelector('.pinpad'); p.classList.remove('shake'); void p.offsetWidth; p.classList.add('shake'); }
     }; });
   }
 }
 export function openWaiterSheet() {
-  const s = sheet('waiterSheet', 'Who is working?'); openSheet(s);
+  const s = sheet('waiterSheet', t('whoWorking')); openSheet(s);
   const done = () => { closeSheet(s); render(); };
   pinPicker(sheetBody(s), done);
   // new waiters added by the owner appear at once
@@ -465,29 +467,32 @@ export function openWaiterSheet() {
 // ---------- More: theme, owner, lock, install, log out ----------
 let installEvt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
-export function setTheme(t) {
-  LS.set('theme', t);
-  if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+export function setTheme(x) {
+  LS.set('theme', x);
+  if (x === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = x;
 }
+export const toggleLang = () => chooseLang(getLang() === 'it' ? 'en' : 'it', S.waiter?.id);
 function renderMore() {
   const s = sheet('moreSheet'), body = sheetBody(s), th = LS.get('theme', 'auto');
   body.innerHTML = `
-    <div class="grp">Theme</div><div class="seg" style="grid-template-columns:repeat(3,1fr)">${['auto', 'light', 'dark'].map(t => `<button data-th="${t}" class="${t === th ? 'on' : ''}">${t === 'auto' ? 'Auto' : t === 'light' ? 'Light' : 'Dark'}</button>`).join('')}</div>
-    <div class="grp">Waiter</div>
-    <div class="actions"><button class="btn" id="mSwitch">Switch waiter</button><button class="btn" id="mLock">Lock (${esc(S.waiter?.name || '—')} out)</button></div>
-    ${S.role === 'owner' ? '<div class="grp">Owner</div><div class="actions" style="grid-template-columns:1fr"><button class="btn primary" id="mOwner">Owner dashboard</button></div>' : ''}
-    ${installEvt ? '<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="mInstall">Install the app on this device</button></div>' : ''}
-    <div class="grp">Connection</div><p class="hint">${syncText()}</p>
-    ${S.queue.length ? '<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="mFlush">Try to upload now</button></div>' : ''}
-    <p class="hint">This device is logged in as <b>${esc(S.email)}</b> (${esc(S.role)}).</p>
-    <button class="linkbtn" id="mLogout">Log out this device</button>`;
+    <div class="grp">${t('language')}</div><div class="seg">${[['it', 'Italiano'], ['en', 'English']].map(([l, n]) => `<button data-lang="${l}" class="${l === getLang() ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <div class="grp">${t('theme')}</div><div class="seg" style="grid-template-columns:repeat(3,1fr)">${['auto', 'light', 'dark'].map(x => `<button data-th="${x}" class="${x === th ? 'on' : ''}">${t(x)}</button>`).join('')}</div>
+    <div class="grp">${t('waiter')}</div>
+    <div class="actions"><button class="btn" id="mSwitch">${t('switchWaiter')}</button><button class="btn" id="mLock">${esc(t('lock', { name: S.waiter?.name || '—' }))}</button></div>
+    ${S.role === 'owner' ? `<div class="grp">${t('owner')}</div><div class="actions" style="grid-template-columns:1fr"><button class="btn primary" id="mOwner">${t('ownerDashboard')}</button></div>` : ''}
+    ${installEvt ? `<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="mInstall">${t('install')}</button></div>` : ''}
+    <div class="grp">${t('connection')}</div><p class="hint">${syncText()}</p>
+    ${S.queue.length ? `<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="mFlush">${t('tryUpload')}</button></div>` : ''}
+    <p class="hint">${t('loggedInAs', { email: esc(S.email), role: esc(S.role) })}</p>
+    <button class="linkbtn" id="mLogout">${t('logoutDevice')}</button>`;
+  body.querySelectorAll('[data-lang]').forEach(b => { b.onclick = () => { closeSheet(s); chooseLang(b.dataset.lang, S.waiter?.id); }; });
   body.querySelectorAll('[data-th]').forEach(b => { b.onclick = () => { setTheme(b.dataset.th); renderMore(); }; });
   $('#mSwitch', body).onclick = () => { closeSheet(s); openWaiterSheet(); };
-  $('#mLock', body).onclick = () => { closeSheet(s); waiterLogout(); };
+  $('#mLock', body).onclick = () => { closeSheet(s); waiterLogout(); langForWaiter(null); };
   const mo = $('#mOwner', body); if (mo) mo.onclick = () => { closeSheet(s); goOwner(); };
   const mi = $('#mInstall', body); if (mi) mi.onclick = async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; renderMore(); };
-  const mf = $('#mFlush', body); if (mf) mf.onclick = () => { flush(); toast('Uploading…'); };
-  armed($('#mLogout', body), 'Tap again to log out', () => logout());
+  const mf = $('#mFlush', body); if (mf) mf.onclick = () => { flush(); toast(t('uploading')); };
+  armed($('#mLogout', body), t('tapAgainLogout'), () => logout());
 }
 
 // minutes on tiles/bars move on their own
