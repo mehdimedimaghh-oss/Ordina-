@@ -6,17 +6,17 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
-      includeAssets: ['icon.svg', 'apple-touch-icon.png', 'robots.txt'],
+      includeAssets: ['favicon.png', 'logo.png', 'terrace.jpg', 'apple-touch-icon.png', 'robots.txt'],
       manifest: {
         name: 'Comande Pranzo',
         short_name: 'Comande',
-        description: 'Lunch orders · Hotel Concordia & Fugari Bistrot',
+        description: 'Lunch orders · Concordia Hotel & Private Dependance · Fugari Bistrot',
         lang: 'en',
         start_url: '/',
         scope: '/',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#F4F5F8',
+        background_color: '#1E1E1E',
         theme_color: '#14224A',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -25,7 +25,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
         navigateFallback: '/index.html',
         // never cache the database: orders must always be live
         runtimeCaching: [

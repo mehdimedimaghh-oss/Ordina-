@@ -69,7 +69,7 @@ export function mountWork(app) {
   app.innerHTML = `
   <div id="menuCol">
     <header id="hdr">
-      <div class="brand"><div class="wbox"><h1>Comande</h1><button class="wchip" id="waiterBtn" aria-label="Change waiter"><span id="waiterName"></span> ▾</button><span class="sync" id="sync" hidden></span></div>
+      <div class="brand"><div class="wbox"><h1><img class="hlogo" src="/logo.png" alt="" width="30" height="30">Comande</h1><button class="wchip" id="waiterBtn" aria-label="Change waiter"><span id="waiterName"></span> ▾</button><span class="sync" id="sync" hidden></span></div>
         <div class="right"><button class="hbtn" id="stockBtn"><svg><use href="#i-stock"/></svg><span class="t">Stock</span></button><button class="hbtn" id="histBtn"><svg><use href="#i-hist"/></svg><span class="t">History</span></button><button class="ibtn" id="moreBtn" aria-label="More"><svg><use href="#i-more"/></svg></button></div></div>
       <div class="row">
         <button class="tablebtn" id="tableBtn" aria-label="Choose table"><small id="tableLbl">Tavolo ▾</small><b id="tableNum">1</b></button>

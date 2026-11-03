@@ -12,6 +12,7 @@ export function mountOwner(app) {
   root = app;
   app.innerHTML = `<div class="own">
     <div class="topbar"><button class="hbtn" id="backTables">‹ Tables</button><h1>Owner</h1><button class="hbtn" id="ownTheme">Theme</button></div>
+    <div class="obanner"><img class="ph" src="/terrace.jpg" alt="The restaurant terrace at night"><div class="ov"><img src="/logo.png" alt="" width="64" height="64"><span>Ristorante Concordia<small>Fugari Bistrot · Lunch orders</small></span></div></div>
     <nav class="otabs">${[['dash', 'Dashboard'], ['menu', 'Menu & prices'], ['waiters', 'Waiters'], ['import', 'Import old history'], ['log', 'Audit log']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
     <div id="ownBody"></div></div>`;
   $('#backTables').onclick = () => { location.hash = ''; };
@@ -98,7 +99,7 @@ function stats(el, orders, rg, body) {
     <div class="kpis"><div class="kpi main"><small>Total</small><b class="num">${eur(sum)}</b></div><div class="kpi"><small>Tables</small><b class="num">${ok.length}</b></div>
       <div class="kpi"><small>Average table</small><b class="num">${eur(ok.length ? sum / ok.length : 0)}</b></div><div class="kpi"><small>Items · room service</small><b class="num">${items} · ${rs}</b></div></div>
     <div style="height:14px"></div>${cols}${cols ? '<div style="height:14px"></div>' : ''}
-    <div class="two"><div class="panel"><h3>Total per waiter</h3><div class="hbars">${wl.map(([w, v]) => `<div class="hb" title="${esc(w)}: ${eur(v.t)}, ${v.n} tables"><span class="nm2">${esc(w)}</span><span class="track"><span class="fill" style="display:block;width:${(v.t / maxW * 100).toFixed(1)}%"></span></span><span class="v num">${eur(v.t)}<small>${v.n} tables</small></span></div>`).join('') || '<p class="hint">No orders.</p>'}</div></div>
+    <div class="two"><div class="panel"><h3>Total per waiter</h3><div class="hbars">${wl.map(([w, v]) => `<div class="hb" title="${esc(w)}: ${eur(v.t)}, ${v.n} table${v.n === 1 ? "" : "s"}"><span class="nm2">${esc(w)}</span><span class="track"><span class="fill" style="display:block;width:${(v.t / maxW * 100).toFixed(1)}%"></span></span><span class="v num">${eur(v.t)}<small>${v.n} table${v.n === 1 ? "" : "s"}</small></span></div>`).join('') || '<p class="hint">No orders.</p>'}</div></div>
       <div class="panel"><h3>Best-selling dishes</h3><div class="hbars">${il.map(([n, v]) => `<div class="hb" title="${esc(n)}: ${v.q} sold, ${eur(v.r)}"><span class="nm2">${esc(n)}</span><span class="track"><span class="fill" style="display:block;width:${(v.q / maxI * 100).toFixed(1)}%"></span></span><span class="v num">${v.q}×<small>${eur(v.r)}</small></span></div>`).join('') || '<p class="hint">No orders.</p>'}</div></div></div>
     <div style="height:14px"></div>
     <div class="panel"><div class="tools" style="justify-content:space-between"><h3 style="margin:0">Orders (${orders.length})</h3><div class="tools"><button class="btn primary" id="xlsx">Export Excel</button><button class="btn" id="csv">Export CSV</button></div></div>

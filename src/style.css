@@ -422,3 +422,19 @@ body.tablet.scr-order .toast{left:calc((100vw - var(--pw)) / 2)}
 .toast{width:max-content;border-radius:16px}
 .toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .toast button{flex:none}
+
+/* ---------- Concordia logo + terrace photo ---------- */
+.bgphoto{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(8,12,26,.45),rgba(8,12,26,.78)),url(/terrace.jpg) center 70%/cover no-repeat #1E1E1E}
+.gate{position:relative;z-index:1}
+.gate .card2{box-shadow:0 20px 60px rgba(0,0,0,.45);border-color:transparent}
+.glogo{display:block;width:104px;height:104px;margin:-74px auto 8px;border-radius:50%;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.gate{padding-top:72px}
+.brand h1{display:flex;align-items:center;gap:8px}
+.hlogo{width:30px;height:30px;border-radius:50%;flex:none}
+.obanner{position:relative;height:150px;border-radius:18px;overflow:hidden;margin-bottom:14px;background:#1E1E1E}
+.obanner .ph{width:100%;height:100%;object-fit:cover;object-position:center 40%;display:block}
+.obanner .ov{position:absolute;inset:0;display:flex;align-items:center;gap:14px;padding:0 20px;background:linear-gradient(90deg,rgba(8,12,26,.8),rgba(8,12,26,.1) 70%);color:#fff}
+.obanner .ov img{width:64px;height:64px;border-radius:50%}
+.obanner .ov span{font-family:var(--display);font-size:24px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
+.obanner .ov small{display:block;font-family:var(--body);font-size:12px;letter-spacing:.14em;color:#E7C77E;font-weight:700;margin-top:4px}
+@media (max-width:560px){.hlogo{width:26px;height:26px}.obanner{height:110px}.obanner .ov span{font-size:18px}}

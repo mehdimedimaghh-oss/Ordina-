@@ -46,7 +46,7 @@ function route() {
 }
 
 function gate(inner, sub) {
-  return `<div class="gate"><div class="card2"><h1>Comande</h1><p class="sub">${esc(sub || 'Hotel Concordia · Fugari Bistrot')}</p>${inner}</div></div>`;
+  return `<div class="bgphoto" aria-hidden="true"></div><div class="gate"><div class="card2"><img class="glogo" src="/logo.png" alt="Concordia Hotel &amp; Private Dependance" width="104" height="104"><h1>Comande</h1><p class="sub">${esc(sub || 'Ristorante Concordia · Fugari Bistrot')}</p>${inner}</div></div>`;
 }
 
 function loginScreen() {
