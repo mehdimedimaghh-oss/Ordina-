@@ -231,7 +231,11 @@ async function afterLogin() {
 
 export async function login(email, password) {
   const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
-  if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Wrong email or password' : error.message);
+  if (error) {
+    if (error.message === 'Invalid login credentials') throw new Error('Wrong email or password');
+    if (/email logins are disabled/i.test(error.message)) throw new Error('Email login is turned off in Supabase. Owner: Supabase → Authentication → Sign In / Providers → Email → turn it ON (keep "Allow new users to sign up" OFF).');
+    throw new Error(error.message);
+  }
   S.session = data.session;
   await afterLogin();
   if (S.role === 'none') throw new Error('This login has no role yet. The owner must give it the role "staff" or "owner" (see SETUP.md, step 4).');
