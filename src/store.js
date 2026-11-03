@@ -2,9 +2,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { today, ms, uid as newUid } from './data.js';
 
-const URL = import.meta.env.VITE_SUPABASE_URL;
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-export const STAFF_EMAIL = import.meta.env.VITE_STAFF_EMAIL || '';
+const URL = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '');
+const KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+export const STAFF_EMAIL = (import.meta.env.VITE_STAFF_EMAIL || '').trim();
 export const configured = !!(URL && KEY);
 export const sb = configured ? createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'ordina-auth' } }) : null;
 
