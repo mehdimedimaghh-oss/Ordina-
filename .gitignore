@@ -1,0 +1,12 @@
+node_modules
+dist
+dev-dist
+.env
+.env.*
+!.env.example
+# personal data of clients: never put it in git
+history-export.json
+*.history.json
+supabase/.temp
+supabase/.branches
+.vercel
