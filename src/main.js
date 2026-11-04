@@ -22,6 +22,7 @@ function screenFor() {
   if (!S.session) return 'login';
   if (S.role !== 'owner' && S.role !== 'staff' && S.role !== 'reception') return S.role ? 'norole' : 'loading';
   if (S.role === 'reception') return 'reception';
+  if (location.hash === '#reception' && S.role === 'owner') return 'reception';   // the owner can open the reception screen too
   if (location.hash === '#owner' && S.role === 'owner') return 'owner';
   if (!S.waiter) return 'pin';
   return 'work';
@@ -65,7 +66,7 @@ function loginScreen() {
     app.querySelectorAll('[data-k]').forEach(b => { b.onclick = () => { kind = b.dataset.k; draw(); }; });
     $('#lf').onsubmit = async e => {
       e.preventDefault(); const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true; $('#lerr').textContent = '';
-      try { await login(kind === 'staff' && STAFF_EMAIL ? STAFF_EMAIL : $('#le').value, $('#lp').value); if (kind === 'owner') location.hash = '#owner'; route(); }
+      try { await login(kind === 'staff' && STAFF_EMAIL ? STAFF_EMAIL : $('#le').value, $('#lp').value); if (kind === 'owner') location.hash = '#owner'; if (kind === 'reception' && S.role === 'owner') location.hash = '#reception'; route(); }
       catch (er) { $('#lerr').textContent = er.message; btn.disabled = false; }
     };
   };

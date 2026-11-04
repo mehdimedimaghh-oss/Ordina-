@@ -14,7 +14,7 @@ export function mountOwner(app) {
   app.innerHTML = `<div class="own">
     <div class="topbar"><button class="hbtn" id="backTables">‹ Tables</button><h1>Owner</h1><button class="hbtn" id="ownTheme">Theme</button></div>
     <div class="obanner"><img class="ph" src="/terrace.jpg" alt="The restaurant terrace at night"><div class="ov"><img src="/logo.png" alt="" width="64" height="64"><span>Ristorante Concordia<small>Fugari Bistrot · Lunch orders</small></span></div></div>
-    <nav class="otabs">${[['dash', 'Dashboard'], ['menu', 'Menu & prices'], ['waiters', 'Waiters'], ['rooftop', '<svg class="oti" aria-hidden="true"><use href="#i-stock"/></svg>3D Live Rooftop'], ['sheet', 'Reception sheet'], ['import', 'Import old history'], ['log', 'Audit log']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
+    <nav class="otabs">${[['dash', 'Dashboard'], ['menu', 'Menu & prices'], ['waiters', 'Waiters'], ['rooftop', '<svg class="oti" aria-hidden="true"><use href="#i-stock"/></svg>3D Live Rooftop'], ['recv', '🔔 Reception screen'], ['sheet', 'Google Sheet (optional)'], ['import', 'Import old history'], ['log', 'Audit log']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
     <div id="ownBody"></div></div>`;
   $('#backTables').onclick = () => { location.hash = ''; };
   $('#ownTheme').onclick = () => { const t = { auto: 'light', light: 'dark', dark: 'auto' }[localStorage.getItem('ordina:theme')?.replace(/"/g, '') || 'auto']; setTheme(t); toast('Theme: ' + t); };
@@ -25,6 +25,7 @@ export function ownerRender() { if (root && tab === 'menu' && !root.contains(doc
 function show() {
   const body = $('#ownBody');
   if (tab === 'rooftop') { openRooftopPage(); return; }
+  if (tab === 'recv') { tab = 'dash'; location.hash = '#reception'; return; }   // the owner opens the live reception screen
   ({ dash: dashboard, menu: menuEditor, waiters, sheet: receptionSheet, import: importer, log: auditLog })[tab](body);
 }
 
@@ -296,7 +297,15 @@ async function updateAppNow() {
 // ================= Reception sheet (Google Sheets) =================
 async function receptionSheet(body) {
   body.innerHTML = '<p class="hint">Loading…</p>';
-  let st; try { st = await sheetStatus(); } catch (e) { body.innerHTML = `<p class="err">${esc(e.message)}${/function|schema/i.test(e.message) ? ' — first run the file supabase/migrations/20261104000000_reception_sheet.sql in Supabase (RECEPTION-SHEET.md, step 1).' : ''}</p>`; return; }
+  let st; try { st = await sheetStatus(); } catch (e) {
+    // the Google Sheet is optional: when its SQL file was never installed, explain calmly (no red error)
+    if (/function|schema|does not exist|could not find/i.test(e.message)) {
+      body.innerHTML = `<div class="panel"><h3>Google Sheet for reception (optional)</h3>
+        <p class="hint">Not set up — and you don't need it: the <b>Reception screen</b> already shows every order to reception live, with a pop-up and a sound (button <b>🔔 Reception screen</b> above).</p>
+        <p class="hint">Only if you also want a Google Sheet copy: follow RECEPTION-SHEET.md (step 1 installs supabase/migrations/20261104000000_reception_sheet.sql).</p></div>`;
+    } else body.innerHTML = `<p class="err">${esc(e.message)}</p>`;
+    return;
+  }
   const last = (st.last || []).map(r => {
     const good = r.status_code >= 200 && r.status_code < 400;
     return `<li>${new Date(r.created).toLocaleString('it-IT', { timeZone: 'Europe/Rome' })} · ${good ? '<b style="color:var(--ok)">✓ arrived</b>' : `<b style="color:var(--danger)">✗ ${esc(r.status_code || '')} ${esc(r.error_msg || 'not arrived')}</b>`}</li>`;

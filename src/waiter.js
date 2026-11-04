@@ -37,6 +37,9 @@ const who = d => [d.client && d.client.trim(), roomLabel(d) ? t('room') + ' ' + 
 const drafts = {};
 function draft(key, fn) { clearTimeout(drafts[key]?.t); drafts[key] = { fn, t: setTimeout(() => { delete drafts[key]; fn(); }, 600) }; }
 export function flushDrafts() { for (const k of Object.keys(drafts)) { clearTimeout(drafts[k].t); const f = drafts[k].fn; delete drafts[k]; f(); } }
+// never lose typed letters: save them when the app goes to the background, closes, or reloads for an update
+addEventListener('pagehide', flushDrafts);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushDrafts(); });
 
 // History entries in one shape (server rows and orders still waiting to upload)
 export function fromServer(o) {

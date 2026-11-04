@@ -73,7 +73,7 @@ function draw() {
         <button class="hbtn" id="rcpLang">${getLang() === 'it' ? 'EN' : 'IT'}</button>
         <button class="hbtn" id="rcpSound">${t('sound')}: ${soundOn() ? t('on') : t('off')}</button>
         <button class="hbtn" id="rcpXlsx">${t('downloadExcel')}</button>
-        <button class="hbtn" id="rcpExit">${t('logOut')}</button>
+        <button class="hbtn" id="rcpExit">${S.role === 'owner' ? '‹ ' + t('ownerDashboard') : t('logOut')}</button>
       </div>
     </div>
     ${started ? '' : `<button class="rcp-start" id="recvStart"><b>${t('startRecv')}</b><span>${t('startHint')}</span></button>`}
@@ -85,7 +85,10 @@ function draw() {
   $('#rcpLang').onclick = () => chooseLang(getLang() === 'it' ? 'en' : 'it', null);
   $('#rcpSound').onclick = () => { LS.set('recvSound', !soundOn()); if (soundOn()) chime(); draw(); receptionRender(); };
   $('#rcpXlsx').onclick = exportDay;
-  $('#rcpExit').onclick = () => { if (confirm(t('exitRecv'))) { leaveReception(); logout(); } };
+  $('#rcpExit').onclick = () => {
+    if (S.role === 'owner') { leaveReception(); location.hash = '#owner'; return; }   // the owner just goes back to the dashboard
+    if (confirm(t('exitRecv'))) { leaveReception(); logout(); }
+  };
   receptionRender();
 }
 
