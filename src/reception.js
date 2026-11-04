@@ -1,8 +1,8 @@
 // Reception screen (PC of the reception): today's orders live, pop-up + sound + PC notification
 // for every new order, "Charged ✓" button, Excel of the day.
 import { esc, eur, $, $$, today, hhmm, roomLabel, ms } from './data.js';
-import { S, LS, reload, markCharged } from './store.js';
-import { fromServer } from './waiter.js';
+import { S, LS, reload, markCharged, logout } from './store.js';
+import { fromServer, coversLabel } from './waiter.js';
 import { toast } from './ui.js';
 import { t, getLang, chooseLang } from './i18n.js';
 import { buildXlsx, download } from './xlsx.js';
@@ -73,7 +73,7 @@ function draw() {
         <button class="hbtn" id="rcpLang">${getLang() === 'it' ? 'EN' : 'IT'}</button>
         <button class="hbtn" id="rcpSound">${t('sound')}: ${soundOn() ? t('on') : t('off')}</button>
         <button class="hbtn" id="rcpXlsx">${t('downloadExcel')}</button>
-        <button class="hbtn" id="rcpExit">${t('exit')}</button>
+        <button class="hbtn" id="rcpExit">${t('logOut')}</button>
       </div>
     </div>
     ${started ? '' : `<button class="rcp-start" id="recvStart"><b>${t('startRecv')}</b><span>${t('startHint')}</span></button>`}
@@ -85,7 +85,7 @@ function draw() {
   $('#rcpLang').onclick = () => chooseLang(getLang() === 'it' ? 'en' : 'it', null);
   $('#rcpSound').onclick = () => { LS.set('recvSound', !soundOn()); if (soundOn()) chime(); draw(); receptionRender(); };
   $('#rcpXlsx').onclick = exportDay;
-  $('#rcpExit').onclick = () => { if (confirm(t('exitRecv'))) { LS.del('mode'); leaveReception(); location.hash = ''; location.reload(); } };
+  $('#rcpExit').onclick = () => { if (confirm(t('exitRecv'))) { leaveReception(); logout(); } };
   receptionRender();
 }
 
@@ -112,7 +112,7 @@ function drawList(list) {
 function card(o) {
   const reopened = o.status === 'reopened';
   return `<div class="rcard${o.chargedAt ? ' done' : ''}${reopened ? ' reopened' : ''}">
-    <div class="rc-l"><div class="rc-t">${t('tableLabel', { n: o.table })}</div><div class="rc-h num">${hhmm(o.closedAt)}</div></div>
+    <div class="rc-l"><div class="rc-t">${t('tableLabel', { n: o.table })}</div><div class="rc-h num">${hhmm(o.closedAt)}</div>${o.covers ? `<div class="rc-cv">👥 ${coversLabel(o.covers)}</div>` : ''}</div>
     <div class="rc-m">
       <div class="rc-who">${esc(o.client || '—')}${roomLabel(o) ? `<span class="rc-room">${t('room')} ${esc(roomLabel(o))}</span>` : ''}</div>
       <div class="rc-items">${o.items.map(l => `<b>${l.qty}×</b> ${esc(l.it)}${l.note ? ` <i>(${esc(l.note)})</i>` : ''}`).join(' · ')}${o.roomService ? ` · <b>+</b> ${t('roomService')}` : ''}</div>
@@ -138,7 +138,7 @@ function nextPopup() {
   const el = document.createElement('div'); el.className = 'recv recv-pop'; el.setAttribute('role', 'alertdialog');
   el.innerHTML = `<div class="in">
     <div class="top"><div><div class="lbl">🔔 ${t('newOrder')}${popupQueue.length ? ` · +${popupQueue.length}` : ''}</div><h2>${t('tableLabel', { n: o.table })}</h2></div><div class="rc-h num" style="font-size:22px">${hhmm(o.closedAt)}</div></div>
-    ${o.client ? `<div class="who">${esc(o.client)}</div>` : ''}${roomLabel(o) ? `<div class="room">${t('room')} ${esc(roomLabel(o))}</div>` : ''}
+    ${o.client ? `<div class="who">${esc(o.client)}</div>` : ''}${roomLabel(o) ? `<div class="room">${t('room')} ${esc(roomLabel(o))}</div>` : ''}${o.covers ? `<div class="covers">👥 ${coversLabel(o.covers)}</div>` : ''}
     <ul>${o.items.map(l => `<li><b>${l.qty}×</b><span>${esc(l.it)}${l.note ? `<i>${esc(l.note)}</i>` : ''}</span><span class="num">${eur(l.qty * l.p)}</span></li>`).join('')}
     ${o.roomService ? `<li><b>+</b><span>${t('roomService')}</span><span class="num">${eur(o.roomFee || 10)}</span></li>` : ''}</ul>
     ${o.note ? `<div class="note">${esc(o.note)}</div>` : ''}
@@ -178,9 +178,9 @@ function systemNote(title, body, tag) {
 
 // ---------- Excel of the day ----------
 function exportDay() {
-  const rows = [['Ora / Time', 'Tavolo', 'Cliente', 'Edificio', 'Camera', 'Ordine / Items', 'Serv. camera', 'Note', 'Totale €', 'Cameriere', 'Stato', 'Addebitato / Charged']];
+  const rows = [['Ora / Time', 'Tavolo', 'Cliente', 'Edificio', 'Camera', 'Ordine / Items', 'Serv. camera', 'Note', 'Coperti', 'Totale €', 'Cameriere', 'Stato', 'Addebitato / Charged']];
   for (const o of orders().slice().reverse()) rows.push([hhmm(o.closedAt), +o.table, o.client, o.building, o.roomNo,
-    o.items.map(l => `${l.qty}x ${l.it}${l.note ? ' (' + l.note + ')' : ''}`).join(', '), o.roomService ? 'Sì' : '', o.note, o.total, o.waiter,
+    o.items.map(l => `${l.qty}x ${l.it}${l.note ? ' (' + l.note + ')' : ''}`).join(', '), o.roomService ? 'Sì' : '', o.note, o.covers || 0, o.total, o.waiter,
     o.status === 'closed' ? 'Inviato' : 'Riaperto', o.chargedAt ? hhmm(o.chargedAt) : '']);
   download(buildXlsx([{ name: today(), rows }]), `reception_${today()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }

@@ -29,6 +29,7 @@ function total(d) {
 const mins = row => { const o = openedMs(row); return o ? Math.max(0, Math.floor((Date.now() - o) / 60000)) : 0; };
 const waitLabel = row => { const m = mins(row); return m < 1 ? t('justNow') : t('minN', { m }); };
 const orderedLabel = row => { const m = mins(row); return m < 1 ? t('orderedNow') : t('orderedAgo', { m }); };
+export const coversLabel = n => (n === 1 ? t('covers1') : t('coversN', { n }));
 function toServe(d) { let w = 0; for (const [id, q] of Object.entries(d.items)) w += Math.max(0, q - (d.served[id] || 0)); return w; }
 const who = d => [d.client && d.client.trim(), roomLabel(d) ? t('room') + ' ' + roomLabel(d) : ''].filter(Boolean).join(' · ');
 
@@ -42,7 +43,7 @@ export function fromServer(o) {
   return {
     key: 's' + o.id, id: o.id, uid: o.uid, table: String(o.table_no), client: o.client, roomNo: o.room_no, building: o.building, waiter: o.waiter_name,
     items: (o.order_lines || []).slice().sort((a, b) => a.pos - b.pos).map(l => ({ id: l.item_id, it: l.name, qty: l.qty, p: Number(l.price), sec: l.section, note: l.note })),
-    roomService: o.room_service, roomFee: Number(o.room_fee), note: o.note, total: Number(o.total), closedAt: ms(o.closed_at), status: o.status, day: o.day, source: o.source, chargedAt: ms(o.charged_at), chargedBy: o.charged_by,
+    roomService: o.room_service, roomFee: Number(o.room_fee), note: o.note, total: Number(o.total), closedAt: ms(o.closed_at), status: o.status, day: o.day, source: o.source, chargedAt: ms(o.charged_at), chargedBy: o.charged_by, covers: o.covers || 0,
   };
 }
 function todayOrders() {
@@ -60,7 +61,7 @@ function snapshot(n) {
   for (const [id, q] of Object.entries(d.items)) if (!seen.has(id)) lines.push({ id, it: id, qty: q, p: 0, sec: '', note: d.notes[id] || '' });
   const now = Date.now();
   return {
-    uid: uid(), table: String(n), client: d.client.trim(), roomNo: d.roomNo.trim(), building: d.building, waiter: S.waiter?.name || '',
+    uid: uid(), table: String(n), client: d.client.trim(), roomNo: d.roomNo.trim(), building: d.building, waiter: S.waiter?.name || '', covers: d.covers || 0,
     items: lines, roomService: !!d.room, roomFee: d.room ? fee() : 0, note: d.note.trim(), total: total(d), closedAt: now, day: today(),
   };
 }
@@ -175,7 +176,7 @@ export function modeChanged() { // phone <-> tablet
 function updateBar(row, d) {
   const n = count(d), w = who(d);
   $('#bar').classList.toggle('empty', !n);
-  $('#barTable').textContent = 'Tavolo ' + cur + (w ? ' · ' + w : '');
+  $('#barTable').textContent = 'Tavolo ' + cur + (d.covers ? ' · ' + coversLabel(d.covers) : '') + (w ? ' · ' + w : '');
   $('#barText').textContent = n ? `${n === 1 ? t('items1') : t('itemsN', { n })} · ${waitLabel(row)} · ${t('viewOrder')}` : t('tapDish');
   $('#barTotal').textContent = eur(total(d));
 }
@@ -231,7 +232,8 @@ function renderOrder(body, force) {
   let h = (k ? `<p class="ostat"><span class="osWait">${orderedLabel(row)}</span>${row?.waiter_name ? ' · ' + esc(row.waiter_name) : ''} · ${ws ? `<b>${t('toServe', { n: ws })}</b>` : `<b class="done">${t('allServed')}</b>`}</p>` : '') +
     `<div class="fields"><label>${t('clientName')}<input id="cname" type="text" autocomplete="off" placeholder="${t('egClient')}" value="${esc(d.client)}"></label>
     <label>${t('room')}<input id="croom" type="text" inputmode="numeric" autocomplete="off" placeholder="${t('egRoom')}" value="${esc(d.roomNo)}"></label></div>
-    <div class="bld" id="bld" role="group" aria-label="${t('building')}"><span>${t('building')}</span><button data-b="HCO" class="${d.building === 'HCO' ? 'on' : ''}"><b>HCO</b> Concordia</button><button data-b="DEP" class="${d.building === 'DEP' ? 'on' : ''}"><b>DEP</b> Dépendance</button></div>`;
+    <div class="bld" id="bld" role="group" aria-label="${t('building')}"><span>${t('building')}</span><button data-b="HCO" class="${d.building === 'HCO' ? 'on' : ''}"><b>HCO</b> Concordia</button><button data-b="DEP" class="${d.building === 'DEP' ? 'on' : ''}"><b>DEP</b> Dépendance</button></div>
+    <div class="cov${!d.covers && k ? ' need0' : ''}" id="cov"><span>${t('covers')}<small>${t('coversHelp')}</small></span><div class="step"><button data-cov="-1" aria-label="${t('fewer')}">−</button><span class="n num">${d.covers || 0}</span><button data-cov="1" aria-label="${t('more2')}">+</button></div></div>`;
   if (!k) {
     body.innerHTML = h + `<p class="empty-order">${t('noItems')}<br>${isTablet() ? t('tapLeft') : t('closeAndTap')}</p>`;
     bindFields(body, n); return;
@@ -258,7 +260,7 @@ function renderOrder(body, force) {
   <div id="copyFallback"></div>`;
   const keep = body.scrollTop; body.innerHTML = h; body.scrollTop = keep;
   bindFields(body, n);
-  body.querySelectorAll('.step button').forEach(b => { b.onclick = () => add(b.dataset.id, +b.dataset.d); });
+  body.querySelectorAll('.step button[data-id]').forEach(b => { b.onclick = () => add(b.dataset.id, +b.dataset.d); });
   body.querySelectorAll('[data-srv]').forEach(b => { b.onclick = () => { const id = b.dataset.srv, q = d.items[id], sv = d.served[id] || 0; tableOp(n, { t: 'served', id, n: sv >= q ? 0 : sv + 1 }); buzz(); }; });
   body.querySelectorAll('[data-nb]').forEach(b => { b.onclick = () => { const i = body.querySelector(`[data-inote="${CSS.escape(b.dataset.nb)}"]`); i.hidden = false; i.focus(); }; });
   body.querySelectorAll('[data-inote]').forEach(i => { i.oninput = () => { const id = i.dataset.inote, v = i.value; draft('in' + n + id, () => tableOp(n, { t: 'inote', id, note: v })); }; i.onblur = flushDrafts; });
@@ -275,15 +277,23 @@ function bindFields(body, n) {
   cn.oninput = () => { const v = cn.value; draft('c' + n, () => tableOp(n, { t: 'set', fields: { client: v } })); };
   cr.oninput = () => { const v = cr.value; draft('r' + n, () => tableOp(n, { t: 'set', fields: { roomNo: v } })); };
   cn.onblur = cr.onblur = flushDrafts;
+  body.querySelectorAll('[data-cov]').forEach(b => { b.onclick = () => { const c = tableData(n).covers || 0, v = Math.max(0, Math.min(99, c + +b.dataset.cov)); if (v !== c) { tableOp(n, { t: 'set', fields: { covers: v } }); buzz(); } }; });
   body.querySelectorAll('#bld [data-b]').forEach(b => { b.onclick = () => {
     flushDrafts(); const d = tableData(n); tableOp(n, { t: 'set', fields: { building: d.building === b.dataset.b ? '' : b.dataset.b } }); $('#bld', body).classList.remove('need');
   }; });
 }
 
+const askedCovers = {};
 async function closeTable(n) {
   if (!S.waiter) { openWaiterSheet(); return; }
   flushDrafts();
   const d = tableData(n); if (!count(d)) return;
+  if (!d.covers && !askedCovers[n]) {   // gentle reminder, the second tap sends anyway
+    askedCovers[n] = setTimeout(() => { delete askedCovers[n]; }, 8000);
+    const c = $('#cov'); if (c) { c.classList.add('need'); c.scrollIntoView({ block: 'center' }); }
+    toast(t('coversAsk'), null, null, 5000); return;
+  }
+  clearTimeout(askedCovers[n]); delete askedCovers[n];
   if (d.roomNo.trim() && !d.building) {
     const b = $('#bld'); if (b) { b.classList.add('need'); b.scrollIntoView({ block: 'center' }); }
     toast(t('chooseBuilding')); return;
@@ -311,7 +321,7 @@ function renderMap() {
     if (k) { open++; sum += total(d); }
     tiles += `<button class="tile${k ? ' open' : ''}${late ? ' late' : ''}" data-t="${i}" aria-label="${t('tableLabel', { n: i })}${k ? t('tableOpen') : ''}">
       <b class="n">${i}</b>${k ? `<span class="min num${late ? ' late' : ''}">${m}′</span>` : ''}
-      ${d.client ? `<span class="c">${esc(d.client)}</span>` : ''}${roomLabel(d) ? `<span class="m">${t('room')} ${esc(roomLabel(d))}</span>` : ''}
+      ${d.client ? `<span class="c">${esc(d.client)}</span>` : ''}${roomLabel(d) ? `<span class="m">${t('room')} ${esc(roomLabel(d))}</span>` : ''}${d.covers ? `<span class="m">👥 ${coversLabel(d.covers)}</span>` : ''}
       ${k && row?.waiter_name ? `<span class="m">${esc(row.waiter_name)}</span>` : ''}
       ${k ? `<span class="serve${ws ? '' : ' done'}">${ws ? t('toServe', { n: ws }) : t('allServed')}</span><span class="tot num">${eur(total(d))}</span>` : `<span class="free">${t('free')}</span>`}</button>`;
   }
@@ -345,7 +355,7 @@ function dayText(list) {
   return out + `\nTOTALE GIORNO ${eur(list.reduce((a, o) => a + o.total, 0))} (${list.length} tavoli)`;
 }
 export function orderCard(o, opts = {}) {
-  return `<div class="ho${o.status === 'reopened' ? ' reopened' : ''}"><div class="ho-top"><div class="ho-t">Tavolo ${esc(o.table)}<small>${opts.withDay ? esc(dayLabel(o.day)) + ' · ' : ''}${hhmm(o.closedAt)} · ${esc(o.waiter || '—')}${o.pending ? `<span class="waitbadge">${t('waitingUpload')}</span>` : ''}${o.status === 'reopened' ? `<span class="waitbadge">${t('reopenedNotCounted')}</span>` : ''}${o.source === 'import' ? ' · ' + t('oldApp') : ''}${o.chargedAt ? `<span class="rc-ok sm">${t('chargedBadge', { time: hhmm(o.chargedAt) })}</span>` : ''}</small></div><div class="ho-tot num">${eur(o.total)}</div>
+  return `<div class="ho${o.status === 'reopened' ? ' reopened' : ''}"><div class="ho-top"><div class="ho-t">Tavolo ${esc(o.table)}<small>${opts.withDay ? esc(dayLabel(o.day)) + ' · ' : ''}${hhmm(o.closedAt)} · ${esc(o.waiter || '—')}${o.covers ? ' · 👥 ' + coversLabel(o.covers) : ''}${o.pending ? `<span class="waitbadge">${t('waitingUpload')}</span>` : ''}${o.status === 'reopened' ? `<span class="waitbadge">${t('reopenedNotCounted')}</span>` : ''}${o.source === 'import' ? ' · ' + t('oldApp') : ''}${o.chargedAt ? `<span class="rc-ok sm">${t('chargedBadge', { time: hhmm(o.chargedAt) })}</span>` : ''}</small></div><div class="ho-tot num">${eur(o.total)}</div>
     ${(o.client || roomLabel(o)) ? `<div class="ho-who">${esc(o.client || '—')}${roomLabel(o) ? `<span class="rm">${t('room')} ${esc(roomLabel(o))}</span>` : ''}</div>` : ''}</div>
     <ul class="ho-items">${o.items.map(l => `<li><b>${l.qty}×</b> ${esc(l.it)}${l.note ? ` <i>(${esc(l.note)})</i>` : ''} <span class="num">· ${eur(l.qty * l.p)}</span></li>`).join('')}
     ${o.roomService ? `<li><b>+</b> ${t('roomService')} · ${eur(o.roomFee || 10)}</li>` : ''}</ul>

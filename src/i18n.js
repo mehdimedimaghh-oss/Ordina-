@@ -69,7 +69,10 @@ const D = {
     sound: 'Sound', on: 'On', off: 'Off', notifOn: 'Notifications: on', notifAsk: 'Turn on notifications', notifBlocked: 'Notifications are blocked by the browser: click the 🔒 next to the address and allow them. The pop-up and the sound work anyway.',
     noOrdersToday: 'No orders yet today. New orders appear here with a pop-up and a sound.', orderGone: 'Tavolo {n} ({tot}) was deleted by the owner: do not charge it',
     orderReopenedMsg: 'Tavolo {n} was reopened: wait for the new order before charging', ok: 'OK', chargedOk: 'Marked as charged', waiterShort: 'Waiter',
-    exitRecv: 'Leave the reception screen?', live: 'Live', reconnecting: 'Connecting…', notifTitle: 'Tavolo {n} · {tot}', reopenedBadge: 'Reopened · do not charge',
+    exitRecv: 'Log out from this computer?', live: 'Live', reconnecting: 'Connecting…', notifTitle: 'Tavolo {n} · {tot}', reopenedBadge: 'Reopened · do not charge',
+    receptionHint: 'Reception: your own email and password. You see today\'s orders with a pop-up and a sound, and you tick "Charged ✓".',
+    covers: 'Guests', coversN: '{n} guests', covers1: '1 guest', coversAsk: 'How many guests? Set the number of guests, or tap Send again to send without it.',
+    coversHelp: 'People at the table', fewer: 'Fewer', more2: 'More',
   },
   it: {
     whoAreYou: 'Chi sei?', stock: 'Scorte', history: 'Storico', more: 'Altro', language: 'Lingua', chooseTable: 'Scegli il tavolo',
@@ -122,7 +125,10 @@ const D = {
     sound: 'Suono', on: 'Sì', off: 'No', notifOn: 'Notifiche: attive', notifAsk: 'Attiva le notifiche', notifBlocked: 'Le notifiche sono bloccate dal browser: clicca sul 🔒 accanto all\'indirizzo e consentile. Il pop-up e il suono funzionano comunque.',
     noOrdersToday: 'Ancora nessun ordine oggi. I nuovi ordini appaiono qui con un pop-up e un suono.', orderGone: 'Tavolo {n} ({tot}) è stato eliminato dal titolare: non addebitarlo',
     orderReopenedMsg: 'Tavolo {n} è stato riaperto: aspetta il nuovo ordine prima di addebitare', ok: 'OK', chargedOk: 'Segnato come addebitato', waiterShort: 'Cameriere',
-    exitRecv: 'Uscire dallo schermo reception?', live: 'In diretta', reconnecting: 'Connessione…', notifTitle: 'Tavolo {n} · {tot}', reopenedBadge: 'Riaperto · non addebitare',
+    exitRecv: 'Uscire da questo computer?', live: 'In diretta', reconnecting: 'Connessione…', notifTitle: 'Tavolo {n} · {tot}', reopenedBadge: 'Riaperto · non addebitare',
+    receptionHint: 'Reception: la tua email e password. Vedi gli ordini di oggi con un pop-up e un suono, e segni "Addebitato ✓".',
+    covers: 'Coperti', coversN: '{n} coperti', covers1: '1 coperto', coversAsk: 'Quanti coperti? Inserisci i coperti, oppure tocca di nuovo Invia per inviare senza.',
+    coversHelp: 'Persone al tavolo', fewer: 'Meno', more2: 'Più',
   },
 };
 

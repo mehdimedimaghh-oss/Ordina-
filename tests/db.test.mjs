@@ -23,6 +23,7 @@ const anon = createClient(URL, ANON, { auth: { persistSession: false } });
 const owner = await user('owner@test.local', 'owner-pass-123', 'owner');
 const staff = await user('staff@test.local', 'staff-pass-123', 'staff');
 const nobody = await user('stranger@test.local', 'stranger-pass-123', null);
+const recep = await user('reception@test.local', 'reception-pass-123', 'reception');
 
 console.log('Not logged in / no role sees nothing');
 for (const [name, c] of [['anon', anon], ['no role', nobody]]) {
@@ -98,6 +99,32 @@ ok(!mu.data?.length, 'staff cannot change prices');
 const mo = await owner.from('menu_items').update({ price: 14 }).eq('id', 'carbonara').select();
 ok(mo.data?.[0]?.price == 14, 'owner changes a price');
 await owner.from('menu_items').update({ price: 13 }).eq('id', 'carbonara');
+
+console.log('Guests (coperti)');
+await staff.rpc('table_op', { p_table: 11, p_op: { t: 'set', fields: { covers: 4 } }, p_token: token });
+await staff.rpc('table_op', { p_table: 11, p_op: { t: 'item', id: 'espresso', d: 1 }, p_token: token });
+const { data: t11 } = await staff.from('open_tables').select('data').eq('table_no', 11).single();
+ok(t11.data.covers === 4, '4 guests stored on the open table');
+const cuid = 'test-cov-' + Date.now();
+const cv = await staff.rpc('submit_order', { p_order: { uid: cuid, table: '11', covers: 4, closedAt: Date.now(), items: [{ id: 'espresso', it: 'Caffè espresso', qty: 1, p: 3, sec: 'Caffetteria' }] }, p_token: token });
+const { data: oc } = await staff.from('orders').select('id,covers').eq('id', cv.data.id).single();
+ok(oc.covers === 4, 'guests saved in the history');
+await staff.rpc('reopen_order', { p_id: oc.id, p_token: token });
+const { data: t11b } = await staff.from('open_tables').select('data').eq('table_no', 11).single();
+ok(t11b.data.covers === 4, 'reopen brings the guests back');
+await staff.rpc('table_op', { p_table: 11, p_op: { t: 'clear' }, p_token: token });
+
+console.log('Reception login');
+const rToday = await recep.from('orders').select('day');
+ok(rToday.data.length > 0 && rToday.data.every(o => o.day === sql(`select public.rome_today()`)), 'reception sees only today\'s orders');
+ok(!(await recep.from('menu_items').select('*')).data?.length && !(await recep.from('open_tables').select('*')).data?.length, 'reception cannot read menu or open tables');
+ok(!!(await recep.rpc('table_op', { p_table: 3, p_op: { t: 'item', id: 'espresso', d: 1 } })).error, 'reception cannot take orders');
+ok(!!(await recep.rpc('delete_order', { p_id: mine.id })).error && !(await recep.from('audit_log').select('*')).data?.length, 'reception cannot delete or read the audit log');
+const ch = await recep.rpc('mark_charged', { p_id: mine.id, p_charged: true, p_by: 'Reception' });
+ok(ch.data?.ok, 'reception marks an order as charged');
+const { data: chk } = await owner.from('audit_log').select('user_email').eq('action', 'order_charged').eq('entity_id', String(mine.id));
+ok(chk.length === 1 && chk[0].user_email === 'reception@test.local', 'audit log: charged by reception@test.local');
+await recep.rpc('mark_charged', { p_id: mine.id, p_charged: false });
 
 console.log('Reopen + owner delete');
 r = await staff.rpc('reopen_order', { p_id: mine.id, p_token: token });

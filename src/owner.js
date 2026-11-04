@@ -80,6 +80,7 @@ function stats(el, orders, rg, body) {
   const ok = orders.filter(o => o.status === 'closed');
   const sum = ok.reduce((a, o) => a + o.total, 0), items = ok.reduce((a, o) => a + o.items.reduce((b, l) => b + l.qty, 0), 0);
   const rs = ok.filter(o => o.roomService).length;
+  const cv = ok.reduce((a, o) => a + (o.covers || 0), 0), cvSum = ok.filter(o => o.covers).reduce((a, o) => a + o.total, 0);
   const byW = {}, byD = {}, byI = {};
   for (const o of ok) {
     const w = o.waiter || '—'; byW[w] = byW[w] || { t: 0, n: 0 }; byW[w].t += o.total; byW[w].n++;
@@ -97,7 +98,8 @@ function stats(el, orders, rg, body) {
   }
   el.innerHTML = `<h2 style="font-family:var(--display);font-weight:400;margin:0 0 10px;font-size:24px">${esc(fmtRange(rg))}</h2>
     <div class="kpis"><div class="kpi main"><small>Total</small><b class="num">${eur(sum)}</b></div><div class="kpi"><small>Tables</small><b class="num">${ok.length}</b></div>
-      <div class="kpi"><small>Average table</small><b class="num">${eur(ok.length ? sum / ok.length : 0)}</b></div><div class="kpi"><small>Items · room service</small><b class="num">${items} · ${rs}</b></div></div>
+      <div class="kpi"><small>Average table</small><b class="num">${eur(ok.length ? sum / ok.length : 0)}</b></div><div class="kpi"><small>Items · room service</small><b class="num">${items} · ${rs}</b></div>
+      <div class="kpi"><small>Guests (coperti)</small><b class="num">${cv}</b></div><div class="kpi" title="Only tables where the number of guests was written"><small>Average per guest</small><b class="num">${cv ? eur(cvSum / cv) : '—'}</b></div></div>
     <div style="height:14px"></div>${cols}${cols ? '<div style="height:14px"></div>' : ''}
     <div class="two"><div class="panel"><h3>Total per waiter</h3><div class="hbars">${wl.map(([w, v]) => `<div class="hb" title="${esc(w)}: ${eur(v.t)}, ${v.n} table${v.n === 1 ? "" : "s"}"><span class="nm2">${esc(w)}</span><span class="track"><span class="fill" style="display:block;width:${(v.t / maxW * 100).toFixed(1)}%"></span></span><span class="v num">${eur(v.t)}<small>${v.n} table${v.n === 1 ? "" : "s"}</small></span></div>`).join('') || '<p class="hint">No orders.</p>'}</div></div>
       <div class="panel"><h3>Best-selling dishes</h3><div class="hbars">${il.map(([n, v]) => `<div class="hb" title="${esc(n)}: ${v.q} sold, ${eur(v.r)}"><span class="nm2">${esc(n)}</span><span class="track"><span class="fill" style="display:block;width:${(v.q / maxI * 100).toFixed(1)}%"></span></span><span class="v num">${v.q}×<small>${eur(v.r)}</small></span></div>`).join('') || '<p class="hint">No orders.</p>'}</div></div></div>
@@ -113,9 +115,9 @@ function stats(el, orders, rg, body) {
 
 function exportSheets(orders) {
   const date = o => o.day.split('-').reverse().join('/');
-  const head = ['Date', 'Time', 'Table', 'Waiter', 'Client', 'Building', 'Room', 'Items', 'Room service', 'Note', 'Total €', 'Status'];
+  const head = ['Date', 'Time', 'Table', 'Waiter', 'Client', 'Building', 'Room', 'Items', 'Room service', 'Note', 'Guests', 'Total €', 'Status'];
   const rows = [head, ...orders.map(o => [date(o), hhmm(o.closedAt), +o.table, o.waiter, o.client, o.building, o.roomNo,
-    o.items.map(l => `${l.qty}x ${l.it}${l.note ? ' (' + l.note + ')' : ''}`).join(', '), o.roomService ? 'yes' : '', o.note, o.total, o.status === 'closed' ? 'sent' : 'reopened (not counted)'])];
+    o.items.map(l => `${l.qty}x ${l.it}${l.note ? ' (' + l.note + ')' : ''}`).join(', '), o.roomService ? 'yes' : '', o.note, o.covers || 0, o.total, o.status === 'closed' ? 'sent' : 'reopened (not counted)'])];
   const lines = [['Date', 'Time', 'Table', 'Waiter', 'Client', 'Building', 'Room', 'Dish', 'Section', 'Qty', 'Price €', 'Line total €', 'Dish note', 'Status']];
   for (const o of orders) for (const l of o.items) lines.push([date(o), hhmm(o.closedAt), +o.table, o.waiter, o.client, o.building, o.roomNo, l.it, l.sec, l.qty, l.p, l.qty * l.p, l.note, o.status === 'closed' ? 'sent' : 'reopened']);
   return [{ name: 'Orders', rows }, { name: 'Dishes', rows: lines }];

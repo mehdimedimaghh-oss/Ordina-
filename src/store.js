@@ -31,10 +31,10 @@ let emitT = null;
 export function emit() { cache = null; clearTimeout(emitT); emitT = setTimeout(() => subs.forEach(f => f()), 0); }
 
 // ---------- pure logic, same rules as the SQL function table_op ----------
-export const emptyData = () => ({ items: {}, notes: {}, served: {}, client: '', roomNo: '', building: '', room: false, note: '' });
+export const emptyData = () => ({ items: {}, notes: {}, served: {}, client: '', roomNo: '', building: '', room: false, note: '', covers: 0 });
 const norm = d => ({ ...emptyData(), ...(d || {}), items: { ...(d?.items || {}) }, notes: { ...(d?.notes || {}) }, served: { ...(d?.served || {}) } });
 export const count = d => Object.values(d?.items || {}).reduce((a, b) => a + b, 0);
-const isBlank = d => !count(d) && !d.client && !d.roomNo && !d.note && !d.building && !d.room;
+const isBlank = d => !count(d) && !d.client && !d.roomNo && !d.note && !d.building && !d.room && !d.covers;
 
 // returns [newRow|null, stockDelta{id:+-n}]
 export function applyOp(row, op, at, waiterName) {
@@ -55,6 +55,7 @@ export function applyOp(row, op, at, waiterName) {
       if (['client', 'roomNo', 'note'].includes(k)) d[k] = String(v ?? '');
       else if (k === 'building' && ['', 'HCO', 'DEP'].includes(v || '')) d.building = v || '';
       else if (k === 'room') d.room = !!v;
+      else if (k === 'covers') d.covers = Math.min(99, Math.max(0, parseInt(v, 10) || 0));
     }
   } else if (op.t === 'clear') {
     for (const [id, q] of Object.entries(d.items)) sd[id] = q;
@@ -233,7 +234,7 @@ async function afterLogin() {
   S.email = S.session.user.email; LS.set('email', S.email);
   const { data, error } = await sb.from('app_users').select('role').eq('user_id', S.session.user.id).maybeSingle();
   if (!error) { S.role = data?.role || 'none'; LS.set('role', S.role); }
-  if (S.role === 'owner' || S.role === 'staff') { subscribe(); loadAll(); flush(); }
+  if (S.role === 'owner' || S.role === 'staff' || S.role === 'reception') { subscribe(); loadAll(); flush(); }
   emit();
 }
 

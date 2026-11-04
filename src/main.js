@@ -1,6 +1,6 @@
 import './style.css';
 import { $, esc } from './data.js';
-import { S, LS, configured, start, onChange, onNotify, login, logout, reload, STAFF_EMAIL } from './store.js';
+import { S, configured, start, onChange, onNotify, login, logout, reload, STAFF_EMAIL } from './store.js';
 import { mountReception, receptionRender, leaveReception } from './reception.js';
 import { mountWork, render, modeChanged, pinPicker, isTablet } from './waiter.js';
 import { mountOwner, ownerRender } from './owner.js';
@@ -20,9 +20,9 @@ function screenFor() {
   if (!configured) return 'setup';
   if (!S.ready) return 'loading';
   if (!S.session) return 'login';
-  if (S.role !== 'owner' && S.role !== 'staff') return S.role ? 'norole' : 'loading';
+  if (S.role !== 'owner' && S.role !== 'staff' && S.role !== 'reception') return S.role ? 'norole' : 'loading';
+  if (S.role === 'reception') return 'reception';
   if (location.hash === '#owner' && S.role === 'owner') return 'owner';
-  if (LS.get('mode') === 'reception') return 'reception';
   if (!S.waiter) return 'pin';
   return 'work';
 }
@@ -39,11 +39,10 @@ function route() {
   else if (s === 'login') loginScreen();
   else if (s === 'norole') { app.innerHTML = gate(`${t('noRole', { email: esc(S.email) })}<button class="btn block" id="lo">${t('logOut')}</button>`); $('#lo').onclick = logout; }
   else if (s === 'pin') {
-    app.innerHTML = gate(`<div id="pinBox"></div>${S.role === 'owner' ? `<button class="btn block" id="toOwn" style="margin-top:14px">${t('ownerDashboard')}</button>` : ''}<button class="btn block" id="toRecv" style="margin-top:10px">🔔 ${t('openReception')}</button><button class="linkbtn" id="lo">${t('logoutDevice')}</button>`, t('whoWorking'));
+    app.innerHTML = gate(`<div id="pinBox"></div>${S.role === 'owner' ? `<button class="btn block" id="toOwn" style="margin-top:14px">${t('ownerDashboard')}</button>` : ''}<button class="linkbtn" id="lo">${t('logoutDevice')}</button>`, t('whoWorking'));
     pinPicker($('#pinBox'), route);
     if (navigator.onLine) reload('waiters');
     const to = $('#toOwn'); if (to) to.onclick = () => { location.hash = '#owner'; };
-    $('#toRecv').onclick = () => { LS.set('mode', 'reception'); route(); };
     $('#lo').onclick = logout;
   }
   else if (s === 'owner') mountOwner(app);
@@ -58,11 +57,11 @@ function gate(inner, sub) {
 function loginScreen() {
   let kind = 'staff';
   const draw = () => {
-    app.innerHTML = gate(`<div class="seg"><button data-k="staff" class="${kind === 'staff' ? 'on' : ''}">${t('waiterDevice')}</button><button data-k="owner" class="${kind === 'owner' ? 'on' : ''}">${t('owner')}</button></div>
+    app.innerHTML = gate(`<div class="seg seg3"><button data-k="staff" class="${kind === 'staff' ? 'on' : ''}">${t('waiterDevice')}</button><button data-k="reception" class="${kind === 'reception' ? 'on' : ''}">${t('reception')}</button><button data-k="owner" class="${kind === 'owner' ? 'on' : ''}">${t('owner')}</button></div>
       <form id="lf">${kind === 'staff' && STAFF_EMAIL ? '' : `<label class="field">${t('email')}<input id="le" type="email" autocomplete="username" required value="${kind === 'staff' ? '' : esc(S.email || '')}"></label>`}
       <label class="field">${kind === 'staff' ? t('restaurantPassword') : t('password')}<input id="lp" type="password" autocomplete="current-password" required></label>
       <p class="err" id="lerr"></p><button class="btn primary block" type="submit">${t('logIn')}</button></form>
-      <p class="hint" style="margin-top:14px">${kind === 'staff' ? t('staffHint') : t('ownerHint')}</p>`);
+      <p class="hint" style="margin-top:14px">${kind === 'staff' ? t('staffHint') : kind === 'reception' ? t('receptionHint') : t('ownerHint')}</p>`);
     app.querySelectorAll('[data-k]').forEach(b => { b.onclick = () => { kind = b.dataset.k; draw(); }; });
     $('#lf').onsubmit = async e => {
       e.preventDefault(); const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true; $('#lerr').textContent = '';

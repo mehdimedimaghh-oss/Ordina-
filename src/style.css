@@ -365,7 +365,7 @@ body.tablet.scr-order .toast{left:calc((100vw - var(--pw)) / 2)}
 .cal button.today b{text-decoration:underline;text-underline-offset:3px}
 .cal button:disabled{visibility:hidden}
 .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-@media (min-width:700px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:700px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .kpi small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .kpi b{font-size:26px;font-weight:800}
@@ -482,3 +482,15 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 .rc-ok.sm{font-size:11px;padding:1px 7px;margin-left:6px;border-radius:6px}
 .recv-pop{z-index:45}
 @media (max-width:700px){.rcard{grid-template-columns:minmax(0,1fr)}.rc-r{align-items:stretch;min-width:0}}
+
+/* ---------- coperti / guests ---------- */
+.cov{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:6px 10px;border-radius:12px;background:var(--bg)}
+.cov>span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.cov>span small{display:block;letter-spacing:0;text-transform:none;font-weight:500;font-size:12px}
+.cov .n{font-size:20px;min-width:30px;text-align:center}
+.cov.need0>span{color:var(--warn)}
+.cov.need{outline:2px solid var(--warn);outline-offset:3px}
+.recv .covers{display:inline-block;margin:8px 0 0 10px;font-size:clamp(20px,3.5vw,32px);font-weight:700}
+.seg.seg3{grid-template-columns:repeat(3,1fr)}
+.seg.seg3 button{font-size:13.5px;padding:0 4px}
+.rc-cv{margin-top:6px;font-weight:700;font-size:14px}

@@ -21,6 +21,7 @@
   A black message appears at the bottom with **UNDO** — tap it if you made a mistake.
 - Write the **client name** and the **room**. If you write a room, you **must** choose the building: **HCO** (Concordia) or **DEP** (Dépendance).
 - **+ Note** on a dish: "no pepper", "well done"… The big box is a note for the whole table (allergies…).
+- **Coperti / Guests:** tap **+** to set how many people are at the table. If you forget, the app reminds you when you send (tap Send again to send without).
 - **Room service** tick = + € 10.
 - **Served 0/2**: tap each time you bring one portion. When everything is served it becomes green **✓ Served**.
 
@@ -46,10 +47,10 @@
 
 **Set up the reception PC (one time)**
 1. Open the website link on the reception computer (Chrome or Edge is best).
-2. **Waiter device** → type the restaurant password → **Log in**.
-3. On the "Who is working?" screen, tap **🔔 Reception PC? Open the reception screen**.
-4. Click the gold box **"Start the reception screen"**, and **Allow** notifications when the browser asks. Now the sound and the notifications work.
-5. Keep the window open. It can be behind other windows or minimized. The computer will remember it is the reception screen.
+2. Tap **Reception** → the reception email + password → **Log in**. The reception has its **own login**, like the owner.
+3. Click the gold box **"Start the reception screen"**, and **Allow** notifications when the browser asks. Now the sound and the notifications work.
+4. Keep the window open. It can be behind other windows or minimized.
+   Reception only sees **today's** orders. It cannot take orders and cannot see the old history.
 
 **Every day**
 - A waiter taps **Send to reception** → a **big pop-up** with table, client, room, dishes and total, plus a **sound** and a **notification** on the computer.
@@ -58,7 +59,7 @@
 - At the top: today's total and how many orders are still **to charge**.
 - **Download Excel** = all today's orders in an Excel file.
 - **Sound: On/Off** and **IT/EN** are at the top.
-- **Exit** brings the PC back to the normal login screen.
+- **Log out** at the top right closes the reception screen on this PC.
 
 ---
 

@@ -62,6 +62,8 @@ ok(await until(async () => (await tab.p.textContent('#orderPanel .total b')).inc
 await tab.p.click('#orderPanel [data-srv="carbonara"]');
 ok(await until(async () => (await tab.p.textContent('#orderPanel [data-srv="carbonara"]')).includes('1/2')), 'served 1/2');
 await tab.p.fill('#cname', 'Rossi'); await tab.p.fill('#croom', '214');
+await tab.p.click('#orderPanel [data-cov="1"]'); await tab.p.click('#orderPanel [data-cov="1"]');
+ok(await until(() => sql(`select data->>'covers' from open_tables where table_no=7`) === '2'), 'coperti: 2 guests stored on table 7');
 await tab.p.click('#orderPanel [data-nb="carbonara"]'); await tab.p.fill('[data-inote="carbonara"]', 'no pepper');
 await tab.p.click('#orderPanel h3');  // blur → saved
 ok(await until(() => sql(`select data->>'client' || '|' || (data->'notes'->>'carbonara') from open_tables where table_no=7`) === 'Rossi|no pepper'), 'client + dish note stored in the database');
@@ -126,6 +128,8 @@ await phone.p.click('#tableBtn'); await phone.p.click('.tg[data-t="12"]');
 await phone.p.click('.cell[data-id="espresso"] .card'); await phone.p.click('.cell[data-id="espresso"] .card');
 await phone.p.click('#barBtn'); await phone.p.waitForSelector('#orderSheet:not([hidden]) #closeBtn');
 await phone.p.click('#closeBtn');
+ok(await until(async () => (await phone.p.textContent('.toast')).includes('How many guests')), 'no guests → reminder first (not sent)');
+await phone.p.click('#closeBtn');
 ok(await until(async () => (await phone.p.textContent('#sync')).includes('waiting')), 'phone shows "Offline · waiting"');
 ok(sql(`select count(*) from orders where table_no=12`) === '0', 'nothing reached the database yet');
 await phone.p.reload();   // app still opens offline (service worker) and keeps the queue
@@ -153,6 +157,7 @@ await own.p.click('[data-mode="week"]');
 ok(await until(async () => (await own.p.textContent('.kpi.main b')).includes('117,50')), 'week view Mon 2 – Sun 8 Nov: € 117,50 (77,00 + 40,50)');
 await own.p.click('[data-mode="month"]');
 ok(await until(async () => (await own.p.textContent('.kpi.main b')).includes('270,00')), 'month November: € 270,00 (old 229,50 + today 40,50)');
+ok((await own.p.textContent('.kpis')).includes('Guests (coperti)') && (await own.p.locator('.kpi:has-text("Guests") b').textContent()) === '2', 'owner sees guests (coperti): 2');
 ok((await own.p.textContent('.hbars')).includes('Mehdi'), 'total per waiter');
 ok((await own.p.textContent('.two')).includes('Spaghetti alla carbonara'), 'best-selling dishes');
 await shot(own.p, 'owner-month');
@@ -254,9 +259,10 @@ const rec = await (async () => {
 })();
 await rec.p.goto(APP);
 await rec.p.click('[data-glang="en"]');
-await rec.p.fill('#lp', 'staff-pass-123'); await rec.p.click('button[type=submit]');
-await rec.p.waitForSelector('#toRecv'); await rec.p.click('#toRecv');
-ok(await until(() => rec.p.isVisible('#recvStart')), 'PIN screen → "Reception" button → reception screen');
+await rec.p.click('.seg [data-k="reception"]');
+await rec.p.fill('#le', 'reception@test.local'); await rec.p.fill('#lp', 'reception-pass-123'); await rec.p.click('button[type=submit]');
+ok(await until(() => rec.p.isVisible('#recvStart')), 'reception logs in with its own email → straight to the reception screen');
+ok((await rec.p.locator('#mapView, #menu, .pinpad').count()) === 0, 'reception has no menu, tables or PIN screen');
 await rec.p.click('#recvStart');
 await rec.p.waitForTimeout(1500);
 const before = await rec.p.locator('.rcard').count();
@@ -267,10 +273,12 @@ if (!(await tab.p.isVisible('#mapView .tile'))) await tab.p.click('#tableBtn');
 await tab.p.click('.tile[data-t="15"]');
 await tab.p.click('.cell[data-id="pinsa-veg"] .card'); await tab.p.click('.cell[data-id="coca"] .card');
 await tab.p.fill('#cname', 'Bianchi'); await tab.p.fill('#croom', '305'); await tab.p.click('#bld [data-b="DEP"]');
+for (let i = 0; i < 3; i++) await tab.p.click('#orderPanel [data-cov="1"]');
 await tab.p.waitForTimeout(800);
 await tab.p.click('#closeBtn');
 ok(await until(() => rec.p.isVisible('.recv-pop'), 12000), 'reception: pop-up appears for the new order');
 const pop = await rec.p.textContent('.recv-pop');
+ok(pop.includes('3 guests'), 'pop-up shows 3 guests');
 ok(pop.includes('15') && pop.includes('Bianchi') && pop.includes('DEP 305') && pop.includes('21,00') && pop.includes('Pinsa Vegetariana'), 'pop-up shows table, client, room DEP 305, dishes, total € 21,00');
 const notes = await rec.p.evaluate(() => window.__notes);
 ok(notes.some(n => n.includes('Tavolo 15') && n.includes('Bianchi')), 'PC notification sent: ' + (notes[notes.length - 1] || 'none'));
@@ -283,7 +291,7 @@ ok(await until(async () => (await tab.p.locator('#histSheet .ho:has-text("Tavolo
 await tab.p.click('#histSheet [data-close]');
 // send table 9 (still open from step 13), then reopen it from History
 if (!(await tab.p.isVisible('#mapView .tile'))) await tab.p.click('#tableBtn');
-await tab.p.click('.tile[data-t="9"]'); await tab.p.click('#closeBtn');
+await tab.p.click('.tile[data-t="9"]'); await tab.p.click('#closeBtn'); await tab.p.waitForTimeout(300); await tab.p.click('#closeBtn');
 ok(await until(async () => (await rec.p.locator('.recv-pop').count()) === 1, 12000), 'second order → new pop-up');
 await rec.p.click('.recv-pop [data-pop="ok"]');
 await tab.p.click('#histBtn');

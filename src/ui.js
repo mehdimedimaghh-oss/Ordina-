@@ -55,6 +55,7 @@ export function ticketText(o) {
   let out = `TAVOLO ${o.table}\n`;
   const w = [o.client, roomLabel(o) ? 'Camera ' + roomLabel(o) : ''].filter(Boolean).join(' · ');
   if (w) out += w + '\n';
+  if (o.covers) out += `Coperti: ${o.covers}\n`;
   if (o.waiter) out += `Cameriere: ${o.waiter}\n`;
   let sec = null;
   for (const l of o.items) {
@@ -73,7 +74,7 @@ export function receptionView(o) {
   el.innerHTML = `<div class="in">
     <div class="top"><div><div class="lbl">${t('receptionTable')}</div><h2>${esc(o.table)}</h2></div><button class="x" aria-label="${t('close')}">×</button></div>
     ${o.client ? `<div class="who">${esc(o.client)}</div>` : ''}
-    ${roomLabel(o) ? `<div class="room">Camera ${esc(roomLabel(o))}</div>` : ''}
+    ${roomLabel(o) ? `<div class="room">Camera ${esc(roomLabel(o))}</div>` : ''}${o.covers ? `<div class="covers">👥 ${o.covers} ${o.covers === 1 ? 'coperto' : 'coperti'}</div>` : ''}
     <ul>${o.items.map(l => `<li><b>${l.qty}×</b><span>${esc(l.it)}${l.note ? `<i>${esc(l.note)}</i>` : ''}</span><span class="num">${eur(l.qty * l.p)}</span></li>`).join('')}
     ${o.roomService ? `<li><b>+</b><span>Servizio in camera · Room service</span><span class="num">${eur(o.roomFee ?? 10)}</span></li>` : ''}</ul>
     ${o.note ? `<div class="note">Note: ${esc(o.note)}</div>` : ''}

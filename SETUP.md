@@ -100,10 +100,13 @@ On each device, open the website link once:
 
 ---
 
-## Step 9 — Reception screen (database update, one time)
+## Step 9 — Reception screen + reception login + guests (one time)
 
-In **Supabase → SQL Editor → New query**, paste the file **`supabase/migrations/20261105000000_reception_screen.sql`** → **Run** → "Success".
-Then on the reception PC, follow **GUIDE.md → For the reception**.
+1. **Supabase → SQL Editor → New query**: paste **`supabase/migrations/20261105000000_reception_screen.sql`** → **Run** → "Success" (skip if already done).
+2. Again **New query**: paste **`supabase/migrations/20261106000000_reception_login_covers.sql`** → **Run** → "Success".
+3. **Authentication → Users → Add user → Create new user**: email for example `reception@hotelconcordia.it`, a password for the reception, tick **Auto Confirm User** → **Create user**.
+4. **SQL Editor → New query**, run: `select set_user_role('reception@hotelconcordia.it', 'reception');` → "… is now reception".
+5. On the reception PC: follow **GUIDE.md → For the reception**.
 
 ## Good to know
 
