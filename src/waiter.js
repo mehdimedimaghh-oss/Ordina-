@@ -42,7 +42,7 @@ export function fromServer(o) {
   return {
     key: 's' + o.id, id: o.id, uid: o.uid, table: String(o.table_no), client: o.client, roomNo: o.room_no, building: o.building, waiter: o.waiter_name,
     items: (o.order_lines || []).slice().sort((a, b) => a.pos - b.pos).map(l => ({ id: l.item_id, it: l.name, qty: l.qty, p: Number(l.price), sec: l.section, note: l.note })),
-    roomService: o.room_service, roomFee: Number(o.room_fee), note: o.note, total: Number(o.total), closedAt: ms(o.closed_at), status: o.status, day: o.day, source: o.source,
+    roomService: o.room_service, roomFee: Number(o.room_fee), note: o.note, total: Number(o.total), closedAt: ms(o.closed_at), status: o.status, day: o.day, source: o.source, chargedAt: ms(o.charged_at), chargedBy: o.charged_by,
   };
 }
 function todayOrders() {
@@ -345,7 +345,7 @@ function dayText(list) {
   return out + `\nTOTALE GIORNO ${eur(list.reduce((a, o) => a + o.total, 0))} (${list.length} tavoli)`;
 }
 export function orderCard(o, opts = {}) {
-  return `<div class="ho${o.status === 'reopened' ? ' reopened' : ''}"><div class="ho-top"><div class="ho-t">Tavolo ${esc(o.table)}<small>${opts.withDay ? esc(dayLabel(o.day)) + ' · ' : ''}${hhmm(o.closedAt)} · ${esc(o.waiter || '—')}${o.pending ? `<span class="waitbadge">${t('waitingUpload')}</span>` : ''}${o.status === 'reopened' ? `<span class="waitbadge">${t('reopenedNotCounted')}</span>` : ''}${o.source === 'import' ? ' · ' + t('oldApp') : ''}</small></div><div class="ho-tot num">${eur(o.total)}</div>
+  return `<div class="ho${o.status === 'reopened' ? ' reopened' : ''}"><div class="ho-top"><div class="ho-t">Tavolo ${esc(o.table)}<small>${opts.withDay ? esc(dayLabel(o.day)) + ' · ' : ''}${hhmm(o.closedAt)} · ${esc(o.waiter || '—')}${o.pending ? `<span class="waitbadge">${t('waitingUpload')}</span>` : ''}${o.status === 'reopened' ? `<span class="waitbadge">${t('reopenedNotCounted')}</span>` : ''}${o.source === 'import' ? ' · ' + t('oldApp') : ''}${o.chargedAt ? `<span class="rc-ok sm">${t('chargedBadge', { time: hhmm(o.chargedAt) })}</span>` : ''}</small></div><div class="ho-tot num">${eur(o.total)}</div>
     ${(o.client || roomLabel(o)) ? `<div class="ho-who">${esc(o.client || '—')}${roomLabel(o) ? `<span class="rm">${t('room')} ${esc(roomLabel(o))}</span>` : ''}</div>` : ''}</div>
     <ul class="ho-items">${o.items.map(l => `<li><b>${l.qty}×</b> ${esc(l.it)}${l.note ? ` <i>(${esc(l.note)})</i>` : ''} <span class="num">· ${eur(l.qty * l.p)}</span></li>`).join('')}
     ${o.roomService ? `<li><b>+</b> ${t('roomService')} · ${eur(o.roomFee || 10)}</li>` : ''}</ul>

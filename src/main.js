@@ -1,6 +1,7 @@
 import './style.css';
 import { $, esc } from './data.js';
-import { S, configured, start, onChange, onNotify, login, logout, reload, STAFF_EMAIL } from './store.js';
+import { S, LS, configured, start, onChange, onNotify, login, logout, reload, STAFF_EMAIL } from './store.js';
+import { mountReception, receptionRender, leaveReception } from './reception.js';
 import { mountWork, render, modeChanged, pinPicker, isTablet } from './waiter.js';
 import { mountOwner, ownerRender } from './owner.js';
 import { toast } from './ui.js';
@@ -21,13 +22,15 @@ function screenFor() {
   if (!S.session) return 'login';
   if (S.role !== 'owner' && S.role !== 'staff') return S.role ? 'norole' : 'loading';
   if (location.hash === '#owner' && S.role === 'owner') return 'owner';
+  if (LS.get('mode') === 'reception') return 'reception';
   if (!S.waiter) return 'pin';
   return 'work';
 }
 
 function route() {
   const s = screenFor();
-  if (s === mounted) { if (s === 'work') render(); if (s === 'owner') ownerRender(); if (s === 'pin' && !$('.pinpad')) pinPicker($('#pinBox'), route); return; }
+  if (s === mounted) { if (s === 'work') render(); if (s === 'owner') ownerRender(); if (s === 'reception') receptionRender(); if (s === 'pin' && !$('.pinpad')) pinPicker($('#pinBox'), route); return; }
+  if (mounted === 'reception' && s !== 'reception') leaveReception();
   mounted = s; document.body.style.overflow = ''; document.querySelectorAll('.scrim,.recv').forEach(e => e.remove());
   document.body.classList.remove('scr-map', 'scr-order');
   scrollTo(0, 0);
@@ -36,13 +39,15 @@ function route() {
   else if (s === 'login') loginScreen();
   else if (s === 'norole') { app.innerHTML = gate(`${t('noRole', { email: esc(S.email) })}<button class="btn block" id="lo">${t('logOut')}</button>`); $('#lo').onclick = logout; }
   else if (s === 'pin') {
-    app.innerHTML = gate(`<div id="pinBox"></div>${S.role === 'owner' ? `<button class="btn block" id="toOwn" style="margin-top:14px">${t('ownerDashboard')}</button>` : ''}<button class="linkbtn" id="lo">${t('logoutDevice')}</button>`, t('whoWorking'));
+    app.innerHTML = gate(`<div id="pinBox"></div>${S.role === 'owner' ? `<button class="btn block" id="toOwn" style="margin-top:14px">${t('ownerDashboard')}</button>` : ''}<button class="btn block" id="toRecv" style="margin-top:10px">🔔 ${t('openReception')}</button><button class="linkbtn" id="lo">${t('logoutDevice')}</button>`, t('whoWorking'));
     pinPicker($('#pinBox'), route);
     if (navigator.onLine) reload('waiters');
     const to = $('#toOwn'); if (to) to.onclick = () => { location.hash = '#owner'; };
+    $('#toRecv').onclick = () => { LS.set('mode', 'reception'); route(); };
     $('#lo').onclick = logout;
   }
   else if (s === 'owner') mountOwner(app);
+  else if (s === 'reception') mountReception(app);
   else mountWork(app);
 }
 

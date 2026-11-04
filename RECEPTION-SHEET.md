@@ -1,5 +1,7 @@
 # Send every order to the reception's sheet (Google Sheets)
 
+> **Optional.** The easier way is the **Reception screen** inside the app (pop-up + sound on the reception PC, see GUIDE.md). Use this Google Sheet only if you *also* want a live sheet.
+
 When a waiter taps **Send to reception**, a new row appears **by itself**, within a few seconds, in a Google Sheet that the receptionist keeps open on the computer.
 
 - **One tab per day** (for example `04-11-2026`). Today's tab is always the first one.

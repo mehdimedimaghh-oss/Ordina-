@@ -242,6 +242,61 @@ await login.p.goto(APP); await login.p.click('[data-glang="it"]');
 ok(await until(async () => (await login.p.textContent('.gate')).includes('Password del ristorante')), 'login screen IT button');
 await shot(login.p, 'login-italian');
 
+console.log('14. Reception screen on the reception PC');
+const rec = await (async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 820 }, permissions: ['notifications'] });
+  await ctx.addInitScript(() => {
+    window.__notes = [];
+    const N = function (title, o) { window.__notes.push(title + ' | ' + (o && o.body)); return { close() {} }; };
+    N.permission = 'granted'; N.requestPermission = async () => 'granted'; window.Notification = N;
+  });
+  const p = await ctx.newPage(); p.on('pageerror', e => errors.push('reception: ' + e.message)); return { ctx, p };
+})();
+await rec.p.goto(APP);
+await rec.p.click('[data-glang="en"]');
+await rec.p.fill('#lp', 'staff-pass-123'); await rec.p.click('button[type=submit]');
+await rec.p.waitForSelector('#toRecv'); await rec.p.click('#toRecv');
+ok(await until(() => rec.p.isVisible('#recvStart')), 'PIN screen → "Reception" button → reception screen');
+await rec.p.click('#recvStart');
+await rec.p.waitForTimeout(1500);
+const before = await rec.p.locator('.rcard').count();
+ok(before > 0 && (await rec.p.locator('.recv-pop').count()) === 0, `orders already there are listed (${before}) without pop-ups`);
+await shot(rec.p, 'reception-list');
+// a waiter sends an order on the tablet
+if (!(await tab.p.isVisible('#mapView .tile'))) await tab.p.click('#tableBtn');
+await tab.p.click('.tile[data-t="15"]');
+await tab.p.click('.cell[data-id="pinsa-veg"] .card'); await tab.p.click('.cell[data-id="coca"] .card');
+await tab.p.fill('#cname', 'Bianchi'); await tab.p.fill('#croom', '305'); await tab.p.click('#bld [data-b="DEP"]');
+await tab.p.waitForTimeout(800);
+await tab.p.click('#closeBtn');
+ok(await until(() => rec.p.isVisible('.recv-pop'), 12000), 'reception: pop-up appears for the new order');
+const pop = await rec.p.textContent('.recv-pop');
+ok(pop.includes('15') && pop.includes('Bianchi') && pop.includes('DEP 305') && pop.includes('21,00') && pop.includes('Pinsa Vegetariana'), 'pop-up shows table, client, room DEP 305, dishes, total € 21,00');
+const notes = await rec.p.evaluate(() => window.__notes);
+ok(notes.some(n => n.includes('Tavolo 15') && n.includes('Bianchi')), 'PC notification sent: ' + (notes[notes.length - 1] || 'none'));
+await shot(rec.p, 'reception-popup');
+await rec.p.click('.recv-pop [data-pop="charge"]');
+ok(await until(() => sql(`select charged_by from orders where table_no=15 and client='Bianchi'`) === 'Reception'), '"Charged ✓" saved in the database');
+ok(await until(async () => (await rec.p.textContent('#recvList')).includes('Charged ✓')), 'card shows "Charged ✓ hh:mm"');
+await tab.p.click('#histBtn');
+ok(await until(async () => (await tab.p.locator('#histSheet .ho:has-text("Tavolo 15")').first().textContent()).includes('Charged ✓')), 'waiters see "Charged ✓" in History too');
+await tab.p.click('#histSheet [data-close]');
+// send table 9 (still open from step 13), then reopen it from History
+if (!(await tab.p.isVisible('#mapView .tile'))) await tab.p.click('#tableBtn');
+await tab.p.click('.tile[data-t="9"]'); await tab.p.click('#closeBtn');
+ok(await until(async () => (await rec.p.locator('.recv-pop').count()) === 1, 12000), 'second order → new pop-up');
+await rec.p.click('.recv-pop [data-pop="ok"]');
+await tab.p.click('#histBtn');
+await tab.p.locator('#histSheet .ho:has-text("Tavolo 9") [data-reopen]').first().click();
+ok(await until(async () => (await rec.p.textContent('body')).includes('was reopened'), 12000), 'reopen → reception gets a warning');
+ok(await until(async () => (await rec.p.textContent('#recvList')).includes('Reopened · do not charge')), 'reopened card: "do not charge"');
+const [rx] = await Promise.all([rec.p.waitForEvent('download'), rec.p.click('#rcpXlsx')]);
+const rxs = execFileSync('unzip', ['-p', await rx.path(), 'xl/worksheets/sheet1.xml']).toString();
+ok(rxs.includes('Bianchi') && rxs.includes('Addebitato'), 'reception Excel of the day (with "Charged" column)');
+await rec.p.click('#rcpLang');
+ok(await until(async () => (await rec.p.textContent('.rcp')).includes('Schermo reception')), 'reception screen in Italian');
+await shot(rec.p, 'reception-italian');
+
 ok(errors.length === 0, 'no JavaScript errors' + (errors.length ? ': ' + errors.join(' | ') : ''));
 sql(`delete from waiters where name='Giulia'; delete from menu_items where id='panna-cotta'`);
 await browser.close();

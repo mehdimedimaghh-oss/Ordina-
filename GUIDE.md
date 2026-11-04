@@ -42,6 +42,26 @@
 
 ---
 
+## For the reception
+
+**Set up the reception PC (one time)**
+1. Open the website link on the reception computer (Chrome or Edge is best).
+2. **Waiter device** → type the restaurant password → **Log in**.
+3. On the "Who is working?" screen, tap **🔔 Reception PC? Open the reception screen**.
+4. Click the gold box **"Start the reception screen"**, and **Allow** notifications when the browser asks. Now the sound and the notifications work.
+5. Keep the window open. It can be behind other windows or minimized. The computer will remember it is the reception screen.
+
+**Every day**
+- A waiter taps **Send to reception** → a **big pop-up** with table, client, room, dishes and total, plus a **sound** and a **notification** on the computer.
+- Charge it to the room, then tap **Charged ✓**. You can do it in the pop-up or later in the list.
+- **Reopened** orders are crossed out with "do not charge": wait for the new order. If the owner deletes an order, you get a message too.
+- At the top: today's total and how many orders are still **to charge**.
+- **Download Excel** = all today's orders in an Excel file.
+- **Sound: On/Off** and **IT/EN** are at the top.
+- **Exit** brings the PC back to the normal login screen.
+
+---
+
 ## For the owner
 
 **Open the dashboard** from any computer or phone: open the website link → **Owner** → your email and password. (On a waiter device: **☰ → Owner dashboard**.)
@@ -56,7 +76,7 @@
 
 **Waiters** — add a waiter (name + 4-number PIN), change a PIN, untick **Active** when someone leaves.
 
-**Reception sheet** — every order sent to reception also appears as a row in a Google Sheet that reception keeps open (one tab per day, Excel download possible). Set it up once: see RECEPTION-SHEET.md.
+**Reception screen** — on the reception PC, every order sent to reception pops up with a sound; reception ticks **Charged ✓** (you see it on each order). **Reception sheet** (optional) — every order sent to reception also appears as a row in a Google Sheet that reception keeps open (one tab per day, Excel download possible). Set it up once: see RECEPTION-SHEET.md.
 
 **Import old history** — the file `history-export.json` from the old app (safe to do twice).
 

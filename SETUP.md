@@ -100,6 +100,11 @@ On each device, open the website link once:
 
 ---
 
+## Step 9 — Reception screen (database update, one time)
+
+In **Supabase → SQL Editor → New query**, paste the file **`supabase/migrations/20261105000000_reception_screen.sql`** → **Run** → "Success".
+Then on the reception PC, follow **GUIDE.md → For the reception**.
+
 ## Good to know
 
 - **Free plans:** Supabase Free has 500 MB of database — enough for many years of lunch orders. A free Supabase project is **paused after 7 days with no use** (for example when the restaurant is closed for the season). Nothing is lost: open supabase.com and click **Restore project**.

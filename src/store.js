@@ -189,7 +189,7 @@ const loaders = {
   },
   async today() {
     const { data, error } = await sb.from('orders').select('*, order_lines(*)').eq('day', today()).order('closed_at', { ascending: false });
-    if (!error) { S.today = data; persist(); emit(); }
+    if (!error) { S.today = data; S.todayLoadedAt = Date.now(); persist(); emit(); }
   },
 };
 export const reload = k => loaders[k]();
@@ -296,6 +296,7 @@ export const saveWaiter = (id, name, pin, active) => must(sb.rpc('owner_save_wai
 export const saveMenuItem = (id, patch) => must(sb.from('menu_items').update(patch).eq('id', id).select()).then(r => { loaders.menu(); return r; });
 export const addMenuItem = row => must(sb.from('menu_items').insert(row).select()).then(r => { loaders.menu(); return r; });
 export const importOrders = rows => must(sb.rpc('import_orders', { p_rows: rows }));
+export const markCharged = (id, on, by) => must(sb.rpc('mark_charged', { p_id: id, p_charged: on, p_by: by || 'Reception' })).then(r => { loaders.today(); return r; });
 export const setSheetUrl = url => must(sb.rpc('owner_set_sheet_url', { p_url: url }));
 export const sheetStatus = () => must(sb.rpc('owner_sheet_status'));
 export const sheetTest = () => must(sb.rpc('owner_sheet_test'));
