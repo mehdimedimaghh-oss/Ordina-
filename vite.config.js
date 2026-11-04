@@ -2,6 +2,12 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      // the 3D rooftop (Three.js) is a separate file, downloaded only when the owner opens it
+      output: { manualChunks: id => (id.includes('node_modules/three') || id.includes('/src/rooftop/') ? 'rooftop' : undefined) },
+    },
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
@@ -26,9 +32,11 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
+        globIgnores: ['**/rooftop-*.js'],   // waiters' devices don't download the 3D part
         navigateFallback: '/index.html',
         // never cache the database: orders must always be live
         runtimeCaching: [
+          { urlPattern: ({ url }) => /\/assets\/rooftop-.*\.js$/.test(url.pathname), handler: 'CacheFirst', options: { cacheName: 'rooftop-3d' } },
           { urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com', handler: 'StaleWhileRevalidate', options: { cacheName: 'google-fonts-css' } },
           { urlPattern: ({ url }) => url.origin === 'https://fonts.gstatic.com', handler: 'CacheFirst', options: { cacheName: 'google-fonts', expiration: { maxEntries: 20, maxAgeSeconds: 31536000 }, cacheableResponse: { statuses: [0, 200] } } },
         ],

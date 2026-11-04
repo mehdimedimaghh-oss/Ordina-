@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
-    "fflate": "^0.8.3"
+    "fflate": "^0.8.3",
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "supabase": "^3.0.0",

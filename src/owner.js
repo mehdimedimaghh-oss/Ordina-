@@ -13,7 +13,7 @@ export function mountOwner(app) {
   app.innerHTML = `<div class="own">
     <div class="topbar"><button class="hbtn" id="backTables">‹ Tables</button><h1>Owner</h1><button class="hbtn" id="ownTheme">Theme</button></div>
     <div class="obanner"><img class="ph" src="/terrace.jpg" alt="The restaurant terrace at night"><div class="ov"><img src="/logo.png" alt="" width="64" height="64"><span>Ristorante Concordia<small>Fugari Bistrot · Lunch orders</small></span></div></div>
-    <nav class="otabs">${[['dash', 'Dashboard'], ['menu', 'Menu & prices'], ['waiters', 'Waiters'], ['sheet', 'Reception sheet'], ['import', 'Import old history'], ['log', 'Audit log']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
+    <nav class="otabs">${[['dash', 'Dashboard'], ['menu', 'Menu & prices'], ['waiters', 'Waiters'], ['rooftop', '<svg class="oti" aria-hidden="true"><use href="#i-stock"/></svg>3D Live Rooftop'], ['sheet', 'Reception sheet'], ['import', 'Import old history'], ['log', 'Audit log']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
     <div id="ownBody"></div></div>`;
   $('#backTables').onclick = () => { location.hash = ''; };
   $('#ownTheme').onclick = () => { const t = { auto: 'light', light: 'dark', dark: 'auto' }[localStorage.getItem('ordina:theme')?.replace(/"/g, '') || 'auto']; setTheme(t); toast('Theme: ' + t); };
@@ -23,6 +23,7 @@ export function mountOwner(app) {
 export function ownerRender() { if (root && tab === 'menu' && !root.contains(document.activeElement)) show(); }
 function show() {
   const body = $('#ownBody');
+  if (tab === 'rooftop') { openRooftopPage(); return; }
   ({ dash: dashboard, menu: menuEditor, waiters, sheet: receptionSheet, import: importer, log: auditLog })[tab](body);
 }
 
@@ -215,6 +216,15 @@ const ACT = {
   sheet_off: () => 'Reception sheet: turned off',
   history_import: d => `Imported old history: ${d.imported} new, ${d.already_there} already there`,
 };
+// ================= 3D Live Rooftop (loaded only when the owner opens it) =================
+async function openRooftopPage() {
+  const body = $('#ownBody'); body.innerHTML = '<p class="hint">Loading the 3D rooftop…</p>';
+  try {
+    const m = await import('./rooftop/page.js');
+    m.openRooftop({ onBack: () => { tab = 'dash'; $$('.otabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'dash')); show(); } });
+  } catch (e) { body.innerHTML = `<p class="err">The 3D rooftop could not load (${esc(e.message)}). Check the internet and try again.</p>`; }
+}
+
 // ================= Reception sheet (Google Sheets) =================
 async function receptionSheet(body) {
   body.innerHTML = '<p class="hint">Loading…</p>';

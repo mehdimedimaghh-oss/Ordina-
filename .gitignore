@@ -10,3 +10,6 @@ history-export.json
 supabase/.temp
 supabase/.branches
 .vercel
+
+# local 3D preview page (testing only)
+.rooftop-preview
