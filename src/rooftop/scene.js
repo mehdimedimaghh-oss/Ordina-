@@ -17,6 +17,7 @@ const COL = {
 const xs = FLOOR.map(p => p[0]), zs = FLOOR.map(p => p[1]);
 export const BOUNDS = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) };
 const CX = (BOUNDS.minX + BOUNDS.maxX) / 2, CZ = (BOUNDS.minZ + BOUNDS.maxZ) / 2;
+const span = Math.max(BOUNDS.maxX - BOUNDS.minX, BOUNDS.maxZ - BOUNDS.minZ);
 
 // small deterministic random (same scene every time)
 let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -64,6 +65,16 @@ function chair(M) {
   return g;
 }
 
+// upholstered bench for 2 (dark green velvet, as in the plan), seat facing −Z in its own frame
+function bench(len, M) {
+  const g = new THREE.Group();
+  const base = box(len, 0.4, 0.48, M.velvetDark); base.position.y = 0.2; g.add(base);
+  const seat = box(len - 0.04, 0.08, 0.46, M.velvet); seat.position.y = 0.44; g.add(seat);
+  const back = box(len, 0.5, 0.12, M.velvet); back.position.set(0, 0.7, 0.2); g.add(back);
+  for (const x of [-len / 4, len / 4]) { const pw = box(0.34, 0.3, 0.1, M.pillow); pw.position.set(x, 0.65, 0.1); pw.rotation.x = -0.25; g.add(pw); }
+  return g;
+}
+
 function table(t, M) {
   const g = new THREE.Group(); g.name = t.id; g.userData.id = t.id;
   g.position.set(t.x, 0, t.z); g.rotation.y = -(t.rot || 0) * DEG;
@@ -75,7 +86,7 @@ function table(t, M) {
     top = new THREE.Mesh(new THREE.CylinderGeometry(r + 0.03, r + 0.07, 0.3, 40, 1, true), M.cloth); top.position.y = DIMS.RD.height - 0.13;
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(r + 0.03, r + 0.03, 0.02, 40), M.cloth); disc.position.y = DIMS.RD.height + 0.02; disc.castShadow = disc.receiveShadow = true; g.add(disc);
   } else {
-    const s = DIMS.SQ.size + 0.06;
+    const s = (t.size || DIMS.SQ.size) + 0.06;
     top = box(s, 0.28, s, M.cloth); top.position.y = DIMS.SQ.height - 0.12;
   }
   top.castShadow = top.receiveShadow = true; g.add(top);
@@ -84,11 +95,12 @@ function table(t, M) {
   const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.075, 0.07, 18), M.shade); shade.position.y = 0.99; g.add(shade);
   // chairs: exactly the four positions from the config
   t.chairs.forEach(c => { const ch = chair(M); ch.position.set(c.dx, 0, c.dz); ch.rotation.y = -c.a * DEG; g.add(ch); });
+  if (t.bench) { const b = bench(t.bench.length, M); b.position.set(t.bench.dx, 0, t.bench.dz); b.rotation.y = -t.bench.a * DEG; g.add(b); }
   // selection ring (hidden) + table number + invisible "hit" area for taps
-  const ring = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.05, 48), new THREE.MeshBasicMaterial({ color: COL.gold, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.82, 0.9, 48), new THREE.MeshBasicMaterial({ color: COL.gold, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
   ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; ring.visible = false; ring.name = 'ring'; g.add(ring);
   const lab = labelSprite(t.label); lab.position.y = 1.55; g.add(lab);
-  const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 1.2, 16), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.6; hit.userData.id = t.id; g.add(hit);
+  const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.85, 16), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.42; hit.userData.id = t.id; g.add(hit);
   g.userData.hit = hit; g.userData.ring = ring; g.userData.lampPos = new THREE.Vector3(0, 0.96, 0);
   return g;
 }
@@ -123,6 +135,7 @@ export function createRooftop(container, { onPick } = {}) {
     door: mat(COL.door, { roughness: 0.6, metalness: 0.2 }), counter: mat(COL.counter, { roughness: 0.7 }), wood: mat(COL.wood, { roughness: 0.6 }),
     bulb: new THREE.MeshStandardMaterial({ color: COL.lamp, emissive: COL.lamp, emissiveIntensity: 2.2 }),
     brass: mat(0xc9a46a, { metalness: 0.8, roughness: 0.35 }),
+    velvet: mat(0x2f4f3e, { roughness: 0.9 }), velvetDark: mat(0x22382d, { roughness: 0.9 }), pillow: mat(0xd8d2c6, { roughness: 1 }),
     shade: new THREE.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xffc777, emissiveIntensity: 1.4, roughness: 0.6 }),
   };
 
@@ -157,7 +170,7 @@ export function createRooftop(container, { onPick } = {}) {
   const [ca, cb] = BAR.counter;
   scene.add(segment(ca, cb, 1.02, 0.55, M.counter));
   const top = segment(ca, cb, 0.05, 0.62, M.wood, 1.02); scene.add(top);
-  const shelfA = [BAR.area[0][0] + 0.25, BAR.area[0][1] + 0.4], shelfB = [BAR.area[3][0] + 0.25, BAR.area[3][1] - 0.4];
+  const shelfA = [BAR.area[0][0] + 0.22, BAR.area[0][1] + 0.35], shelfB = [BAR.area[3][0] + 0.22, BAR.area[3][1] - 0.35];
   scene.add(segment(shelfA, shelfB, 1.9, 0.4, mat(0x3a3530)));
   const bottleCols = [0x2f6b3c, 0x7a3b23, 0xd9c48a, 0x1f3f6b, 0x8a2a2a];
   for (let i = 0; i < 14; i++) {
@@ -165,28 +178,29 @@ export function createRooftop(container, { onPick } = {}) {
     const b = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.28, 10), new THREE.MeshStandardMaterial({ color: bottleCols[i % 5], roughness: 0.2, metalness: 0.1 }));
     b.position.set(bx, 1.3 + (i % 2) * 0.42, bz); scene.add(b);
   }
-  const barGlow = new THREE.PointLight(0xffb85c, 6, 4, 2); barGlow.position.set((ca[0] + cb[0]) / 2 - 0.8, 2.1, (ca[1] + cb[1]) / 2); scene.add(barGlow);
+  const barGlow = new THREE.PointLight(0xffb85c, 6, 4, 2); barGlow.position.set((ca[0] + cb[0]) / 2 + 0.3, 2.0, (ca[1] + cb[1]) / 2); scene.add(barGlow);
 
   // perimeter walls (parapet) with a light cap; the bar side of the floor is the counter, the entrance edge gets the door
   const H = DIMS.WALL_H, T = DIMS.WALL_T;
   const n = FLOOR.length;
-  const isBarSide = (a, b) => near(a, BAR.area[1]) || near(b, BAR.area[1]);
   for (let i = 0; i < n; i++) {
     const a = FLOOR[i], b = FLOOR[(i + 1) % n];
-    if (near(a, [3.8, 11.5]) && near(b, [4.4, 8.2])) continue;   // bar counter side: open to the tables
-    if (isBarSide(a, b) && a[1] > 8 && b[1] > 8) { addWallWithGap(scene, a, b, BAR.opening, H, T, M); continue; }
+    if (onSegment(BAR.opening[0], a, b) && onSegment(BAR.opening[1], a, b)) { addWallWithGap(scene, a, b, BAR.opening, H, T, M); continue; }
     if (onSegment(ENTRANCE.a, a, b) && onSegment(ENTRANCE.b, a, b)) { addDoorWall(scene, a, b, M); continue; }
     scene.add(segment(a, b, H, T, M.wall)); scene.add(segment(a, b, 0.05, T + 0.08, M.cap, H));
   }
-  // walls around the bar
-  for (const [a, b] of [[BAR.area[0], BAR.area[3]], [BAR.area[3], BAR.area[2]], [BAR.area[0], [0.4, 8.5]]]) { scene.add(segment(a, b, 2.2, T, M.wall)); }
+  // walls around the bar room (the sides that are not part of the terrace outline)
+  const ba = BAR.area;
+  const corner = FLOOR.reduce((m, p) => (Math.hypot(p[0] - ba[0][0], p[1] - ba[0][1]) < Math.hypot(m[0] - ba[0][0], m[1] - ba[0][1]) ? p : m), FLOOR[0]);
+  // back wall, bottom wall, and the short piece joining the terrace wall (the side towards the terrace keeps its opening)
+  for (const [a, b] of [[ba[0], ba[3]], [ba[3], ba[2]], [ba[0], corner]]) scene.add(segment(a, b, 2.2, T, M.wall));
 
   // planters with greenery on top of the chosen walls
   for (const wi of PLANTERS.walls) {
     const a = FLOOR[wi], b = FLOOR[(wi + 1) % n], len = Math.hypot(b[0] - a[0], b[1] - a[1]), ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
     for (let d = PLANTERS.every / 2; d < len - 0.4; d += PLANTERS.every) {
       const pl = planterWithPlants(M); const f = d / len;
-      pl.position.set(a[0] + (b[0] - a[0]) * f, H + 0.05, a[1] + (b[1] - a[1]) * f); pl.rotation.y = -ang; scene.add(pl);
+      pl.scale.setScalar(0.62); pl.position.set(a[0] + (b[0] - a[0]) * f, H + 0.03, a[1] + (b[1] - a[1]) * f); pl.rotation.y = -ang; scene.add(pl);
     }
   }
   // warm string lights along the far and right walls
@@ -210,9 +224,9 @@ export function createRooftop(container, { onPick } = {}) {
   // ---------- camera + controls (no automatic rotation) ----------
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = 0.09; controls.autoRotate = false;
-  controls.screenSpacePanning = true; controls.minDistance = 3; controls.maxDistance = 45; controls.maxPolarAngle = 1.42;
+  controls.screenSpacePanning = true; controls.minDistance = 2; controls.maxDistance = span * 3; controls.maxPolarAngle = 1.42;
   controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-  const VIEWS = { iso: [CX + 9, 15, BOUNDS.maxZ + 7], top: [CX, 27, CZ + 0.01] };
+  const VIEWS = { iso: [CX + span * 0.55, span * 0.95, BOUNDS.maxZ + span * 0.45], top: [CX, span * 1.65, CZ + 0.01] };
   function setView(v) {
     const p = (VIEWS[v] || VIEWS.iso).slice();
     if (camera.aspect < 1) { const k = Math.min(1.9, 1 / camera.aspect); p[0] = CX + (p[0] - CX) * k; p[1] *= k; p[2] = CZ + (p[2] - CZ) * k; }   // portrait phone: step back so all fits
