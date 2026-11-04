@@ -29,9 +29,10 @@ export const hhmm = ms => new Date(ms).toLocaleTimeString('it-IT', { hour: '2-di
 export const parseDay = k => { const [Y, M, D] = k.split('-').map(Number); return new Date(Date.UTC(Y, M - 1, D, 12)); };
 export const addDays = (k, n) => { const d = parseDay(k); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 export const dayLabel = (k, long) => {
-  if (k === today()) return 'Today';
-  if (k === addDays(today(), -1)) return 'Yesterday';
-  return parseDay(k).toLocaleDateString('en-GB', long ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' } : { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+  const it = document.documentElement.lang === 'it';
+  if (k === today()) return it ? 'Oggi' : 'Today';
+  if (k === addDays(today(), -1)) return it ? 'Ieri' : 'Yesterday';
+  return parseDay(k).toLocaleDateString(it ? 'it-IT' : 'en-GB', long ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' } : { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
 };
 export const ms = v => typeof v === 'number' ? v : (v ? Date.parse(v) : 0);
 export const roomLabel = o => [o.building || '', (o.roomNo ?? o.room_no ?? '').trim()].filter(Boolean).join(' ');

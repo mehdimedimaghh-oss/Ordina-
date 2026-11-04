@@ -68,6 +68,8 @@
 
 **Open the dashboard** from any computer or phone: open the website link → **Owner** → your email and password. (On a waiter device: **☰ → Owner dashboard**.)
 
+**Italiano / English** — tap **IT** or **EN** at the top right of the dashboard. The whole dashboard (all tabs, the 3D rooftop, Excel exports, dates) changes language. The choice is remembered on that device.
+
 **Dashboard**
 - Choose **Day**, **Week** or **Month**, then tap a day in the **calendar**. Days with orders are gold and show the total.
 - You see: **Total**, number of **tables**, **average table**, items and room services, **total per day**, **total per waiter**, **best-selling dishes**, and **every order** (time, table, waiter, client, HCO/DEP room, dishes, notes, total).
