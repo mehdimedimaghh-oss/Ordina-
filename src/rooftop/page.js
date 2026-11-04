@@ -1,7 +1,7 @@
 // "3D Live Rooftop" page inside the Owner dashboard.
 // STAGE 1 (layout preview): static rooftop, camera, table panel with layout data only. No live data yet.
 import { TABLES, FLOOR, BAR, ENTRANCE, WALKWAY, DIMS, chairSlots } from './config.js';
-import { S, onChange, reload } from '../store.js';
+import { S, onChange, reload, tableData, count } from '../store.js';
 import { hasWebGL, createRooftop, BOUNDS } from './scene.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -48,6 +48,7 @@ export function openRooftop({ onBack }) {
       <button class="rtp-btn" id="rtpReset">Reset</button><button class="rtp-btn" id="rtpPlan">2D plan</button><button class="rtp-btn" id="rtpFull" aria-label="Fullscreen">⤢</button>
     </div>
     <p class="rtp-help">Drag to rotate · pinch or wheel to zoom · two fingers / right-click to move · tap a table</p>
+    <button class="rtp-btn rtp-backov" id="rtpOverview" hidden>‹ Back to rooftop</button>
     <aside class="rtp-panel" id="rtpPanel" hidden></aside>`;
   document.body.appendChild(host); document.body.style.overflow = 'hidden';
   const stage = host.querySelector('#rtpStage');
@@ -55,7 +56,7 @@ export function openRooftop({ onBack }) {
   const draw = () => {
     view?.dispose?.(); view = null; stage.innerHTML = '';
     if (plan2d) { stage.innerHTML = planSvg(); bindPlan(stage); }
-    else { view = createRooftop(stage, { onPick: showPanel }); if (import.meta.env.DEV) window.__rooftop = view; }
+    else { view = createRooftop(stage, { onPick: pickTable }); if (import.meta.env.DEV) window.__rooftop = view; }
     host.querySelector('#rtpPlan').textContent = plan2d ? '3D view' : '2D plan';
     host.querySelectorAll('[data-v],[data-z],#rtpReset').forEach(b => { b.disabled = plan2d; });
   };
@@ -63,12 +64,25 @@ export function openRooftop({ onBack }) {
   if (!subscribed) { subscribed = true; onChange(refresh); }
   reload('roof').catch(() => {});
   host.querySelector('#rtpBack').onclick = () => { closeRooftop(); onBack && onBack(); };
-  host.querySelectorAll('[data-v]').forEach(b => { b.onclick = () => view?.setView(b.dataset.v); });
+  host.querySelectorAll('[data-v]').forEach(b => { b.onclick = () => { showPanel(null); setBack(false); view?.setView(b.dataset.v); }; });
+  host.querySelector('#rtpOverview').onclick = backToRooftop;
   host.querySelectorAll('[data-z]').forEach(b => { b.onclick = () => view?.zoom(+b.dataset.z); });
-  host.querySelector('#rtpReset').onclick = () => { view?.reset(); showPanel(null); };
-  host.querySelector('#rtpPlan').onclick = () => { if (!hasWebGL()) return; plan2d = !plan2d; showPanel(null); draw(); };
+  host.querySelector('#rtpReset').onclick = backToRooftop;
+  host.querySelector('#rtpPlan').onclick = () => { if (!hasWebGL()) return; plan2d = !plan2d; showPanel(null); setBack(false); draw(); };
   host.querySelector('#rtpFull').onclick = () => { const d = document; if (d.fullscreenElement) d.exitFullscreen?.(); else host.requestFullscreen?.().catch(() => {}); };
   addEventListener('keydown', onKey);
+}
+
+// tap on a table: fly to it and open its panel · tap on empty space: only close the panel (the camera stays)
+function pickTable(id) {
+  if (id) { view?.focus?.(id); showPanel(id, true); setBack(true); }
+  else showPanel(null, true);
+}
+function backToRooftop() { showPanel(null); setBack(false); view?.overview?.(); }
+function setBack(on) {
+  const b = host?.querySelector('#rtpOverview'); if (!b) return;
+  b.hidden = !on;
+  const st = host.querySelector('#rtpStage'); b.style.top = (st.getBoundingClientRect().top - host.getBoundingClientRect().top + 12) + 'px';
 }
 
 function onKey(e) { if (e.key === 'Escape' && host) { if (!host.querySelector('#rtpPanel').hidden) showPanel(null); } }
@@ -79,6 +93,14 @@ export function closeRooftop() {
   removeEventListener('keydown', onKey);
 }
 
+// guests now at this table (the existing OSPITI field of the open order) and chairs still needed
+function guestsRow(t) {
+  const app = roofRow(t.id)?.app_table; if (!app) return '';
+  const d = tableData(app); if (!count(d) && !d.covers) return '<dt>Guests now</dt><dd><span class="rtp-muted">no open order</span></dd>';
+  const need = (d.covers || 0) - (chairsOf(t) + benchOf(t));
+  return `<dt>Guests now</dt><dd>${d.covers || 0}</dd><dt>Chairs needed</dt><dd>${need > 0 ? `<span style="color:#f5a54a">${need} more</span>` : '<span style="color:#7bd08f">enough ✓</span>'}</dd>`;
+}
+
 function bindPlan(el) { el.querySelectorAll('[data-t]').forEach(g => { g.onclick = () => showPanel(g.dataset.t); }); }
 
 function showPanel(id, keep) {
@@ -86,19 +108,23 @@ function showPanel(id, keep) {
   const p = host.querySelector('#rtpPanel'), t = TABLES.find(x => x.id === id);
   picked = t ? id : null;
   if (!keep) view?.select?.(id || null);
-  if (!t) { p.hidden = true; return; }
+  if (!t) { p.hidden = true; view?.setInset?.(0, 0); return; }
   p.hidden = false;
   p.innerHTML = `<div class="rtp-ph"><div><small>Physical table</small><b>${esc(t.id)}</b></div><button class="rtp-x" aria-label="Close">×</button></div>
     <dl class="rtp-dl">
       <dt>Shape</dt><dd>${t.shape === 'round' ? 'Round' : 'Square'}</dd>
       <dt>Chairs here now</dt><dd>${chairsOf(t)}${benchOf(t) ? ` <span class="rtp-muted">+ bench for ${benchOf(t)}</span>` : ''}</dd>
       <dt>Seats now</dt><dd>${chairsOf(t) + benchOf(t)}</dd>
+      ${guestsRow(t)}
       <dt>App table number</dt><dd>${roofRow(t.id)?.app_table ? 'Tavolo ' + roofRow(t.id).app_table : '<span class="rtp-muted">not linked — set it in Menu &amp; prices</span>'}</dd>
       <dt>Position</dt><dd>x ${t.x.toFixed(2)} m · z ${t.z.toFixed(2)} m · ${t.rot || 0}°</dd>
       <dt>Operational status</dt><dd>${!roofRow(t.id) ? '<span class="rtp-muted">—</span>' : roofRow(t.id).active ? '<span class="rtp-dot on"></span>ACTIVE' : '<span class="rtp-dot off"></span>CLOSED'}</dd>
     </dl>
     <p class="rtp-muted">Chairs update live when waiters move them. Order status, revenue, recent orders and ⭐ favourites come after you approve the layout.</p>`;
-  p.querySelector('.rtp-x').onclick = () => showPanel(null);
+  p.querySelector('.rtp-x').onclick = () => showPanel(null, true);   // close the panel, keep the camera where it is
+  // keep the table visible next to the panel (right side on a computer, bottom sheet on a phone)
+  const small = innerWidth <= 700;
+  view?.setInset?.(small ? 0 : p.offsetWidth + 28, small ? p.offsetHeight + 8 : 0);
 }
 
 // 2D plan (fallback when WebGL is not available, and to compare with the drawing)

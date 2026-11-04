@@ -53,6 +53,40 @@ function segment(a, b, h, t, m, y0 = 0) {   // a wall-like box from a to b (plan
 }
 
 // ---------- furniture ----------
+// black & white leaf pattern of the cushions in the night photo
+let leafTex = null;
+function leafTexture() {
+  if (leafTex) return leafTex;
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = '#ece8e0'; g.fillRect(0, 0, 128, 128);
+  g.strokeStyle = '#2b2b2b'; g.lineWidth = 2.2;
+  for (let i = 0; i < 14; i++) {
+    const x = rnd() * 128, y = rnd() * 128, l = 18 + rnd() * 16, a = rnd() * Math.PI;
+    g.save(); g.translate(x, y); g.rotate(a);
+    g.beginPath(); g.moveTo(-l / 2, 0); g.quadraticCurveTo(0, -l / 3, l / 2, 0); g.quadraticCurveTo(0, l / 3, -l / 2, 0); g.stroke();
+    for (let k = -2; k <= 2; k++) { g.beginPath(); g.moveTo(k * l / 6, 0); g.lineTo(k * l / 6 + l / 10, -l / 6); g.stroke(); }
+    g.restore();
+  }
+  leafTex = new THREE.CanvasTexture(c); leafTex.colorSpace = THREE.SRGBColorSpace; leafTex.wrapS = leafTex.wrapT = THREE.RepeatWrapping;
+  return leafTex;
+}
+
+// shared small geometries for the table settings (cheap to repeat at every seat)
+const G = {};
+function geoms() {
+  if (G.plate) return G;
+  G.plate = new THREE.CylinderGeometry(0.105, 0.095, 0.014, 24);
+  G.napkin = new THREE.BoxGeometry(0.13, 0.018, 0.07);
+  const prof = [[0, 0], [0.032, 0], [0.032, 0.004], [0.005, 0.01], [0.004, 0.09], [0.03, 0.12], [0.036, 0.17], [0.034, 0.2]].map(([x, y]) => new THREE.Vector2(x, y));
+  G.glass = new THREE.LatheGeometry(prof, 16);
+  G.cup = new THREE.CylinderGeometry(0.045, 0.042, 0.1, 16, 1, true);
+  G.flame = new THREE.SphereGeometry(0.014, 8, 6);
+  G.jar = new THREE.CylinderGeometry(0.03, 0.026, 0.07, 12);
+  G.rose = new THREE.IcosahedronGeometry(0.03, 1);
+  G.stem = new THREE.CylinderGeometry(0.003, 0.003, 0.09, 4);
+  return G;
+}
+
 function chair(M) {
   const g = new THREE.Group();
   const legG = new THREE.CylinderGeometry(0.012, 0.012, 0.45, 6);
@@ -62,6 +96,7 @@ function chair(M) {
   for (const x of [-0.18, 0.18]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.42, 6), M.iron); p.position.set(x, 0.66, 0.2); p.castShadow = true; g.add(p); }
   const arc = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.012, 6, 20, Math.PI), M.iron); arc.position.set(0, 0.86, 0.2); arc.castShadow = true; g.add(arc);
   const scroll = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.008, 6, 16), M.iron); scroll.position.set(0, 0.74, 0.2); g.add(scroll);   // wrought-iron curl
+  const pillow = box(0.3, 0.25, 0.05, M.leafPillow); pillow.position.set(0, 0.64, 0.15); pillow.rotation.x = -0.2; g.add(pillow);   // leaf cushion
   return g;
 }
 
@@ -76,9 +111,22 @@ function bench(len, M) {
 }
 
 function fillChairs(g, n, M) {
-  const cg = g.userData.chairs;
-  for (const c of [...cg.children]) { c.traverse(o => o.geometry?.dispose?.()); cg.remove(c); }
-  chairSlots(g.userData.t, n).forEach(c => { const ch = chair(M); ch.position.set(c.dx, 0, c.dz); ch.rotation.y = -c.a * DEG; cg.add(ch); });
+  const cg = g.userData.chairs, sg = g.userData.settings, t = g.userData.t, Q = geoms();
+  for (const c of [...cg.children]) { c.traverse(o => { if (!Object.values(G).includes(o.geometry)) o.geometry?.dispose?.(); }); cg.remove(c); }
+  for (const c of [...sg.children]) sg.remove(c);
+  const slots = chairSlots(t, n);
+  const reach = t.shape === 'round' ? DIMS.RD.diameter / 2 - 0.15 : (t.size || DIMS.SQ.size) / 2 - 0.15;
+  const top = DIMS.SQ.height + 0.03;
+  slots.forEach(c => {
+    const ch = chair(M); ch.position.set(c.dx, 0, c.dz); ch.rotation.y = -c.a * DEG; cg.add(ch);
+    // one place setting in front of every chair: plate, folded napkin, wine glass
+    const len = Math.hypot(c.dx, c.dz) || 1, ux = c.dx / len, uz = c.dz / len;
+    const set = new THREE.Group(); set.position.set(ux * reach, top, uz * reach); set.rotation.y = -c.a * DEG;
+    const plate = new THREE.Mesh(Q.plate, M.china); set.add(plate);
+    const nap = new THREE.Mesh(Q.napkin, M.cloth); nap.position.set(0, 0.016, 0); set.add(nap);
+    const gl = new THREE.Mesh(Q.glass, M.glass); gl.position.set(0.11, 0, -0.08); set.add(gl);
+    sg.add(set);
+  });
   g.userData.n = n;
 }
 
@@ -102,12 +150,20 @@ function table(t, M) {
   const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.075, 0.07, 18), M.shade); shade.position.y = 0.99; g.add(shade);
   // chairs: exactly the four positions from the config
   const cg = new THREE.Group(); cg.name = 'chairs'; g.add(cg); g.userData.chairs = cg; g.userData.t = t;
+  const sg = new THREE.Group(); sg.name = 'settings'; g.add(sg); g.userData.settings = sg;
+  // centre of the table (night photo): candle in a glass and a small jar with a red rose
+  const Q = geoms(), cy = DIMS.SQ.height + 0.03;
+  const cup = new THREE.Mesh(Q.cup, M.glass); cup.position.set(0.13, cy + 0.05, 0.02); g.add(cup);
+  const flame = new THREE.Mesh(Q.flame, M.bulb); flame.position.set(0.13, cy + 0.04, 0.02); g.add(flame);
+  const jar = new THREE.Mesh(Q.jar, M.glass); jar.position.set(-0.13, cy + 0.035, -0.02); g.add(jar);
+  const stem = new THREE.Mesh(Q.stem, M.leaf); stem.position.set(-0.13, cy + 0.09, -0.02); g.add(stem);
+  const rose = new THREE.Mesh(Q.rose, M.rose); rose.position.set(-0.13, cy + 0.14, -0.02); g.add(rose);
   fillChairs(g, t.defaultChairs, M);
   if (t.bench) { const b = bench(t.bench.length, M); b.position.set(t.bench.dx, 0, t.bench.dz); b.rotation.y = -t.bench.a * DEG; g.add(b); }
   // selection ring (hidden) + table number + invisible "hit" area for taps
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.82, 0.9, 48), new THREE.MeshBasicMaterial({ color: COL.gold, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
   ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; ring.visible = false; ring.name = 'ring'; g.add(ring);
-  const lab = labelSprite(t.label); lab.position.y = 1.55; g.add(lab);
+  const lab = labelSprite(t.label); lab.position.y = 1.55; g.add(lab); g.userData.label = lab;
   const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.85, 16), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.42; hit.userData.id = t.id; g.add(hit);
   g.userData.hit = hit; g.userData.ring = ring; g.userData.lampPos = new THREE.Vector3(0, 0.96, 0);
   return g;
@@ -144,6 +200,10 @@ export function createRooftop(container, { onPick } = {}) {
     bulb: new THREE.MeshStandardMaterial({ color: COL.lamp, emissive: COL.lamp, emissiveIntensity: 2.2 }),
     brass: mat(0xc9a46a, { metalness: 0.8, roughness: 0.35 }),
     velvet: mat(0x2f4f3e, { roughness: 0.9 }), velvetDark: mat(0x22382d, { roughness: 0.9 }), pillow: mat(0xd8d2c6, { roughness: 1 }),
+    leafPillow: new THREE.MeshStandardMaterial({ map: leafTexture(), roughness: 1 }),
+    china: mat(0xfbfaf6, { roughness: 0.35 }),
+    glass: new THREE.MeshStandardMaterial({ color: 0xe8f0f4, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.32, depthWrite: false }),
+    rose: mat(0xb3122a, { roughness: 0.6 }),
     shade: new THREE.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xffc777, emissiveIntensity: 1.4, roughness: 0.6 }),
   };
 
@@ -232,13 +292,61 @@ export function createRooftop(container, { onPick } = {}) {
   // ---------- camera + controls (no automatic rotation) ----------
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = 0.09; controls.autoRotate = false;
-  controls.screenSpacePanning = true; controls.minDistance = 2; controls.maxDistance = span * 3; controls.maxPolarAngle = 1.42;
+  controls.screenSpacePanning = true; controls.minDistance = 0.8; controls.maxDistance = span * 3; controls.maxPolarAngle = 1.42;
   controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
   const VIEWS = { iso: [CX + span * 0.55, span * 0.95, BOUNDS.maxZ + span * 0.45], top: [CX, span * 1.65, CZ + 0.01] };
-  function setView(v) {
+  function viewPos(v) {
     const p = (VIEWS[v] || VIEWS.iso).slice();
     if (camera.aspect < 1) { const k = Math.min(1.9, 1 / camera.aspect); p[0] = CX + (p[0] - CX) * k; p[1] *= k; p[2] = CZ + (p[2] - CZ) * k; }   // portrait phone: step back so all fits
-    camera.position.set(...p); controls.target.set(CX, 0, CZ); controls.update(); dirty = true; }
+    return new THREE.Vector3(...p);
+  }
+  function setView(v, animate = true) {
+    focused = null; glowTo = 0;
+    if (animate) flyTo(viewPos(v), new THREE.Vector3(CX, 0, CZ), 0.6);
+    else { camera.position.copy(viewPos(v)); controls.target.set(CX, 0, CZ); controls.update(); dirty = true; }
+  }
+
+  // smooth "drone" flight: position + look-at point move together on a gentle arc
+  let tween = null, focused = null;
+  const ease = k => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+  function flyTo(pos, target, lift = 1.2, ms = 1150) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) ms = 0;
+    tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos, t1: target, start: performance.now(), ms, lift };
+    controls.enabled = false; dirty = true;
+  }
+  function stepTween(now) {
+    const k = tween.ms ? Math.min(1, (now - tween.start) / tween.ms) : 1, e = ease(k);
+    camera.position.lerpVectors(tween.p0, tween.p1, e); camera.position.y += Math.sin(Math.PI * e) * tween.lift;
+    controls.target.lerpVectors(tween.t0, tween.t1, e); camera.lookAt(controls.target);
+    if (k >= 1) { tween = null; controls.enabled = true; controls.update(); }
+  }
+  // fly to one table: the camera comes from the walkway side, a little above eye level
+  function focus(id) {
+    const g = groups.get(id); if (!g) return;
+    select(id);
+    const tgt = new THREE.Vector3(g.position.x, 0.55, g.position.z);
+    let dx = CX - g.position.x, dz = CZ - g.position.z, d = Math.hypot(dx, dz);
+    if (d < 0.8) { dx = camera.position.x - tgt.x; dz = camera.position.z - tgt.z; d = Math.hypot(dx, dz) || 1; }
+    dx /= d; dz /= d; dz += 0.55; const n2 = Math.hypot(dx, dz); dx /= n2; dz /= n2;
+    const dist = camera.aspect < 1 ? 2.9 : 2.3, high = camera.aspect < 1 ? 2.9 : 2.35;   // drone height: sees the whole table and its chairs
+    flyTo(new THREE.Vector3(tgt.x + dx * dist, high, tgt.z + dz * dist), tgt, 0.9);
+    focused = id; const lb = g.userData.label; if (lb) lb.visible = false;   // the number badge would float in front of the camera
+    spot.position.set(g.position.x, 3.0, g.position.z); spot.target.position.set(g.position.x, 0.75, g.position.z); glowTo = 1;
+  }
+  function overview() { select(null); setView('iso'); }
+
+  // soft warm spotlight on the chosen table (like the night photo)
+  const spot = new THREE.SpotLight(0xffcf96, 0, 6, 0.6, 0.85, 1.6); scene.add(spot, spot.target);
+  let glow = 0, glowTo = 0;
+
+  // keep the chosen table centred in the free part of the screen when the panel covers a side
+  let inset = { x: 0, y: 0 }, insetTo = { x: 0, y: 0 };
+  function setInset(right, bottom) { insetTo = { x: right / 2, y: bottom / 2 }; dirty = true; }
+  function applyInset() {
+    const w = container.clientWidth || 1, h = container.clientHeight || 1;
+    if (Math.abs(inset.x) < 0.5 && Math.abs(inset.y) < 0.5 && !insetTo.x && !insetTo.y) { if (camera.view) camera.clearViewOffset(); return; }
+    camera.setViewOffset(w, h, inset.x, inset.y, w, h);
+  }
   function zoom(f) { const off = camera.position.clone().sub(controls.target).multiplyScalar(f); const d = off.length(); if (d < controls.minDistance || d > controls.maxDistance) return; camera.position.copy(controls.target).add(off); dirty = true; }
 
   // ---------- tap / click on a table ----------
@@ -254,20 +362,29 @@ export function createRooftop(container, { onPick } = {}) {
     select(hit ? hit.object.userData.id : null); onPick && onPick(selected);
   });
   function select(id) {
-    for (const [k, g] of groups) g.userData.ring.visible = k === id;
+    for (const [k, g] of groups) { g.userData.ring.visible = k === id; if (g.userData.label) g.userData.label.visible = true; }
     selected = id; dirty = true;
   }
 
   // ---------- render only when something moves (saves battery and CPU) ----------
   let dirty = true, raf = 0, alive = true;
   controls.addEventListener('change', () => { dirty = true; });
-  function loop() { if (!alive) return; raf = requestAnimationFrame(loop); if (controls.update() || dirty) { renderer.render(scene, camera); dirty = false; } }
-  function resize() { const w = container.clientWidth || 1, h = container.clientHeight || 1; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); dirty = true; }
+  function loop(now) {
+    if (!alive) return; raf = requestAnimationFrame(loop);
+    let moving = false;
+    if (tween) { stepTween(now || performance.now()); moving = true; } else if (controls.update()) moving = true;
+    if (Math.abs(glow - glowTo) > 0.01) { glow += (glowTo - glow) * 0.12; spot.intensity = glow * 3.2; moving = true; }
+    if (Math.abs(inset.x - insetTo.x) > 0.5 || Math.abs(inset.y - insetTo.y) > 0.5) { inset.x += (insetTo.x - inset.x) * 0.15; inset.y += (insetTo.y - inset.y) * 0.15; applyInset(); moving = true; }
+    else if (inset.x !== insetTo.x || inset.y !== insetTo.y) { inset = { ...insetTo }; applyInset(); moving = true; }
+    if (moving || dirty) { renderer.render(scene, camera); dirty = false; }
+  }
+  function resize() { const w = container.clientWidth || 1, h = container.clientHeight || 1; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); applyInset(); dirty = true; }
   const ro = new ResizeObserver(resize); ro.observe(container);
-  resize(); setView('iso'); loop();
+  resize(); setView('iso', false); loop();
 
   return {
-    setView, zoom, select, reset: () => { select(null); setView('iso'); },
+    setView, zoom, select, focus, overview, setInset, reset: () => overview(),
+    get focused() { return focused; }, get flying() { return !!tween; },
     // live chair count of one table: only that table is rebuilt
     setChairs(id, n) { const g = groups.get(id); if (!g || g.userData.n === n) return; fillChairs(g, n, M); dirty = true; },
     get selected() { return selected; },

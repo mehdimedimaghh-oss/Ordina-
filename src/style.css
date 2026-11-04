@@ -574,3 +574,10 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 .rtp-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
 .rtp-dot.on{background:#3ecf6e;box-shadow:0 0 8px #3ecf6e}
 .rtp-dot.off{background:#e5484d;box-shadow:0 0 8px #e5484d}
+
+.rtp-backov{position:absolute;left:14px;z-index:2;background:rgba(217,182,108,.92);color:#14224a;border-color:#e7c77e;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.rtp-backov:active{background:#e7c77e}
+/* darker translucent grey so the text stays readable over the bright close-up */
+.rtp-panel{background:rgba(36,42,56,.62);border-color:rgba(255,255,255,.18)}
+.rtp-dl dt{color:#cfd6e4}
+.rtp-muted{color:#c3cad9}
