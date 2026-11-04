@@ -1,7 +1,7 @@
 // 3D model of the rooftop, built only from config.js (no hard-coded positions here).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { FLOOR, BAR, ENTRANCE, WALKWAY, PLANTERS, TABLES, DIMS } from './config.js';
+import { FLOOR, BAR, ENTRANCE, WALKWAY, PLANTERS, TABLES, DIMS, chairSlots } from './config.js';
 
 export function hasWebGL() {
   try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl'))); } catch { return false; }
@@ -75,6 +75,13 @@ function bench(len, M) {
   return g;
 }
 
+function fillChairs(g, n, M) {
+  const cg = g.userData.chairs;
+  for (const c of [...cg.children]) { c.traverse(o => o.geometry?.dispose?.()); cg.remove(c); }
+  chairSlots(g.userData.t, n).forEach(c => { const ch = chair(M); ch.position.set(c.dx, 0, c.dz); ch.rotation.y = -c.a * DEG; cg.add(ch); });
+  g.userData.n = n;
+}
+
 function table(t, M) {
   const g = new THREE.Group(); g.name = t.id; g.userData.id = t.id;
   g.position.set(t.x, 0, t.z); g.rotation.y = -(t.rot || 0) * DEG;
@@ -94,7 +101,8 @@ function table(t, M) {
   const lb = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.04, 0.18, 12), M.brass); lb.position.y = 0.87; g.add(lb);
   const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.075, 0.07, 18), M.shade); shade.position.y = 0.99; g.add(shade);
   // chairs: exactly the four positions from the config
-  t.chairs.forEach(c => { const ch = chair(M); ch.position.set(c.dx, 0, c.dz); ch.rotation.y = -c.a * DEG; g.add(ch); });
+  const cg = new THREE.Group(); cg.name = 'chairs'; g.add(cg); g.userData.chairs = cg; g.userData.t = t;
+  fillChairs(g, t.defaultChairs, M);
   if (t.bench) { const b = bench(t.bench.length, M); b.position.set(t.bench.dx, 0, t.bench.dz); b.rotation.y = -t.bench.a * DEG; g.add(b); }
   // selection ring (hidden) + table number + invisible "hit" area for taps
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.82, 0.9, 48), new THREE.MeshBasicMaterial({ color: COL.gold, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
@@ -260,6 +268,8 @@ export function createRooftop(container, { onPick } = {}) {
 
   return {
     setView, zoom, select, reset: () => { select(null); setView('iso'); },
+    // live chair count of one table: only that table is rebuilt
+    setChairs(id, n) { const g = groups.get(id); if (!g || g.userData.n === n) return; fillChairs(g, n, M); dirty = true; },
     get selected() { return selected; },
     dispose() {
       alive = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();

@@ -5,7 +5,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       // the 3D rooftop (Three.js) is a separate file, downloaded only when the owner opens it
-      output: { manualChunks: id => (id.includes('node_modules/three') || id.includes('/src/rooftop/') ? 'rooftop' : undefined) },
+      // (only a name: grouping is left to the bundler, so shared app code never moves into the 3D file)
+      output: { chunkFileNames: c => (c.moduleIds.some(id => id.includes('node_modules/three') || id.includes('/src/rooftop/')) ? 'assets/rooftop-[hash].js' : 'assets/[name]-[hash].js') },
     },
   },
   plugins: [

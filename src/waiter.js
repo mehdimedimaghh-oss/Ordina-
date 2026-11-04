@@ -2,7 +2,7 @@
 import { SECTIONS, TABLES, LATE_MIN, eur, eurShort, esc, $, $$, today, hhmm, ms, roomLabel, uid, dayLabel } from './data.js';
 import {
   S, LS, tableRow, tableData, stockLeft, views, tableOp, submitOrder, stockSet, stockNewDay, setAlert, count,
-  reopenOrder, deleteOrder, waiterLogin, waiterLogout, logout, openedMs, flush, reload,
+  reopenOrder, deleteOrder, waiterLogin, waiterLogout, logout, openedMs, flush, reload, roofOfApp, chairsAt, moveChairs,
 } from './store.js';
 import { toast, sheet, sheetBody, openSheet, closeSheet, armed, copyText, ticketText, receptionView, buzz } from './ui.js';
 import { t, tServer, getLang, chooseLang, langForWaiter } from './i18n.js';
@@ -165,6 +165,7 @@ export function render() {
   if (!document.getElementById('stockSheet')?.hidden) renderStock();
   if (!document.getElementById('tableSheet')?.hidden) renderTables();
   if (!document.getElementById('moreSheet')?.hidden) renderMore();
+  if (!document.getElementById('chairSheet')?.hidden) renderChairSheet();
 }
 export function modeChanged() { // phone <-> tablet
   $('#opBody') && ($('#opBody').innerHTML = '');
@@ -233,7 +234,7 @@ function renderOrder(body, force) {
     `<div class="fields"><label>${t('clientName')}<input id="cname" type="text" autocomplete="off" placeholder="${t('egClient')}" value="${esc(d.client)}"></label>
     <label>${t('room')}<input id="croom" type="text" inputmode="numeric" autocomplete="off" placeholder="${t('egRoom')}" value="${esc(d.roomNo)}"></label></div>
     <div class="bld" id="bld" role="group" aria-label="${t('building')}"><span>${t('building')}</span><button data-b="HCO" class="${d.building === 'HCO' ? 'on' : ''}"><b>HCO</b> Concordia</button><button data-b="DEP" class="${d.building === 'DEP' ? 'on' : ''}"><b>DEP</b> Dépendance</button></div>
-    <div class="cov${!d.covers && k ? ' need0' : ''}" id="cov"><span>${t('covers')}<small>${t('coversHelp')}</small></span><div class="step"><button data-cov="-1" aria-label="${t('fewer')}">−</button><span class="n num">${d.covers || 0}</span><button data-cov="1" aria-label="${t('more2')}">+</button></div></div>`;
+    <div class="cov${!d.covers && k ? ' need0' : ''}" id="cov"><span>${t('covers')}<small>${t('coversHelp')}</small></span><div class="step"><button data-cov="-1" aria-label="${t('fewer')}">−</button><span class="n num">${d.covers || 0}</span><button data-cov="1" aria-label="${t('more2')}">+</button></div></div>${chairBox(n, d)}`;
   if (!k) {
     body.innerHTML = h + `<p class="empty-order">${t('noItems')}<br>${isTablet() ? t('tapLeft') : t('closeAndTap')}</p>`;
     bindFields(body, n); return;
@@ -277,6 +278,7 @@ function bindFields(body, n) {
   cn.oninput = () => { const v = cn.value; draft('c' + n, () => tableOp(n, { t: 'set', fields: { client: v } })); };
   cr.oninput = () => { const v = cr.value; draft('r' + n, () => tableOp(n, { t: 'set', fields: { roomNo: v } })); };
   cn.onblur = cr.onblur = flushDrafts;
+  const cb = $('#chairBtn', body); if (cb) cb.onclick = () => openChairSheet(n);
   body.querySelectorAll('[data-cov]').forEach(b => { b.onclick = () => { const c = tableData(n).covers || 0, v = Math.max(0, Math.min(99, c + +b.dataset.cov)); if (v !== c) { tableOp(n, { t: 'set', fields: { covers: v } }); buzz(); } }; });
   body.querySelectorAll('#bld [data-b]').forEach(b => { b.onclick = () => {
     flushDrafts(); const d = tableData(n); tableOp(n, { t: 'set', fields: { building: d.building === b.dataset.b ? '' : b.dataset.b } }); $('#bld', body).classList.remove('need');
@@ -310,6 +312,43 @@ export function openTable(n) {
   flushDrafts(); cur = String(n); LS.set('cur', cur);
   if (isTablet()) { screen = 'order'; scrollTo(0, 0); }
   render();
+}
+
+// ---------- chairs (physical, movable; the guests field is the existing "covers") ----------
+function seatsOf(rt) { return chairsAt(rt.id) + (rt.bench_seats || 0); }
+function chairBox(n, d) {
+  const rt = roofOfApp(n); if (!rt) return '';
+  const c = chairsAt(rt.id), g = d.covers || 0, need = g - seatsOf(rt);
+  const msg = !g ? '' : need > 0 ? `<b class="cneed">${t('chairsNeed', { n: need })}</b>` : need < 0 ? `<b class="cextra">${t('chairsExtra', { n: -need })}</b>` : `<b class="cok">${t('chairsOk')}</b>`;
+  return `<div class="chairs"><span>🪑 ${t('chairsHere', { n: c })}${rt.bench_seats ? ' ' + t('benchPlus', { n: rt.bench_seats }) : ''} ${msg}</span><button class="btn" id="chairBtn">${t('moveChairs')}</button></div>`;
+}
+let chairTable = null;
+function openChairSheet(n) { chairTable = String(n); openSheet(sheet('chairSheet', t('chairsTitle', { n }))); renderChairSheet(); }
+function renderChairSheet() {
+  const s = sheet('chairSheet'), body = sheetBody(s), rt = roofOfApp(chairTable);
+  if (!rt) { body.innerHTML = `<p class="hint">${t('notOnRooftop')}</p>`; return; }
+  const d = tableData(chairTable), g = d.covers || 0, need = Math.max(0, g - seatsOf(rt));
+  const extra = Math.max(0, chairsAt(rt.id) - Math.max(0, g - (rt.bench_seats || 0)));
+  const live = views().tables;
+  const places = [{ id: 'storage', name: t('storage') }, ...S.roof.tables.filter(r => r.id !== rt.id).map(r => ({ id: r.id, name: r.id + (r.app_table ? ' · Tavolo ' + r.app_table : ''), busy: r.app_table && count(tableData(r.app_table)) > 0 && live[r.app_table] }))]
+    .map(p => ({ ...p, n: chairsAt(p.id) })).filter(p => p.n > 0);
+  const tot = Object.values(S.roof.chairs).reduce((a, b) => a + b, 0), st = chairsAt('storage');
+  let h = `<p class="ostat">${t('guestsSeats', { g, s: seatsOf(rt) })} · 🪑 ${t('chairsHere', { n: chairsAt(rt.id) })}${need ? ` · <b>${t('chairsNeed', { n: need })}</b>` : g ? ` · <b class="done">${t('chairsOk')}</b>` : ''}</p>
+    <div class="grp">${t('bringFrom')}</div>`;
+  h += places.length ? places.map(p => `<div class="srow"><div class="t">${esc(p.name)}<small>🪑 ${p.n}${p.busy ? ` · <span class="stk warn">${t('inUse')}</span>` : ''}</small></div>
+      <div class="cmv"><button class="btn" data-from="${p.id}" data-n="1">${t('take', { n: 1 })}</button>${need > 1 && p.n > 1 ? `<button class="btn primary" data-from="${p.id}" data-n="${Math.min(need, p.n)}">${t('take', { n: Math.min(need, p.n) })}</button>` : ''}</div></div>`).join('')
+    : `<p class="hint">${t('nothingToTake')}</p>`;
+  if (chairsAt(rt.id) > 0) h += `<div class="grp">${t('sendBack')}</div><div class="srow"><div class="t">${t('storage')}<small>🪑 ${st}</small></div>
+      <div class="cmv"><button class="btn" data-to="storage" data-n="1">${t('toStorage', { n: 1 })}</button>${extra > 1 ? `<button class="btn" data-to="storage" data-n="${extra}">${t('toStorage', { n: extra })}</button>` : ''}</div></div>`;
+  h += `<p class="status">${t('chairsTotals', { d: tot - st, s: st, t: tot })}</p>`;
+  body.innerHTML = h;
+  const go = async (from, to, k, b) => {
+    if (!navigator.onLine) { toast(t('chairsNeedNet')); return; }
+    b.disabled = true;
+    try { await moveChairs(from, to, k); toast(t('chairsMoved', { n: k })); buzz(); } catch (e) { toast(e.message, null, null, 5000); b.disabled = false; }
+  };
+  body.querySelectorAll('[data-from]').forEach(b => { b.onclick = () => go(b.dataset.from, rt.id, +b.dataset.n, b); });
+  body.querySelectorAll('[data-to]').forEach(b => { b.onclick = () => go(rt.id, b.dataset.to, +b.dataset.n, b); });
 }
 
 // ---------- table map (tablet home) ----------

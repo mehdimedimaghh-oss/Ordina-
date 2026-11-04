@@ -305,6 +305,35 @@ await rec.p.click('#rcpLang');
 ok(await until(async () => (await rec.p.textContent('.rcp')).includes('Schermo reception')), 'reception screen in Italian');
 await shot(rec.p, 'reception-italian');
 
+console.log('15. Movable chairs (waiter) + live chairs in the owner 3D view');
+// owner links physical table T1 to app table 20 in Menu & prices
+await own.p.click('[data-tab="menu"]');
+await own.p.waitForSelector('[data-rt="T1"] [data-f="app"]');
+await own.p.selectOption('[data-rt="T1"] [data-f="app"]', '20');
+await own.p.click('#rtSave');
+ok(await until(() => sql(`select app_table from rooftop_tables where id='T1'`) === '20'), 'owner links T1 → app table 20 (Menu & prices)');
+// waiter: table 20, 5 guests → T1 has 2 chairs → 3 more needed
+if (!(await tab.p.isVisible('#mapView .tile'))) await tab.p.click('#tableBtn');
+await tab.p.click('.tile[data-t="20"]');
+await tab.p.click('.cell[data-id="espresso"] .card');
+for (let i = 0; i < 5; i++) await tab.p.click('#orderPanel [data-cov="1"]');
+ok(await until(async () => (await tab.p.textContent('#orderPanel .chairs')).includes('Chairs here: 2') && (await tab.p.textContent('#orderPanel .chairs')).includes('3 more needed')), 'waiter sees: guests 5 · chairs here 2 · 3 more needed');
+// owner opens the 3D view before the move
+await own.p.click('[data-tab="rooftop"]');
+await own.p.waitForSelector('#rtpStats');
+ok(await until(async () => (await own.p.textContent('#rtpStats')).replace(/\s+/g, '').includes('Chairsontherooftop26Reserveinstorage5Totalphysicalchairs31')), '3D overview: 26 on the rooftop · 5 reserve · 31 total');
+await tab.p.click('#chairBtn');
+await tab.p.waitForSelector('#chairSheet:not([hidden]) [data-from="storage"]');
+await tab.p.click('#chairSheet [data-from="storage"][data-n="3"]');
+ok(await until(() => sql(`select chairs from rooftop_chairs where location='T1'`) === '5' && sql(`select chairs from rooftop_chairs where location='storage'`) === '2'), 'waiter takes 3 chairs from storage → T1 5, storage 2');
+ok(await until(async () => (await tab.p.textContent('#orderPanel .chairs')).includes('Enough')), 'order screen now says: enough chairs');
+ok(await until(async () => (await own.p.textContent('#rtpStats')).replace(/\s+/g, '').includes('Chairsontherooftop29Reserveinstorage2Totalphysicalchairs31'), 10000), 'owner 3D updates live: 29 on the rooftop · 2 reserve · still 31');
+await tab.p.click('#chairSheet [data-to="storage"][data-n="1"]');
+ok(await until(async () => (await own.p.textContent('#rtpStats')).replace(/\s+/g, '').includes('Chairsontherooftop28Reserveinstorage3'), 10000), 'one chair back to storage → owner sees 28 · 3');
+await tab.p.click('#chairSheet [data-close]');
+await own.p.click('#rtpBack');
+sql(`update rooftop_chairs set chairs = case location when 'T1' then 2 when 'storage' then 5 else chairs end; update rooftop_tables set app_table=null`);
+
 ok(errors.length === 0, 'no JavaScript errors' + (errors.length ? ': ' + errors.join(' | ') : ''));
 sql(`delete from waiters where name='Giulia'; delete from menu_items where id='panna-cotta'`);
 await browser.close();

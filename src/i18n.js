@@ -73,6 +73,11 @@ const D = {
     receptionHint: 'Reception: your own email and password. You see today\'s orders with a pop-up and a sound, and you tick "Charged ✓".',
     covers: 'Guests', coversN: '{n} guests', covers1: '1 guest', coversAsk: 'How many guests? Set the number of guests, or tap Send again to send without it.',
     coversHelp: 'People at the table', fewer: 'Fewer', more2: 'More',
+    chairsHere: 'Chairs here: {n}', benchPlus: '+ bench for {n}', chairsNeed: '{n} more needed', chairsOk: 'Enough ✓', chairsExtra: '{n} extra',
+    moveChairs: 'Move chairs', chairsTitle: 'Chairs · Tavolo {n}', guestsSeats: 'Guests {g} · seats {s}', bringFrom: 'Bring chairs here from', sendBack: 'Chairs not needed here',
+    storage: 'Storage (reserve)', inUse: 'in use', take: 'Take {n}', toStorage: '{n} → storage', chairsMoved: '{n} chair(s) moved',
+    chairsNeedNet: 'Moving chairs needs internet', chairsTotals: 'On the rooftop {d} · storage {s} · total {t}', nothingToTake: 'No free chairs anywhere: ask the owner.',
+    notOnRooftop: 'This table is not linked to a rooftop table (owner: Menu & prices → Rooftop tables).',
   },
   it: {
     whoAreYou: 'Chi sei?', stock: 'Scorte', history: 'Storico', more: 'Altro', language: 'Lingua', chooseTable: 'Scegli il tavolo',
@@ -127,8 +132,13 @@ const D = {
     orderReopenedMsg: 'Tavolo {n} è stato riaperto: aspetta il nuovo ordine prima di addebitare', ok: 'OK', chargedOk: 'Segnato come addebitato', waiterShort: 'Cameriere',
     exitRecv: 'Uscire da questo computer?', live: 'In diretta', reconnecting: 'Connessione…', notifTitle: 'Tavolo {n} · {tot}', reopenedBadge: 'Riaperto · non addebitare',
     receptionHint: 'Reception: la tua email e password. Vedi gli ordini di oggi con un pop-up e un suono, e segni "Addebitato ✓".',
-    covers: 'Coperti', coversN: '{n} coperti', covers1: '1 coperto', coversAsk: 'Quanti coperti? Inserisci i coperti, oppure tocca di nuovo Invia per inviare senza.',
+    covers: 'Ospiti', coversN: '{n} ospiti', covers1: '1 ospite', coversAsk: 'Quanti coperti? Inserisci i coperti, oppure tocca di nuovo Invia per inviare senza.',
     coversHelp: 'Persone al tavolo', fewer: 'Meno', more2: 'Più',
+    chairsHere: 'Sedie qui: {n}', benchPlus: '+ panca da {n}', chairsNeed: 'Servono altre {n}', chairsOk: 'Bastano ✓', chairsExtra: '{n} in più',
+    moveChairs: 'Sposta sedie', chairsTitle: 'Sedie · Tavolo {n}', guestsSeats: 'Ospiti {g} · posti {s}', bringFrom: 'Porta qui sedie da', sendBack: 'Sedie non necessarie qui',
+    storage: 'Magazzino (riserva)', inUse: 'in uso', take: 'Prendi {n}', toStorage: '{n} → magazzino', chairsMoved: '{n} sedie spostate',
+    chairsNeedNet: 'Per spostare le sedie serve internet', chairsTotals: 'Sul rooftop {d} · magazzino {s} · totale {t}', nothingToTake: 'Nessuna sedia libera: chiedi al titolare.',
+    notOnRooftop: 'Questo tavolo non è collegato a un tavolo del rooftop (titolare: Menu e prezzi → Tavoli rooftop).',
   },
 };
 

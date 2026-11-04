@@ -22,6 +22,7 @@
 - Write the **client name** and the **room**. If you write a room, you **must** choose the building: **HCO** (Concordia) or **DEP** (Dépendance).
 - **+ Note** on a dish: "no pepper", "well done"… The big box is a note for the whole table (allergies…).
 - **Coperti / Guests:** tap **+** to set how many people are at the table. If you forget, the app reminds you when you send (tap Send again to send without).
+- **Chairs (rooftop tables):** under Ospiti you see **🪑 Chairs here** and how many are missing (e.g. 5 guests, 3 chairs → *2 more needed*). Tap **Move chairs** → **Take** chairs from storage or from a free table. Chairs you don't need: send them back to storage. The owner sees it live in 3D. (Needs internet.)
 - **Room service** tick = + € 10.
 - **Served 0/2**: tap each time you bring one portion. When everything is served it becomes green **✓ Served**.
 
@@ -72,6 +73,10 @@
 - You see: **Total**, number of **tables**, **average table**, items and room services, **total per day**, **total per waiter**, **best-selling dishes**, and **every order** (time, table, waiter, client, HCO/DEP room, dishes, notes, total).
 - **Export Excel** / **Export CSV**: the orders of the day/week/month you are looking at. The Excel file has two sheets: *Orders* and *Dishes*.
 - **Delete** an order: tap Delete two times and write a reason. It disappears from the totals but a full copy stays in the **Audit log**. Waiters cannot delete.
+
+**Rooftop tables & chairs** (in Menu & prices) — link T1–T10 to the app table numbers, mark tables ACTIVE / CLOSED, and correct the chair count (31 chairs: on the rooftop + in storage).
+
+**3D Live Rooftop** — your rooftop in 3D: the real number of chairs at each table, live, plus chairs on the rooftop / in storage / total.
 
 **Menu & prices** — change a name or a price → **Save**. **Hide** = the dish is not on the menu anymore (old orders keep it). **Add** = new dish at the end of each section. All tablets and phones change at once.
 

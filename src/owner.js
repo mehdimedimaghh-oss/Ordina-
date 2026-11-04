@@ -1,6 +1,6 @@
 // Owner pages: dashboard (calendar, day/week/month), menu editor, waiters, import, audit log.
 import { SECTIONS, eur, eurShort, esc, $, $$, today, addDays, parseDay, dayLabel, hhmm } from './data.js';
-import { S, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWaiters, saveWaiter, saveMenuItem, addMenuItem, importOrders, setSheetUrl, sheetStatus, sheetTest } from './store.js';
+import { S, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWaiters, saveWaiter, saveMenuItem, addMenuItem, importOrders, setSheetUrl, sheetStatus, sheetTest, reload, ownerSetChairs, ownerSetRoofTable } from './store.js';
 import { fromServer, orderCard, bindOrderCards, setTheme } from './waiter.js';
 import { toast } from './ui.js';
 import { buildXlsx, download } from './xlsx.js';
@@ -130,8 +130,48 @@ function toCsv(rows) {
 }
 
 // ================= Menu editor =================
+// ---- Rooftop tables: app number, ACTIVE/CLOSED, chair inventory (shown in the 3D view) ----
+function roofPanel() {
+  const r = S.roof; if (!r.tables.length) return `<div class="panel" style="margin-bottom:14px"><h3>Rooftop tables & chairs</h3><p class="hint">Not installed yet: run supabase/migrations/20261107000000_rooftop_chairs.sql in Supabase (SETUP.md, step 10).</p></div>`;
+  const used = new Set(r.tables.map(x => x.app_table).filter(Boolean));
+  const total = Object.values(r.chairs).reduce((a, b) => a + b, 0), st = r.chairs.storage || 0;
+  const opts = (cur) => `<option value="">— not linked</option>` + Array.from({ length: 30 }, (_, i) => i + 1).map(n => `<option value="${n}" ${n === cur ? 'selected' : ''} ${used.has(n) && n !== cur ? 'disabled' : ''}>Tavolo ${n}</option>`).join('');
+  return `<div class="panel" style="margin-bottom:14px"><h3>Rooftop tables & chairs</h3>
+    <p class="hint">Link each physical rooftop table (T1–T10, as in the 3D plan) to the table number the waiters tap in the app. ACTIVE / CLOSED is shown in the 3D view only. The chairs are the real chairs: waiters move them from the order screen; here you can correct the count (for example after counting them).</p>
+    <div class="rtt">${r.tables.map(x => `<div class="rtr" data-rt="${x.id}"><b>${x.id}</b>
+      <select data-f="app" aria-label="App table for ${x.id}">${opts(x.app_table)}</select>
+      <label class="tog"><input type="checkbox" data-f="active" ${x.active ? 'checked' : ''}>Active</label>
+      <label class="rtc">🪑<input type="number" min="0" max="31" data-chairs="${x.id}" value="${r.chairs[x.id] ?? 0}" aria-label="Chairs at ${x.id}"></label>
+      <span class="muted">${x.bench_seats ? '+ bench ' + x.bench_seats : ''}</span></div>`).join('')}
+      <div class="rtr"><b>Storage</b><span class="muted">reserve chairs</span><span></span><label class="rtc">🪑<input type="number" min="0" max="31" data-chairs="storage" value="${st}" aria-label="Chairs in storage"></label><span></span></div></div>
+    <p class="hint" id="rtTot">On the rooftop <b>${total - st}</b> · storage <b>${st}</b> · total <b>${total}</b> physical chairs</p>
+    <div class="tools"><button class="btn primary" id="rtSave">Save tables</button><button class="btn" id="rtChairs">Save chair count</button></div></div>`;
+}
+function bindRoof(body) {
+  const sv = $('#rtSave', body); if (!sv) return;
+  const tot = () => { const v = $$('[data-chairs]', body).map(i => ({ k: i.dataset.chairs, n: Math.max(0, parseInt(i.value, 10) || 0) })); const all = v.reduce((a, x) => a + x.n, 0), st = v.find(x => x.k === 'storage').n; $('#rtTot', body).innerHTML = `On the rooftop <b>${all - st}</b> · storage <b>${st}</b> · total <b>${all}</b> physical chairs`; return v; };
+  $$('[data-chairs]', body).forEach(i => { i.oninput = tot; });
+  sv.onclick = async () => {
+    const want = $$('[data-rt]', body).map(row => ({ id: row.dataset.rt, app: $('[data-f="app"]', row).value ? +$('[data-f="app"]', row).value : null, active: $('[data-f="active"]', row).checked }));
+    const was = id => S.roof.tables.find(q => q.id === id);
+    const changed = want.filter(w => was(w.id).app_table !== w.app || was(w.id).active !== w.active);
+    try {
+      // 1) unlink the tables whose number changes (so two tables can swap numbers), 2) save the new values
+      for (const w of changed) if (was(w.id).app_table && was(w.id).app_table !== w.app) await ownerSetRoofTable(w.id, null, w.active);
+      for (const w of changed) await ownerSetRoofTable(w.id, w.app, w.active);
+      toast('Rooftop tables saved'); menuEditor(body);
+    } catch (e) { toast(e.message, null, null, 6000); }
+  };
+  $('#rtChairs', body).onclick = async () => {
+    const v = tot(), sum = v.reduce((a, x) => a + x.n, 0), was = Object.values(S.roof.chairs).reduce((a, b) => a + b, 0);
+    if (sum !== was && !confirm(`The total changes from ${was} to ${sum} physical chairs. Is that right (chairs bought or broken)?`)) return;
+    try { await ownerSetChairs(Object.fromEntries(v.map(x => [x.k, x.n]))); toast('Chair count saved'); menuEditor(body); } catch (e) { toast(e.message); }
+  };
+}
+
 function menuEditor(body) {
-  let h = '<p class="hint">Change a name or a price and tap Save. “Hide” removes a dish from the menu without losing it in old orders. Changes appear on every device at once and are written in the audit log.</p>';
+  if (!S.roof.tables.length) reload('roof').then(() => { if (tab === 'menu' && !body.querySelector('#rtSave')) menuEditor(body); }).catch(() => {});
+  let h = roofPanel() + '<p class="hint">Change a name or a price and tap Save. “Hide” removes a dish from the menu without losing it in old orders. Changes appear on every device at once and are written in the audit log.</p>';
   for (const s of SECTIONS) {
     const items = S.menu.filter(m => m.section === s.id).sort((a, b) => a.sort - b.sort);
     h += `<div class="panel" style="margin-bottom:14px"><h3>${esc(s.it)} · ${esc(s.en)}</h3>
@@ -140,6 +180,7 @@ function menuEditor(body) {
       <div class="mrow" data-new="${s.id}"><input type="text" data-f="name_it" placeholder="New dish (Italian)"><input type="text" data-f="name_en" placeholder="English subtitle"><input type="number" data-f="price" step="0.5" min="0" inputmode="decimal" placeholder="€"><span></span><button class="btn primary" data-add>Add</button></div></div>`;
   }
   body.innerHTML = h;
+  bindRoof(body);
   $$('.mrow[data-id]', body).forEach(r => {
     const btn = $('[data-save]', r);
     r.addEventListener('input', () => { btn.disabled = false; btn.classList.add('primary'); });

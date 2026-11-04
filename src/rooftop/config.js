@@ -32,28 +32,52 @@ export const PLANTERS = { walls: [0, 1, 6], every: 1.1 };
 const SQ = { size: 0.8, height: 0.75 };          // square table top (m)
 const RD = { diameter: 0.7, height: 0.75 };      // round table top (m)
 
-// Seats as offsets from the table centre (table's own frame). a = direction the seat faces (degrees, 0 = towards −Z).
-export const chairs4 = (s = 0.62) => [{ dx: 0, dz: -s, a: 180 }, { dx: s, dz: 0, a: 270 }, { dx: 0, dz: s, a: 0 }, { dx: -s, dz: 0, a: 90 }];
-export const chairs2LR = (s = 0.55) => [{ dx: -s, dz: 0, a: 90 }, { dx: s, dz: 0, a: 270 }];       // round tables: left + right
-export const chair1Left = (s = 0.62) => [{ dx: -s, dz: 0, a: 90 }];
-// bench for 2 against the right wall, facing the table
-export const benchRight = () => ({ dx: 0.66, dz: 0, a: 270, length: 1.2, seats: 2 });
+// Chairs are NOT fixed: how many chairs are at each table comes from the database (rooftop_chairs),
+// because waiters move them. chairSlots() places n chairs nicely around a table.
+// a = direction the chair faces (degrees, 0 = towards −Z).
+export const benchRight = () => ({ dx: 0.66, dz: 0, a: 270, length: 1.2, seats: 2 });   // fixed bench for 2 against the right wall
 
-// The 10 physical tables (labels from the plan).  app = number used in the app (1–30): NOT linked yet.
-// size = table top (m). capacity = chairs + bench seats.
+export function chairSlots(t, n) {
+  const out = [];
+  if (n <= 0) return out;
+  if (t.shape === 'round') {
+    const r = Math.max(0.55, 0.32 + n * 0.08);
+    for (let i = 0; i < n; i++) {
+      const ang = Math.PI + (i * 2 * Math.PI) / n;              // first chair on the left, second on the right…
+      const dx = Math.cos(ang) * r, dz = Math.sin(ang) * r;
+      out.push({ dx, dz, a: Math.atan2(-dx, dz) * 180 / Math.PI });
+    }
+    return out;
+  }
+  const s = (t.size || SQ.size) / 2 + 0.24;
+  const sides = ['L', 'R', 'T', 'B'].filter(x => !(t.bench && x === 'R'));   // never in front of the bench
+  const per = Object.fromEntries(sides.map(x => [x, 0]));
+  for (let i = 0; i < n; i++) per[sides[i % sides.length]]++;
+  for (const side of sides) {
+    const k = per[side];
+    for (let j = 0; j < k; j++) {
+      const off = (j - (k - 1) / 2) * 0.48;
+      if (side === 'L') out.push({ dx: -s, dz: off, a: 90 });
+      if (side === 'R') out.push({ dx: s, dz: off, a: 270 });
+      if (side === 'T') out.push({ dx: off, dz: -s, a: 180 });
+      if (side === 'B') out.push({ dx: off, dz: s, a: 0 });
+    }
+  }
+  return out;
+}
+
+// The 10 physical tables (labels from the plan).  defaultChairs = only used until the live count is loaded.
 export const TABLES = [
-  { id: 'T1', label: '1', shape: 'round', x: P(630, 0)[0], z: P(0, 1050)[1], rot: 0, app: null, chairs: chairs2LR() },
-  { id: 'T2', label: '2', shape: 'round', x: P(640, 0)[0], z: P(0, 925)[1], rot: 0, app: null, chairs: chairs2LR() },
-  { id: 'T3', label: '3', shape: 'round', x: P(640, 0)[0], z: P(0, 795)[1], rot: 0, app: null, chairs: chairs2LR() },
-  { id: 'T4', label: '4', shape: 'round', x: P(635, 0)[0], z: P(0, 660)[1], rot: 0, app: null, chairs: chairs2LR() },
-  { id: 'T5', label: '5', shape: 'round', x: P(628, 0)[0], z: P(0, 525)[1], rot: 0, app: null, chairs: chairs2LR() },
-  { id: 'T6', label: '6', shape: 'square', x: P(410, 0)[0], z: P(0, 890)[1], rot: 0, app: null, chairs: chairs4() },
-  { id: 'T7', label: '7', shape: 'square', x: P(430, 0)[0], z: P(0, 620)[1], rot: 0, app: null, chairs: chairs4() },
-  { id: 'T8', label: '8', shape: 'square', x: P(583, 0)[0], z: P(0, 370)[1], rot: 0, app: null, chairs: chair1Left(), bench: benchRight() },
-  { id: 'T9', label: '9', shape: 'square', x: P(583, 0)[0], z: P(0, 213)[1], rot: 0, app: null, chairs: chair1Left(), bench: benchRight() },
-  { id: 'T10', label: '10', shape: 'square', x: P(270, 0)[0], z: P(0, 345)[1], rot: 0, size: 0.95, app: null, chairs: chairs4(0.7) },
+  { id: 'T1', label: '1', shape: 'round', x: P(630, 0)[0], z: P(0, 1050)[1], rot: 0, defaultChairs: 2 },
+  { id: 'T2', label: '2', shape: 'round', x: P(640, 0)[0], z: P(0, 925)[1], rot: 0, defaultChairs: 2 },
+  { id: 'T3', label: '3', shape: 'round', x: P(640, 0)[0], z: P(0, 795)[1], rot: 0, defaultChairs: 2 },
+  { id: 'T4', label: '4', shape: 'round', x: P(635, 0)[0], z: P(0, 660)[1], rot: 0, defaultChairs: 2 },
+  { id: 'T5', label: '5', shape: 'round', x: P(628, 0)[0], z: P(0, 525)[1], rot: 0, defaultChairs: 2 },
+  { id: 'T6', label: '6', shape: 'square', x: P(410, 0)[0], z: P(0, 890)[1], rot: 0, defaultChairs: 4 },
+  { id: 'T7', label: '7', shape: 'square', x: P(430, 0)[0], z: P(0, 620)[1], rot: 0, defaultChairs: 4 },
+  { id: 'T8', label: '8', shape: 'square', x: P(583, 0)[0], z: P(0, 370)[1], rot: 0, defaultChairs: 2, bench: benchRight() },
+  { id: 'T9', label: '9', shape: 'square', x: P(583, 0)[0], z: P(0, 213)[1], rot: 0, defaultChairs: 2, bench: benchRight() },
+  { id: 'T10', label: '10', shape: 'square', x: P(270, 0)[0], z: P(0, 345)[1], rot: 0, size: 0.95, defaultChairs: 4 },
 ];
-for (const t of TABLES) t.capacity = t.chairs.length + (t.bench ? t.bench.seats : 0);
-export const seatText = t => t.bench ? `${t.chairs.length} chair + bench for ${t.bench.seats}` : `${t.chairs.length} chairs`;
 
 export const DIMS = { SQ, RD, WALL_H: 1.1, WALL_T: 0.2 };

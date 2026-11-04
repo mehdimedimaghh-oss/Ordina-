@@ -22,6 +22,7 @@ export const S = {
   menu: LS.get('menu', []), waiters: LS.get('waiters', []), settings: LS.get('settings', { stock_alert: 2, room_fee: 10 }),
   server: LS.get('tables', {}), stock: LS.get('stock', {}), today: LS.get('today', []),
   queue: LS.get('queue', []), waiter: LS.get('waiter', null),
+  roof: LS.get('roof', { tables: [], chairs: {} }),   // physical rooftop tables + where the chairs are
   online: navigator.onLine, sync: 'idle', lastError: '',
 };
 
@@ -164,7 +165,7 @@ const notify = m => notifyFn(m);
 
 // ---------- loading from the server ----------
 function persist() {
-  LS.set('tables', S.server); LS.set('stock', S.stock); LS.set('today', S.today);
+  LS.set('tables', S.server); LS.set('stock', S.stock); LS.set('today', S.today); LS.set('roof', S.roof);
   LS.set('menu', S.menu); LS.set('waiters', S.waiters); LS.set('settings', S.settings);
 }
 const loaders = {
@@ -188,6 +189,12 @@ const loaders = {
     if (inflight || seq !== saved) { dirty.add('stock'); if (!inflight) later('stock'); return; }
     S.stock = Object.fromEntries(data.map(r => [r.item_id, r.remaining])); persist(); emit();
   },
+  async roof() {
+    if (S.role === 'reception') return;
+    const [t, c] = await Promise.all([sb.from('rooftop_tables').select('*').order('sort'), sb.from('rooftop_chairs').select('*')]);
+    if (t.error || c.error) return;   // (the SQL for chairs may not be installed yet)
+    S.roof = { tables: t.data, chairs: Object.fromEntries(c.data.map(r => [r.location, r.chairs])) }; persist(); emit();
+  },
   async today() {
     const { data, error } = await sb.from('orders').select('*, order_lines(*)').eq('day', today()).order('closed_at', { ascending: false });
     if (!error) { S.today = data; S.todayLoadedAt = Date.now(); persist(); emit(); }
@@ -208,6 +215,8 @@ function subscribe() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { clearTimeout(todayT); todayT = setTimeout(loaders.today, 400); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, () => loaders.menu())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => loaders.settings())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rooftop_chairs' }, () => later('roof'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rooftop_tables' }, () => later('roof'))
     .subscribe(status => {
       if (status === 'SUBSCRIBED') { loadAll(); flush(); }
       else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSync('offline');
@@ -297,6 +306,13 @@ export const saveWaiter = (id, name, pin, active) => must(sb.rpc('owner_save_wai
 export const saveMenuItem = (id, patch) => must(sb.from('menu_items').update(patch).eq('id', id).select()).then(r => { loaders.menu(); return r; });
 export const addMenuItem = row => must(sb.from('menu_items').insert(row).select()).then(r => { loaders.menu(); return r; });
 export const importOrders = rows => must(sb.rpc('import_orders', { p_rows: rows }));
+// ---------- rooftop chairs (needs internet: a chair must never be counted twice) ----------
+export const roofOfApp = n => S.roof.tables.find(r => r.app_table === +n) || null;
+export const chairsAt = loc => S.roof.chairs[loc] ?? 0;
+export const moveChairs = (from, to, n) => must(sb.rpc('chairs_move', { p_from: from, p_to: to, p_n: n, p_token: S.waiter?.token || null }))
+  .then(r => { S.roof = { ...S.roof, chairs: r }; persist(); emit(); return r; });
+export const ownerSetChairs = counts => must(sb.rpc('owner_set_chairs', { p_counts: counts })).then(r => { S.roof = { ...S.roof, chairs: r }; persist(); emit(); return r; });
+export const ownerSetRoofTable = (id, app, active) => must(sb.rpc('owner_set_rooftop_table', { p_id: id, p_app: app, p_active: active })).then(() => loaders.roof());
 export const markCharged = (id, on, by) => must(sb.rpc('mark_charged', { p_id: id, p_charged: on, p_by: by || 'Reception' })).then(r => { loaders.today(); return r; });
 export const setSheetUrl = url => must(sb.rpc('owner_set_sheet_url', { p_url: url }));
 export const sheetStatus = () => must(sb.rpc('owner_sheet_status'));

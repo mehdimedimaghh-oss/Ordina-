@@ -137,6 +137,27 @@ ok(d.data?.ok, 'owner deletes the order');
 const { data: log } = await owner.from('audit_log').select('*').eq('action', 'order_delete').eq('entity_id', String(mine.id));
 ok(log.length === 1 && log[0].user_email === 'owner@test.local' && log[0].details.lines.length === 1, 'audit log keeps who/what/when + full copy');
 
+console.log('Rooftop chairs');
+const sumChairs = () => +sql(`select sum(chairs) from rooftop_chairs`);
+ok(sumChairs() === 31 && sql(`select chairs from rooftop_chairs where location='storage'`) === '5', 'start: 26 on the rooftop + 5 in storage = 31');
+let mv = await staff.rpc('chairs_move', { p_from: 'storage', p_to: 'T1', p_n: 3, p_token: token });
+ok(mv.data?.T1 === 5 && mv.data?.storage === 2 && sumChairs() === 31, 'waiter brings 3 chairs from storage to T1 (T1 5, storage 2, total still 31)');
+mv = await staff.rpc('chairs_move', { p_from: 'T2', p_to: 'T1', p_n: 5, p_token: token });
+ok(!!mv.error && /Not enough chairs at T2/.test(mv.error.message) && sumChairs() === 31, 'cannot take more chairs than a table has');
+mv = await staff.rpc('chairs_move', { p_from: 'T2', p_to: 'T1', p_n: 1, p_token: token });
+ok(mv.data?.T2 === 1 && mv.data?.T1 === 6, 'chair moved from T2 to T1: counted only once');
+ok(!!(await recep.rpc('chairs_move', { p_from: 'storage', p_to: 'T3', p_n: 1 })).error && !(await recep.from('rooftop_chairs').select('*')).data?.length, 'reception cannot see or move chairs');
+ok(!!(await staff.rpc('owner_set_chairs', { p_counts: { storage: 9 } })).error, 'waiters cannot change the inventory');
+ok((await owner.rpc('owner_set_rooftop_table', { p_id: 'T1', p_app: 20, p_active: true })).error === null, 'owner links T1 to app table 20');
+const dup = await owner.rpc('owner_set_rooftop_table', { p_id: 'T2', p_app: 20, p_active: true });
+ok(!!dup.error && /already linked to T1/.test(dup.error.message), 'the same app table cannot be linked twice');
+await owner.rpc('owner_set_rooftop_table', { p_id: 'T5', p_app: null, p_active: false });
+ok(sql(`select active from rooftop_tables where id='T5'`) === 'f', 'owner marks T5 CLOSED');
+const reset = await owner.rpc('owner_set_chairs', { p_counts: { T1: 2, T2: 2, storage: 5 } });
+ok(reset.data?.T1 === 2 && sumChairs() === 31, 'owner corrects the inventory back to 31');
+ok(sql(`select count(*) from audit_log where action='chairs_move'`) === '2', 'every chair move is in the audit log');
+sql(`update rooftop_tables set app_table=null, active=true`);
+
 console.log('Waiter management');
 const nw = await owner.rpc('owner_save_waiter', { p_id: null, p_name: 'Giulia', p_pin: '4321', p_active: true });
 ok(!!nw.data, 'owner adds waiter Giulia');
