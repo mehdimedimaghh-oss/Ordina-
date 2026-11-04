@@ -1,6 +1,6 @@
 // Owner pages: dashboard (calendar, day/week/month), menu editor, waiters, import, audit log.
 import { SECTIONS, eur, eurShort, esc, $, $$, today, addDays, parseDay, dayLabel, hhmm } from './data.js';
-import { S, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWaiters, saveWaiter, saveMenuItem, addMenuItem, importOrders } from './store.js';
+import { S, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWaiters, saveWaiter, saveMenuItem, addMenuItem, importOrders, setSheetUrl, sheetStatus, sheetTest } from './store.js';
 import { fromServer, orderCard, bindOrderCards, setTheme } from './waiter.js';
 import { toast } from './ui.js';
 import { buildXlsx, download } from './xlsx.js';
@@ -13,7 +13,7 @@ export function mountOwner(app) {
   app.innerHTML = `<div class="own">
     <div class="topbar"><button class="hbtn" id="backTables">‹ Tables</button><h1>Owner</h1><button class="hbtn" id="ownTheme">Theme</button></div>
     <div class="obanner"><img class="ph" src="/terrace.jpg" alt="The restaurant terrace at night"><div class="ov"><img src="/logo.png" alt="" width="64" height="64"><span>Ristorante Concordia<small>Fugari Bistrot · Lunch orders</small></span></div></div>
-    <nav class="otabs">${[['dash', 'Dashboard'], ['menu', 'Menu & prices'], ['waiters', 'Waiters'], ['import', 'Import old history'], ['log', 'Audit log']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
+    <nav class="otabs">${[['dash', 'Dashboard'], ['menu', 'Menu & prices'], ['waiters', 'Waiters'], ['sheet', 'Reception sheet'], ['import', 'Import old history'], ['log', 'Audit log']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
     <div id="ownBody"></div></div>`;
   $('#backTables').onclick = () => { location.hash = ''; };
   $('#ownTheme').onclick = () => { const t = { auto: 'light', light: 'dark', dark: 'auto' }[localStorage.getItem('ordina:theme')?.replace(/"/g, '') || 'auto']; setTheme(t); toast('Theme: ' + t); };
@@ -23,7 +23,7 @@ export function mountOwner(app) {
 export function ownerRender() { if (root && tab === 'menu' && !root.contains(document.activeElement)) show(); }
 function show() {
   const body = $('#ownBody');
-  ({ dash: dashboard, menu: menuEditor, waiters, import: importer, log: auditLog })[tab](body);
+  ({ dash: dashboard, menu: menuEditor, waiters, sheet: receptionSheet, import: importer, log: auditLog })[tab](body);
 }
 
 // ================= Dashboard =================
@@ -209,8 +209,34 @@ const ACT = {
   waiter_add: d => `New waiter ${d.name}`,
   waiter_edit: d => `Waiter ${d.name}${d.pin_changed ? ' · PIN changed' : ''}${d.active === false ? ' · not active' : ''}`,
   stock_new_day: () => 'Stock: new day count',
+  sheet_on: () => 'Reception sheet: turned on (link saved)',
+  sheet_off: () => 'Reception sheet: turned off',
   history_import: d => `Imported old history: ${d.imported} new, ${d.already_there} already there`,
 };
+// ================= Reception sheet (Google Sheets) =================
+async function receptionSheet(body) {
+  body.innerHTML = '<p class="hint">Loading…</p>';
+  let st; try { st = await sheetStatus(); } catch (e) { body.innerHTML = `<p class="err">${esc(e.message)}${/function|schema/i.test(e.message) ? ' — first run the file supabase/migrations/20261104000000_reception_sheet.sql in Supabase (RECEPTION-SHEET.md, step 1).' : ''}</p>`; return; }
+  const last = (st.last || []).map(r => {
+    const good = r.status_code >= 200 && r.status_code < 400;
+    return `<li>${new Date(r.created).toLocaleString('it-IT', { timeZone: 'Europe/Rome' })} · ${good ? '<b style="color:var(--ok)">✓ arrived</b>' : `<b style="color:var(--danger)">✗ ${esc(r.status_code || '')} ${esc(r.error_msg || 'not arrived')}</b>`}</li>`;
+  }).join('');
+  body.innerHTML = `<div class="panel"><h3>Send every order to the reception's Google Sheet</h3>
+    <p class="hint">When a waiter taps <b>Send to reception</b>, a new row appears in your Google Sheet within a few seconds (one tab per day). Reopened or deleted orders are crossed out. Reception can download it as Excel: File → Download → Microsoft Excel. How to create the sheet and the link: <b>RECEPTION-SHEET.md</b>.</p>
+    <p><b>Now:</b> ${st.on ? `<span style="color:var(--ok);font-weight:800">ON</span> · link ${esc(st.url_end)}` : '<span style="color:var(--muted);font-weight:800">OFF</span>'}</p>
+    <label class="field">Google Apps Script web app link (ends with /exec)<input id="shUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"></label>
+    <div class="tools"><button class="btn primary" id="shSave">Save link</button>${st.on ? '<button class="btn" id="shTest">Send a test row</button><button class="btn warn" id="shOff">Turn off</button>' : ''}</div>
+    ${last ? `<h3 style="margin-top:16px">Last sends</h3><ul class="hint">${last}</ul><button class="btn" id="shRefresh">Refresh</button>` : ''}</div>`;
+  $('#shSave', body).onclick = async () => {
+    try { await setSheetUrl($('#shUrl', body).value); toast('Saved'); receptionSheet(body); } catch (e) { toast(e.message, null, null, 6000); }
+  };
+  const tst = $('#shTest', body); if (tst) tst.onclick = async () => {
+    try { await sheetTest(); toast('Test sent. Look at your sheet in a few seconds'); setTimeout(() => receptionSheet(body), 4000); } catch (e) { toast(e.message); }
+  };
+  const off = $('#shOff', body); if (off) off.onclick = async () => { try { await setSheetUrl(''); toast('Turned off'); receptionSheet(body); } catch (e) { toast(e.message); } };
+  const rf = $('#shRefresh', body); if (rf) rf.onclick = () => receptionSheet(body);
+}
+
 async function auditLog(body) {
   body.innerHTML = '<p class="hint">Loading…</p>';
   let rows; try { rows = await fetchAudit(); } catch (e) { body.innerHTML = `<p class="err">${esc(e.message)}</p>`; return; }

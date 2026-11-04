@@ -105,7 +105,9 @@ export const submitOrder = order => enqueue({ kind: 'submit', table: +order.tabl
 export const stockSet = (id, n) => enqueue({ kind: 'stock_set', id, n });
 export const stockNewDay = () => enqueue({ kind: 'stock_new_day' });
 
-let inflight = null, dirty = new Set(), flushing = false;
+let inflight = null, dirty = new Set(), flushing = false, saved = 0;
+const laterT = {};
+function later(k) { clearTimeout(laterT[k]); laterT[k] = setTimeout(() => loaders[k](), 250); }
 // A Postgres refusal has a code (e.g. P0001). No code + "fetch failed" = no internet.
 const isNetErr = e => !e?.code && /fetch|network|load failed|timeout|abort/i.test(e?.message || '');
 
@@ -132,13 +134,19 @@ export async function flush() {
         }
         S.lastError = res.error.message; notify(t('notSaved', { msg: res.error.message }));   // a real refusal: drop it
       } else if (q.kind === 'op') {
+        // keep the stock number right at once (no jump back while waiting for the next refresh)
+        const [, sd] = applyOp(S.server[q.table], q.op, q.at, q.waiterName);
+        for (const [id, n] of Object.entries(sd)) if (S.stock[id] != null) S.stock[id] += n;
         const row = res.data;
         if (row && row.data && Object.keys(row.data).length) S.server[q.table] = row; else delete S.server[q.table];
       } else if (q.kind === 'submit') {
         delete S.server[q.table]; dirty.add('today');
-      } else if (q.kind.startsWith('stock')) dirty.add('stock');
+      } else if (q.kind === 'stock_set') {
+        if (q.n == null) delete S.stock[q.id]; else S.stock[q.id] = Math.max(0, q.n);
+        dirty.add('stock');
+      } else if (q.kind === 'stock_new_day') { S.stock = {}; dirty.add('stock'); }
       if (q.kind === 'op') dirty.add('stock');
-      S.queue.shift(); saveQueue(); inflight = null;
+      S.queue.shift(); saveQueue(); inflight = null; saved++;
       persist(); emit();
     }
     if (!S.queue.length) setSync('ok');
@@ -162,15 +170,22 @@ const loaders = {
   async menu() { const { data, error } = await sb.from('menu_items').select('*').order('sort'); if (!error) { S.menu = data; persist(); emit(); } },
   async waiters() { const { data, error } = await sb.from('waiters').select('id,name,active,sort').order('sort'); if (!error) { S.waiters = data; persist(); emit(); } },
   async settings() { const { data, error } = await sb.from('settings').select('*'); if (!error) { for (const r of data) S.settings[r.key] = r.value; persist(); emit(); } },
+  // an answer that started before one of my saves finished is old: ask again instead of showing it
   async tables() {
     if (inflight) { dirty.add('tables'); return; }
+    const seq = saved;
     const { data, error } = await sb.from('open_tables').select('*');
-    if (!error && !inflight) { S.server = Object.fromEntries(data.map(r => [r.table_no, r])); persist(); emit(); }
+    if (error) return;
+    if (inflight || seq !== saved) { dirty.add('tables'); if (!inflight) later('tables'); return; }
+    S.server = Object.fromEntries(data.map(r => [r.table_no, r])); persist(); emit();
   },
   async stock() {
     if (inflight) { dirty.add('stock'); return; }
+    const seq = saved;
     const { data, error } = await sb.from('stock').select('*');
-    if (!error && !inflight) { S.stock = Object.fromEntries(data.map(r => [r.item_id, r.remaining])); persist(); emit(); }
+    if (error) return;
+    if (inflight || seq !== saved) { dirty.add('stock'); if (!inflight) later('stock'); return; }
+    S.stock = Object.fromEntries(data.map(r => [r.item_id, r.remaining])); persist(); emit();
   },
   async today() {
     const { data, error } = await sb.from('orders').select('*, order_lines(*)').eq('day', today()).order('closed_at', { ascending: false });
@@ -186,17 +201,9 @@ let channel = null, todayT = null;
 function subscribe() {
   if (channel) sb.removeChannel(channel);
   channel = sb.channel('live')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'open_tables' }, p => {
-      if (inflight) { dirty.add('tables'); return; }
-      const n = (p.new && p.new.table_no) || (p.old && p.old.table_no);
-      if (p.eventType === 'DELETE') delete S.server[n]; else S.server[n] = p.new;
-      persist(); emit();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock' }, p => {
-      if (inflight) { dirty.add('stock'); return; }
-      if (p.eventType === 'DELETE') delete S.stock[p.old.item_id]; else S.stock[p.new.item_id] = p.new.remaining;
-      persist(); emit();
-    })
+    // live messages can arrive late and out of order: use them only as a signal to read the latest state
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'open_tables' }, () => later('tables'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock' }, () => later('stock'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { clearTimeout(todayT); todayT = setTimeout(loaders.today, 400); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, () => loaders.menu())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => loaders.settings())
@@ -289,5 +296,8 @@ export const saveWaiter = (id, name, pin, active) => must(sb.rpc('owner_save_wai
 export const saveMenuItem = (id, patch) => must(sb.from('menu_items').update(patch).eq('id', id).select()).then(r => { loaders.menu(); return r; });
 export const addMenuItem = row => must(sb.from('menu_items').insert(row).select()).then(r => { loaders.menu(); return r; });
 export const importOrders = rows => must(sb.rpc('import_orders', { p_rows: rows }));
+export const setSheetUrl = url => must(sb.rpc('owner_set_sheet_url', { p_url: url }));
+export const sheetStatus = () => must(sb.rpc('owner_sheet_status'));
+export const sheetTest = () => must(sb.rpc('owner_sheet_test'));
 
 export const openedMs = row => ms(row?.opened_at);

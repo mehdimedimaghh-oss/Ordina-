@@ -446,3 +446,5 @@ body.tablet.scr-order .toast{left:calc((100vw - var(--pw)) / 2)}
 .gate .card2{position:relative}
 .ibtn.lang{font-weight:800;font-size:13px;letter-spacing:.06em;color:var(--gold);border-color:var(--gold)}
 @media (max-width:560px){.ibtn.lang{display:none}}
+/* no waiting for "double-tap to zoom" on phones: every tap counts at once */
+button,a,input,label,.card,.tile{touch-action:manipulation}

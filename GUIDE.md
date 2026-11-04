@@ -56,6 +56,8 @@
 
 **Waiters** — add a waiter (name + 4-number PIN), change a PIN, untick **Active** when someone leaves.
 
+**Reception sheet** — every order sent to reception also appears as a row in a Google Sheet that reception keeps open (one tab per day, Excel download possible). Set it up once: see RECEPTION-SHEET.md.
+
 **Import old history** — the file `history-export.json` from the old app (safe to do twice).
 
 **Audit log** — who deleted, reopened or changed what, and when.

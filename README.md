@@ -5,6 +5,7 @@ It is the successor of the single-file `comande.html`: same menu, prices, featur
 
 - **Put it online:** [SETUP.md](SETUP.md) (simple step-by-step, Supabase + Vercel)
 - **How to use it:** [GUIDE.md](GUIDE.md) (waiters and owner)
+- **Orders to the reception's Google Sheet:** [RECEPTION-SHEET.md](RECEPTION-SHEET.md)
 
 ## How it is built
 
@@ -23,7 +24,8 @@ src/owner.js          dashboard (calendar day/week/month), menu editor, waiters,
 src/xlsx.js           small Excel (.xlsx) writer
 supabase/migrations/  the whole database: tables, Row Level Security, functions, menu
 scripts/import-history.mjs   import the old app's JSON history with the secret key
-tests/                db.test.mjs (security rules) and e2e.mjs (browser test)
+scripts/reception-sheet.gs   Google Apps Script: writes each order into the reception's Google Sheet
+tests/                db.test.mjs (security rules), e2e.mjs (browser test), sheet.test.mjs (reception sheet)
 ```
 
 ### Security model
