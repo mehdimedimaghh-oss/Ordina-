@@ -37,6 +37,8 @@ sql(`delete from open_tables; delete from stock; delete from orders where source
 
 console.log('1. Login on the shared tablet');
 const tab = await device({ viewport: { width: 1180, height: 820 } });
+const tabLive = []; tab.p.on('console', m => { if (m.text().startsWith('[live]')) tabLive.push(new Date().toISOString().slice(11, 19) + ' ' + m.text()); });
+process.on('exit', () => { if (tabLive.length) console.log('tablet live-connection events:', tabLive.join(' | ')); });
 await tab.p.goto(APP);
 await tab.p.fill('#lp', 'wrong'); await tab.p.click('button[type=submit]');
 ok(await until(async () => (await tab.p.textContent('#lerr')).includes('Wrong')), 'wrong restaurant password refused');

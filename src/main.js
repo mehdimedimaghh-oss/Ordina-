@@ -2,6 +2,7 @@ import './style.css';
 import { $, esc } from './data.js';
 import { S, configured, start, onChange, onNotify, login, logout, reload, STAFF_EMAIL } from './store.js';
 import { mountReception, receptionRender, leaveReception } from './reception.js';
+import { turnLine } from './staffnow.js';
 import { mountWork, render, modeChanged, pinPicker, isTablet } from './waiter.js';
 import { mountOwner, ownerRender } from './owner.js';
 import { toast } from './ui.js';
@@ -40,7 +41,7 @@ function route() {
   else if (s === 'login') loginScreen();
   else if (s === 'norole') { app.innerHTML = gate(`${t('noRole', { email: esc(S.email) })}<button class="btn block" id="lo">${t('logOut')}</button>`); $('#lo').onclick = logout; }
   else if (s === 'pin') {
-    app.innerHTML = gate(`<div id="pinBox"></div>${S.role === 'owner' ? `<button class="btn block" id="toOwn" style="margin-top:14px">${t('ownerDashboard')}</button>` : ''}<button class="linkbtn" id="lo">${t('logoutDevice')}</button>`, t('whoWorking'));
+    app.innerHTML = gate(`<p class="hint" style="text-align:center;margin:-6px 0 12px">${turnLine()}</p><div id="pinBox"></div>${S.role === 'owner' ? `<button class="btn block" id="toOwn" style="margin-top:14px">${t('ownerDashboard')}</button>` : ''}<button class="linkbtn" id="lo">${t('logoutDevice')}</button>`, t('whoWorking'));
     pinPicker($('#pinBox'), route);
     if (navigator.onLine) reload('waiters');
     const to = $('#toOwn'); if (to) to.onclick = () => { location.hash = '#owner'; };

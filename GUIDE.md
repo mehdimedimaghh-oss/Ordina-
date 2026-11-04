@@ -74,6 +74,9 @@
 - **Export Excel** / **Export CSV**: the orders of the day/week/month you are looking at. The Excel file has two sheets: *Orders* and *Dishes*.
 - **Delete** an order: tap Delete two times and write a reason. It disappears from the totals but a full copy stays in the **Audit log**. Waiters cannot delete.
 
+**Staff now** (top of the Dashboard) — live: 🟢 who is logged in on a device right now ("Active · since 10:12"), the **active waiter** of the current shift, the **next turn**, and who has a day off. Waiters see the same shift line on the tablet table map, on the PIN screen and in ☰ More ("Your shift / After you").
+The shifts come from the monthly planning (MED = Mehdi, ZAI = Zai, GAB = Gabri, NIK = Nikola, CRI = Cristian). November 2026 is loaded: send the next month's planning to update it.
+
 **Rooftop tables & chairs** (in Menu & prices) — link T1–T10 to the app table numbers, mark tables ACTIVE / CLOSED, and correct the chair count (31 chairs: on the rooftop + in storage).
 
 **3D Live Rooftop** — your rooftop in 3D: the real number of chairs at each table, live, plus chairs on the rooftop / in storage / total.

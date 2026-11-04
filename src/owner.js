@@ -3,6 +3,7 @@ import { SECTIONS, eur, eurShort, esc, $, $$, today, addDays, parseDay, dayLabel
 import { S, fetchAllOrders, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWaiters, saveWaiter, saveMenuItem, addMenuItem, importOrders, setSheetUrl, sheetStatus, sheetTest, reload, ownerSetChairs, ownerSetRoofTable } from './store.js';
 import { fromServer, orderCard, bindOrderCards, setTheme } from './waiter.js';
 import { toast } from './ui.js';
+import { staffNowHtml } from './staffnow.js';
 import { buildXlsx, download } from './xlsx.js';
 
 let tab = 'dash', mode = 'day', sel = today(), calMonth = today().slice(0, 7);
@@ -21,7 +22,11 @@ export function mountOwner(app) {
   $$('.otabs button').forEach(b => { b.onclick = () => { tab = b.dataset.tab; $$('.otabs button').forEach(x => x.classList.toggle('on', x === b)); show(); }; });
   show();
 }
-export function ownerRender() { if (root && tab === 'menu' && !root.contains(document.activeElement)) show(); }
+export function ownerRender() {
+  const sn = document.getElementById('staffNow'); if (sn) sn.innerHTML = staffNowHtml();   // live: who is logged in / on shift
+  if (root && tab === 'menu' && !root.contains(document.activeElement)) show();
+}
+setInterval(() => { const sn = document.getElementById('staffNow'); if (sn && !document.hidden) sn.innerHTML = staffNowHtml(); }, 60000);
 function show() {
   const body = $('#ownBody');
   if (tab === 'rooftop') { openRooftopPage(); return; }
@@ -46,6 +51,7 @@ async function dashboard(body) {
     <div class="panel" id="calP"><div class="seg" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">${['day', 'week', 'month'].map(m => `<button data-mode="${m}" class="${m === mode ? 'on' : ''}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}</div>
       <div id="cal"></div><div class="actions" style="grid-template-columns:1fr"><button class="btn" id="goToday">Today</button></div></div>
     <div id="dRight"><p class="hint">Loading ${esc(fmtRange(rg))}…</p></div></div>`;
+  const sn = document.createElement('div'); sn.className = 'panel staffnow'; sn.id = 'staffNow'; sn.innerHTML = staffNowHtml(); body.prepend(sn);
   // gentle reminder: no backup downloaded on this device for more than 30 days
   if (Date.now() - lastBackup() > 30 * 864e5) {
     const r = document.createElement('div'); r.className = 'rcp-warn'; r.style.marginBottom = '12px';

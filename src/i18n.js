@@ -78,6 +78,9 @@ const D = {
     storage: 'Storage (reserve)', inUse: 'in use', take: 'Take {n}', toStorage: '{n} → storage', chairsMoved: '{n} chair(s) moved',
     chairsNeedNet: 'Moving chairs needs internet', chairsTotals: 'On the rooftop {d} · storage {s} · total {t}', nothingToTake: 'No free chairs anywhere: ask the owner.',
     notOnRooftop: 'This table is not linked to a rooftop table (owner: Menu & prices → Rooftop tables).',
+    staffNow: 'Staff now', activeWaiter: 'Active waiter', nextTurn: 'Next turn', inApp: 'Logged in now', nobodyIn: 'Nobody logged in right now',
+    noShift: 'no shift now', noRota: 'No schedule for this month yet', tomorrowW: 'tomorrow', afterYou: 'After you', yourShift: 'Your shift', offToday: 'Day off today',
+    activeLbl: 'Active', sinceT: 'since {t}', shifts: 'Shifts',
   },
   it: {
     whoAreYou: 'Chi sei?', stock: 'Scorte', history: 'Storico', more: 'Altro', language: 'Lingua', chooseTable: 'Scegli il tavolo',
@@ -139,6 +142,9 @@ const D = {
     storage: 'Magazzino (riserva)', inUse: 'in uso', take: 'Prendi {n}', toStorage: '{n} → magazzino', chairsMoved: '{n} sedie spostate',
     chairsNeedNet: 'Per spostare le sedie serve internet', chairsTotals: 'Sul rooftop {d} · magazzino {s} · totale {t}', nothingToTake: 'Nessuna sedia libera: chiedi al titolare.',
     notOnRooftop: 'Questo tavolo non è collegato a un tavolo del rooftop (titolare: Menu e prezzi → Tavoli rooftop).',
+    staffNow: 'Staff adesso', activeWaiter: 'Cameriere attivo', nextTurn: 'Prossimo turno', inApp: 'Collegati adesso', nobodyIn: 'Nessuno collegato adesso',
+    noShift: 'nessun turno adesso', noRota: 'Nessun turno caricato per questo mese', tomorrowW: 'domani', afterYou: 'Dopo di te', yourShift: 'Il tuo turno', offToday: 'Riposo oggi',
+    activeLbl: 'Attivo', sinceT: 'dalle {t}', shifts: 'Turni',
   },
 };
 

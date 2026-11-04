@@ -206,9 +206,36 @@ export async function loadAll() {
 }
 
 let channel = null, todayT = null;
+// "Active" waiters: each device that has a waiter logged in (PIN) announces itself on the live channel (Realtime Presence).
+// Only the first name is shared; it disappears when the waiter locks the app, logs out or closes it.
+const deviceId = LS.get('device') || (() => { const id = newUid(); LS.set('device', id); return id; })();
+S.presence = [];
+export function trackMe() {
+  if (!channel || channel.state !== 'joined') return;
+  if (S.waiter && (S.role === 'staff' || S.role === 'owner')) channel.track({ waiter_id: S.waiter.id, name: S.waiter.name, since: Date.now() }).catch(() => {});
+  else channel.untrack().catch(() => {});
+}
+function readPresence() {
+  if (!channel) return;
+  const seen = new Map();
+  for (const metas of Object.values(channel.presenceState())) for (const m of metas) {
+    if (!m.waiter_id) continue;
+    const old = seen.get(m.waiter_id); if (!old || m.since < old.since) seen.set(m.waiter_id, { id: m.waiter_id, name: m.name, since: m.since });
+  }
+  S.presence = [...seen.values()].sort((a, b) => a.name.localeCompare(b.name)); emit();
+}
+let liveStopped = false, resubT = null;
+// if the server ever closes the live connection, open it again by itself (and read everything fresh)
+function resubscribeSoon() {
+  if (liveStopped || resubT || !S.session) return;
+  resubT = setTimeout(() => { resubT = null; if (!liveStopped && S.session) subscribe(); }, 3000);
+}
 function subscribe() {
-  if (channel) sb.removeChannel(channel);
-  channel = sb.channel('live')
+  if (channel) { const old = channel; channel = null; sb.removeChannel(old); }
+  const ch = sb.channel('live', { config: { presence: { key: deviceId } } });
+  channel = ch;
+  ch
+    .on('presence', { event: 'sync' }, readPresence)
     // live messages can arrive late and out of order: use them only as a signal to read the latest state
     .on('postgres_changes', { event: '*', schema: 'public', table: 'open_tables' }, () => later('tables'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'stock' }, () => later('stock'))
@@ -218,8 +245,11 @@ function subscribe() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rooftop_chairs' }, () => later('roof'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rooftop_tables' }, () => later('roof'))
     .subscribe(status => {
-      if (status === 'SUBSCRIBED') { loadAll(); flush(); }
+      if (ch !== channel) return;   // an old connection that was replaced
+      if (status !== 'SUBSCRIBED') console.info('[live]', status);
+      if (status === 'SUBSCRIBED') { loadAll(); flush(); trackMe(); }
       else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSync('offline');
+      else if (status === 'CLOSED') resubscribeSoon();
     });
 }
 
@@ -236,7 +266,12 @@ export async function start() {
   if (S.session) afterLogin();   // role is remembered, so this also works offline
   addEventListener('online', () => { S.online = true; sb.realtime.connect(); flush(); loadAll(); emit(); });
   addEventListener('offline', () => { S.online = false; setSync('offline'); });
-  setInterval(() => { if (S.session && navigator.onLine) { flush(); loaders.tables(); loaders.stock(); } }, 60000);
+  // safety net every minute: even if a live message is lost, everything is fresh within 60 s
+  setInterval(() => {
+    if (!S.session || !navigator.onLine || document.hidden) return;
+    flush(); loaders.tables(); loaders.stock(); loaders.today(); loaders.roof();
+    if (channel && channel.state !== 'joined' && channel.state !== 'joining') resubscribeSoon();
+  }, 60000);
 }
 
 async function afterLogin() {
@@ -261,6 +296,7 @@ export async function login(email, password) {
 
 export async function logout() {
   if (S.queue.length && !confirm(t('confirmLogout', { n: S.queue.length }))) return false;
+  liveStopped = true;
   if (channel) sb.removeChannel(channel);
   await sb.auth.signOut().catch(() => {});
   try { Object.keys(localStorage).filter(k => k.startsWith(P) && k !== P + 'theme' && !k.startsWith(P + 'lang')).forEach(k => localStorage.removeItem(k)); } catch { /* ignore */ }
@@ -281,7 +317,7 @@ export async function waiterLogin(w, pin) {
       if (!data.ok) throw new Error(data.error);
       S.waiter = { id: data.id, name: data.name, token: data.token };
       const salt = newUid(); known[w.id] = { salt, h: await sha(salt + pin), token: data.token };
-      LS.set('pins', known); LS.set('waiter', S.waiter); emit(); return S.waiter;
+      LS.set('pins', known); LS.set('waiter', S.waiter); trackMe(); emit(); return S.waiter;
     }
     if (!isNetErr(error)) throw new Error(error.message);
   }
@@ -289,9 +325,9 @@ export async function waiterLogin(w, pin) {
   const k = known[w.id];
   if (!k) throw new Error(t('errOfflinePin'));
   if (await sha(k.salt + pin) !== k.h) throw new Error(t('errWrongPin'));
-  S.waiter = { id: w.id, name: w.name, token: k.token }; LS.set('waiter', S.waiter); emit(); return S.waiter;
+  S.waiter = { id: w.id, name: w.name, token: k.token }; LS.set('waiter', S.waiter); trackMe(); emit(); return S.waiter;
 }
-export function waiterLogout() { S.waiter = null; LS.del('waiter'); emit(); }
+export function waiterLogout() { S.waiter = null; LS.del('waiter'); trackMe(); emit(); }
 
 // ---------- actions that need the internet (owner and history) ----------
 async function must(p) { const { data, error } = await p; if (error) throw new Error(error.message); return data; }

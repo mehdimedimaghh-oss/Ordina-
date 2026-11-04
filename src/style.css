@@ -581,3 +581,18 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 .rtp-panel{background:rgba(36,42,56,.62);border-color:rgba(255,255,255,.18)}
 .rtp-dl dt{color:#cfd6e4}
 .rtp-muted{color:#c3cad9}
+
+/* ---------- staff now / shifts ---------- */
+.staffnow{margin-bottom:14px}
+.sn-row{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14.5px;align-items:center}
+.sn-row:first-of-type{border-top:0}
+.sn-l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.sn-v{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.online{display:inline-flex;align-items:center;gap:6px;font-weight:700;background:var(--ok-bg);color:var(--ok);border-radius:999px;padding:3px 10px 3px 8px}
+.online small{font-weight:600;opacity:.85}
+.online .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(35,112,58,.18);animation:pulse 2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(35,112,58,0)}}
+@media (prefers-reduced-motion:reduce){.online .dot{animation:none}}
+.turnline{font-size:13px;color:var(--muted)}
+.turnline b{color:var(--ink)}
+@media (max-width:600px){.sn-row{grid-template-columns:1fr;gap:4px}}

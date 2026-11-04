@@ -6,6 +6,7 @@ import {
 } from './store.js';
 import { toast, sheet, sheetBody, openSheet, closeSheet, armed, copyText, ticketText, receptionView, buzz } from './ui.js';
 import { t, tServer, getLang, chooseLang, langForWaiter } from './i18n.js';
+import { turnLine, myTurnHtml } from './staffnow.js';
 
 let cur = String(LS.get('cur', '1'));
 let screen = 'map';                       // tablet only: 'map' or 'order'
@@ -368,7 +369,8 @@ function renderMap() {
       ${k ? `<span class="serve${ws ? '' : ' done'}">${ws ? t('toServe', { n: ws }) : t('allServed')}</span><span class="tot num">${eur(total(d))}</span>` : `<span class="free">${t('free')}</span>`}</button>`;
   }
   $('#mapView').innerHTML = `<div class="maplegend"><span><i></i>${t('free')}</span><span><i class="o"></i>${t('openOrder')}</span><span><i class="l"></i>${t('waitingMin', { m: LATE_MIN })}</span>
-    <span style="margin-left:auto">${t('openNotSent', { open: `<b class="num">${open}</b>`, sum: `<b class="num">${eur(sum)}</b>` })}</span></div><div class="map">${tiles}</div>`;
+    <span style="margin-left:auto">${t('openNotSent', { open: `<b class="num">${open}</b>`, sum: `<b class="num">${eur(sum)}</b>` })}</span></div>
+    <div class="maplegend">${turnLine()}</div><div class="map">${tiles}</div>`;
   $$('#mapView .tile').forEach(b => { b.onclick = () => openTable(b.dataset.t); });
 }
 
@@ -528,6 +530,7 @@ function renderMore() {
   const s = sheet('moreSheet'), body = sheetBody(s), th = LS.get('theme', 'auto');
   body.innerHTML = `
     <div class="grp">${t('language')}</div><div class="seg">${[['it', 'Italiano'], ['en', 'English']].map(([l, n]) => `<button data-lang="${l}" class="${l === getLang() ? 'on' : ''}">${n}</button>`).join('')}</div>
+    ${myTurnHtml(S.waiter?.name)}
     <div class="grp">${t('theme')}</div><div class="seg" style="grid-template-columns:repeat(3,1fr)">${['auto', 'light', 'dark'].map(x => `<button data-th="${x}" class="${x === th ? 'on' : ''}">${t(x)}</button>`).join('')}</div>
     <div class="grp">${t('waiter')}</div>
     <div class="actions"><button class="btn" id="mSwitch">${t('switchWaiter')}</button><button class="btn" id="mLock">${esc(t('lock', { name: S.waiter?.name || '—' }))}</button></div>
