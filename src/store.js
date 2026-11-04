@@ -298,6 +298,15 @@ async function must(p) { const { data, error } = await p; if (error) throw new E
 export const reopenOrder = id => must(sb.rpc('reopen_order', { p_id: id, p_token: S.waiter?.token || null })).then(r => { loaders.tables(); loaders.today(); return r; });
 export const deleteOrder = (id, reason) => must(sb.rpc('delete_order', { p_id: id, p_reason: reason || '' }));
 export const setAlert = n => { S.settings.stock_alert = n; emit(); return must(sb.rpc('set_stock_alert', { p_n: n })); };
+// Full backup: every order since the beginning, read page by page (1000 at a time) so nothing is cut off
+export async function fetchAllOrders() {
+  const all = [];
+  for (let from = 0; ; from += 1000) {
+    const page = await must(sb.from('orders').select('*, order_lines(*)').order('id', { ascending: true }).range(from, from + 999));
+    all.push(...page); if (page.length < 1000) break;
+  }
+  return all;
+}
 export const fetchOrders = (from, to) => must(sb.from('orders').select('*, order_lines(*)').gte('day', from).lte('day', to).order('closed_at', { ascending: true }).limit(10000));
 export const fetchDayTotals = (from, to) => must(sb.from('orders').select('day,total,status').gte('day', from).lte('day', to).limit(20000));
 export const fetchAudit = () => must(sb.from('audit_log').select('*').order('at', { ascending: false }).limit(300));

@@ -1,6 +1,6 @@
 // Owner pages: dashboard (calendar, day/week/month), menu editor, waiters, import, audit log.
 import { SECTIONS, eur, eurShort, esc, $, $$, today, addDays, parseDay, dayLabel, hhmm } from './data.js';
-import { S, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWaiters, saveWaiter, saveMenuItem, addMenuItem, importOrders, setSheetUrl, sheetStatus, sheetTest, reload, ownerSetChairs, ownerSetRoofTable } from './store.js';
+import { S, fetchAllOrders, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWaiters, saveWaiter, saveMenuItem, addMenuItem, importOrders, setSheetUrl, sheetStatus, sheetTest, reload, ownerSetChairs, ownerSetRoofTable } from './store.js';
 import { fromServer, orderCard, bindOrderCards, setTheme } from './waiter.js';
 import { toast } from './ui.js';
 import { buildXlsx, download } from './xlsx.js';
@@ -14,7 +14,7 @@ export function mountOwner(app) {
   app.innerHTML = `<div class="own">
     <div class="topbar"><button class="hbtn" id="backTables">‹ Tables</button><h1>Owner</h1><button class="hbtn" id="ownTheme">Theme</button></div>
     <div class="obanner"><img class="ph" src="/terrace.jpg" alt="The restaurant terrace at night"><div class="ov"><img src="/logo.png" alt="" width="64" height="64"><span>Ristorante Concordia<small>Fugari Bistrot · Lunch orders</small></span></div></div>
-    <nav class="otabs">${[['dash', 'Dashboard'], ['menu', 'Menu & prices'], ['waiters', 'Waiters'], ['rooftop', '<svg class="oti" aria-hidden="true"><use href="#i-stock"/></svg>3D Live Rooftop'], ['recv', '🔔 Reception screen'], ['sheet', 'Google Sheet (optional)'], ['import', 'Import old history'], ['log', 'Audit log']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
+    <nav class="otabs">${[['dash', 'Dashboard'], ['menu', 'Menu & prices'], ['waiters', 'Waiters'], ['rooftop', '<svg class="oti" aria-hidden="true"><use href="#i-stock"/></svg>3D Live Rooftop'], ['recv', '🔔 Reception screen'], ['sheet', 'Google Sheet (optional)'], ['import', 'Backup & import'], ['log', 'Audit log']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
     <div id="ownBody"></div></div>`;
   $('#backTables').onclick = () => { location.hash = ''; };
   $('#ownTheme').onclick = () => { const t = { auto: 'light', light: 'dark', dark: 'auto' }[localStorage.getItem('ordina:theme')?.replace(/"/g, '') || 'auto']; setTheme(t); toast('Theme: ' + t); };
@@ -46,6 +46,12 @@ async function dashboard(body) {
     <div class="panel" id="calP"><div class="seg" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">${['day', 'week', 'month'].map(m => `<button data-mode="${m}" class="${m === mode ? 'on' : ''}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}</div>
       <div id="cal"></div><div class="actions" style="grid-template-columns:1fr"><button class="btn" id="goToday">Today</button></div></div>
     <div id="dRight"><p class="hint">Loading ${esc(fmtRange(rg))}…</p></div></div>`;
+  // gentle reminder: no backup downloaded on this device for more than 30 days
+  if (Date.now() - lastBackup() > 30 * 864e5) {
+    const r = document.createElement('div'); r.className = 'rcp-warn'; r.style.marginBottom = '12px';
+    r.innerHTML = `💾 ${lastBackup() ? 'Your last backup is more than 30 days old.' : 'No backup downloaded yet on this device.'} <button class="linkbtn" style="display:inline;margin:0;color:inherit" id="goBk">Download a full backup now</button>`;
+    body.prepend(r); $('#goBk', body).onclick = () => { tab = 'import'; $$('.otabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'import')); show(); };
+  }
   $$('[data-mode]', body).forEach(b => { b.onclick = () => { mode = b.dataset.mode; dashboard(body); }; });
   $('#goToday', body).onclick = () => { sel = today(); calMonth = sel.slice(0, 7); dashboard(body); };
   calendar($('#cal', body), body, rg);
@@ -226,14 +232,45 @@ async function waiters(body) {
   });
 }
 
-// ================= Import =================
+// ================= Backup + import =================
+const lastBackup = () => { try { return +localStorage.getItem('ordina:lastBackup') || 0; } catch { return 0; } };
+async function downloadBackup(btn, info) {
+  btn.disabled = true; info.innerHTML = '<p class="hint">Reading all orders…</p>';
+  try {
+    const rows = await fetchAllOrders();
+    // same format as the old app's export, so "Import" below can restore it (orders already there are skipped)
+    const toImport = o => ({
+      uid: o.uid, table: String(o.table_no), client: o.client, roomNo: o.room_no, building: o.building, waiter: o.waiter_name,
+      items: (o.order_lines || []).slice().sort((a, b) => a.pos - b.pos).map(l => ({ id: l.item_id, it: l.name, qty: l.qty, p: Number(l.price), sec: l.section, note: l.note })),
+      roomService: o.room_service, roomFee: Number(o.room_fee), note: o.note, total: Number(o.total), closedAt: Date.parse(o.closed_at), day: o.day,
+      covers: o.covers || 0, chargedAt: o.charged_at, chargedBy: o.charged_by,
+    });
+    const sent = rows.filter(o => o.status === 'closed'), reopened = rows.filter(o => o.status !== 'closed');
+    const stamp = today();
+    const data = { app: 'Comande Pranzo', backupOf: 'all orders', exportedAt: new Date().toISOString(), count: sent.length, total: sent.reduce((a, o) => a + Number(o.total), 0), orders: sent.map(toImport), reopened: reopened.map(toImport), menu: S.menu };
+    download(JSON.stringify(data, null, 1), `comande_BACKUP_${stamp}.json`, 'application/json');
+    const ord = sent.map(fromServer);
+    download(buildXlsx(exportSheets(ord)), `comande_ALL_ORDERS_${stamp}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    try { localStorage.setItem('ordina:lastBackup', String(Date.now())); } catch { /* ignore */ }
+    info.innerHTML = `<p class="hint" style="color:var(--ok);font-weight:700">Done: ${sent.length} orders · ${eur(data.total)}. Two files were downloaded: the BACKUP (.json, to restore) and ALL_ORDERS (.xlsx, to read). Keep them in a safe place (e.g. Google Drive + a USB stick).</p>`;
+  } catch (e) { info.innerHTML = `<p class="err">${esc(e.message)}. Check the internet and try again.</p>`; }
+  btn.disabled = false;
+}
+
 function importer(body) {
-  body.innerHTML = `<div class="panel"><h3>Import the history of the old app</h3>
-    <p class="hint">Choose the file <b>history-export.json</b> (the export of the old comande.html). You can import the same file twice: orders already in the database are skipped. Orders without a waiter are saved as “Mehdi”, like the old app showed them.</p>
+  const lb = lastBackup();
+  body.innerHTML = `<div class="panel" style="margin-bottom:14px"><h3>Backup — keep a copy of all your money data</h3>
+    <p class="hint">Downloads <b>every order since the first day</b>: an Excel file to read, and a backup file that this app can import back if something ever goes wrong. Do it <b>once a week</b> and keep the files in 2 places (e.g. Google Drive + USB stick).</p>
+    <p class="hint">Last backup on this device: <b>${lb ? new Date(lb).toLocaleDateString('it-IT') : 'never'}</b></p>
+    <button class="btn primary" id="bkBtn">Download full backup</button><div id="bkInfo"></div></div>
+    <div class="panel"><h3>Import — old app history or a backup</h3>
+    <p class="hint">Choose <b>history-export.json</b> (old comande.html) or a <b>comande_BACKUP_….json</b> file. You can import the same file twice: orders already in the database are skipped, only missing ones come back. Orders without a waiter are saved as “Mehdi”, like the old app showed them.</p>
     <label class="field">File<input type="file" id="impFile" accept=".json,application/json"></label><div id="impInfo"></div></div>`;
+  $('#bkBtn', body).onclick = () => downloadBackup($('#bkBtn', body), $('#bkInfo', body));
   $('#impFile', body).onchange = async e => {
     const f = e.target.files[0]; if (!f) return; const info = $('#impInfo', body);
-    let rows; try { rows = JSON.parse(await f.text()); if (!Array.isArray(rows)) rows = rows.orders || rows.history; if (!Array.isArray(rows)) throw new Error('no list of orders'); }
+    let rows; try { const text = await f.text(); e.target.value = '';   // the same file can be chosen again later
+      rows = JSON.parse(text); if (!Array.isArray(rows)) rows = rows.orders || rows.history; if (!Array.isArray(rows)) throw new Error('no list of orders'); }
     catch (er) { info.innerHTML = `<p class="err">This file is not a history export (${esc(er.message)}).</p>`; return; }
     const days = rows.map(r => r.day).filter(Boolean).sort(), tot = rows.reduce((a, r) => a + Number(r.total || 0), 0);
     info.innerHTML = `<p><b>${rows.length}</b> orders · from ${esc(days[0] || '?')} to ${esc(days[days.length - 1] || '?')} · total <b>${eur(tot)}</b></p><button class="btn primary block" id="impGo">Import ${rows.length} orders</button>`;
