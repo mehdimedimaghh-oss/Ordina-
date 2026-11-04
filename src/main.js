@@ -92,5 +92,9 @@ wake();
 
 // Offline support (service worker made by vite-plugin-pwa)
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true })).catch(() => {});
+  // check for a new version at start and every time the app comes back to the screen (phones keep apps open for days)
+  import('virtual:pwa-register').then(({ registerSW }) => registerSW({
+    immediate: true,
+    onRegisteredSW(_url, reg) { if (reg) document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && navigator.onLine) reg.update().catch(() => {}); }); },
+  })).catch(() => {});
 }

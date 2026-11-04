@@ -10,6 +10,7 @@ let root = null;
 
 export function mountOwner(app) {
   root = app;
+  try { if (sessionStorage.getItem('ordina:open3d')) { sessionStorage.removeItem('ordina:open3d'); tab = 'rooftop'; } } catch { /* ignore */ }
   app.innerHTML = `<div class="own">
     <div class="topbar"><button class="hbtn" id="backTables">‹ Tables</button><h1>Owner</h1><button class="hbtn" id="ownTheme">Theme</button></div>
     <div class="obanner"><img class="ph" src="/terrace.jpg" alt="The restaurant terrace at night"><div class="ov"><img src="/logo.png" alt="" width="64" height="64"><span>Ristorante Concordia<small>Fugari Bistrot · Lunch orders</small></span></div></div>
@@ -262,8 +263,34 @@ async function openRooftopPage() {
   const body = $('#ownBody'); body.innerHTML = '<p class="hint">Loading the 3D rooftop…</p>';
   try {
     const m = await import('./rooftop/page.js');
+    try { sessionStorage.removeItem('ordina:3dRetry'); } catch { /* ignore */ }
     m.openRooftop({ onBack: () => { tab = 'dash'; $$('.otabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'dash')); show(); } });
-  } catch (e) { body.innerHTML = `<p class="err">The 3D rooftop could not load (${esc(e.message)}). Check the internet and try again.</p>`; }
+  } catch (e) {
+    // Usually: this device still runs the previous version of the app, whose 3D file no longer exists after an update.
+    // Fix it by itself once: get the new version, reload, and open the 3D tab again.
+    let tried = false; try { tried = !!sessionStorage.getItem('ordina:3dRetry'); } catch { /* ignore */ }
+    if (!tried && navigator.onLine) {
+      try { sessionStorage.setItem('ordina:3dRetry', '1'); sessionStorage.setItem('ordina:open3d', '1'); } catch { /* ignore */ }
+      body.innerHTML = '<p class="hint">Updating the app to the newest version…</p>';
+      await updateAppNow(); location.reload(); return;
+    }
+    body.innerHTML = `<div class="panel"><p class="err">The 3D rooftop could not load (${esc(e.message)}).</p>
+      <p class="hint">Check the internet, then tap Reload. On an installed app you can also close it completely and open it again.</p>
+      <button class="btn primary" id="r3d">Reload</button></div>`;
+    $('#r3d', body).onclick = async () => { try { sessionStorage.removeItem('ordina:3dRetry'); sessionStorage.setItem('ordina:open3d', '1'); } catch { /* ignore */ } await updateAppNow(); location.reload(); };
+  }
+}
+
+// Ask the service worker for the newest version and wait (max 8 s) until it takes over
+async function updateAppNow() {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (!reg) return;
+    const changed = new Promise(res => { navigator.serviceWorker.addEventListener('controllerchange', res, { once: true }); setTimeout(res, 8000); });
+    await reg.update();
+    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    if (reg.installing || reg.waiting) await changed;
+  } catch { /* offline or not supported: the reload still helps */ }
 }
 
 // ================= Reception sheet (Google Sheets) =================
