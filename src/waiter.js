@@ -19,6 +19,39 @@ export function ITEM() {
   if (itemSrc !== S.menu) { itemSrc = S.menu; itemCache = Object.fromEntries(S.menu.map(m => [m.id, m])); }
   return itemCache;
 }
+// ---------- custom drinks: "Cocktail su misura" and "Analcolico su misura" ----------
+// Every custom drink the waiter makes is its own line: id "<menu id>~<code>" (e.g. cocktail-misura~k3f9a),
+// so two different recipes at the same table stay separate. Its recipe is saved in the line's note
+// (the same note every dish has), so it goes to reception, history, reopen, Excel and statistics with no new system.
+export const baseId = id => String(id).split('~')[0];
+export function customKind(m) {
+  if (!m) return null;
+  const s = (m.id + ' ' + m.name_it).toLowerCase();
+  if (!/su[ -]?misura/.test(s)) return null;
+  return m.section === 'cocktail' || /cocktail/.test(s) ? 'cocktail' : 'soft';
+}
+const idsOf = (d, mid) => Object.keys(d.items).filter(id => baseId(id) === mid);
+const qtyOf = (d, mid) => idsOf(d, mid).reduce((a, id) => a + (d.items[id] || 0), 0);
+const TASTES = [['tonic', 'Tonico', 'Tonic'], ['sweet', 'Dolce', 'Sweet'], ['sour', 'Aspro', 'Sour']];
+const NOTE_MAX = 300;
+// recipe <-> note text, e.g. «Rosa» · Gusto: Dolce · Ingredienti: Acqua tonica, Sciroppo di fragola, Seltz · Preparazione: poco ghiaccio
+const clean = v => String(v || '').replace(/·/g, ',').replace(/\s+/g, ' ').trim();
+export function recipeText(r) {
+  const taste = TASTES.find(x => x[0] === r.taste);
+  return [r.name && `«${clean(r.name)}»`, taste && `Gusto: ${taste[1]}`, clean(r.ing) && `Ingredienti: ${clean(r.ing)}`, clean(r.prep) && `Preparazione: ${clean(r.prep)}`]
+    .filter(Boolean).join(' · ');
+}
+export function parseRecipe(note) {
+  const r = { name: '', taste: '', ing: '', prep: '' };
+  for (const part of String(note || '').split(' · ')) {
+    const m = part.match(/^«(.*)»$/); if (m) { r.name = m[1]; continue; }
+    if (part.startsWith('Gusto: ')) { const v = part.slice(7); r.taste = (TASTES.find(x => x[1] === v) || [''])[0]; }
+    else if (part.startsWith('Ingredienti: ')) r.ing = part.slice(13);
+    else if (part.startsWith('Preparazione: ')) r.prep = part.slice(14);
+    else if (part.trim()) r.prep = r.prep ? r.prep + ' ' + part : part;   // an old free note: keep it as preparation
+  }
+  return r;
+}
 const itemsOf = (sec, all) => S.menu.filter(m => m.section === sec && (all || !m.hidden)).sort((a, b) => a.sort - b.sort);
 const fee = () => Number(S.settings.room_fee ?? 10);
 // table service per person: only when the owner's database has it (SQL step 13); before that = 0, like always
@@ -26,7 +59,7 @@ export const coverFee = () => (S.settings.cover_fee == null ? 0 : Number(S.setti
 const coverOf = d => (d.coverOff ? 0 : (d.covers || 0) * coverFee());
 function total(d) {
   const I = ITEM(); let s = 0;
-  for (const [id, q] of Object.entries(d.items)) s += (I[id] ? Number(I[id].price) : 0) * q;
+  for (const [id, q] of Object.entries(d.items)) { const m = I[baseId(id)]; s += (m ? Number(m.price) : 0) * q; }
   if (d.room && count(d)) s += fee();
   if (count(d)) s += coverOf(d);
   return s;
@@ -63,8 +96,8 @@ function todayOrders() {
 
 function snapshot(n) {
   const d = tableData(n), lines = [], seen = new Set();
-  for (const s of SECTIONS) for (const m of itemsOf(s.id, true)) if (d.items[m.id]) {
-    seen.add(m.id); lines.push({ id: m.id, it: m.name_it, qty: d.items[m.id], p: Number(m.price), sec: s.it, note: (d.notes[m.id] || '').trim() });
+  for (const s of SECTIONS) for (const m of itemsOf(s.id, true)) for (const id of idsOf(d, m.id)) {
+    seen.add(id); lines.push({ id, it: m.name_it, qty: d.items[id], p: Number(m.price), sec: s.it, note: (d.notes[id] || '').trim() });
   }
   for (const [id, q] of Object.entries(d.items)) if (!seen.has(id)) lines.push({ id, it: id, qty: q, p: 0, sec: '', note: d.notes[id] || '' });
   const now = Date.now();
@@ -95,6 +128,12 @@ export function mountWork(app) {
 
   $('#menu').addEventListener('click', e => {
     const cell = e.target.closest('.cell'); if (!cell) return;
+    const m = ITEM()[cell.dataset.id];
+    if (customKind(m)) {   // custom drink: "+" opens the recipe form, "−" removes the last one added
+      if (e.target.closest('.minus')) { const ids = idsOf(tableData(cur), m.id); if (ids.length) add(ids[ids.length - 1], -1); }
+      else if (e.target.closest('.card')) openCustom(m);
+      return;
+    }
     if (e.target.closest('.minus')) add(cell.dataset.id, -1); else if (e.target.closest('.card')) add(cell.dataset.id, 1);
   });
   $('#tableBtn').onclick = () => { if (isTablet()) { flushDrafts(); screen = 'map'; render(); scrollTo(0, 0); } else { renderTables(); openSheet(sheet('tableSheet', t('chooseTable'))); } };
@@ -143,7 +182,7 @@ function buildMenu() {
 
 function add(id, d, silent) {
   if (!S.waiter) { openWaiterSheet(); return; }
-  const m = ITEM()[id]; const name = m ? m.name_it : id;
+  const m = ITEM()[baseId(id)], rn = parseRecipe(tableData(cur).notes[id]).name; const name = (m ? m.name_it : id) + (rn ? ` «${rn}»` : '');
   const before = stockLeft(id);
   let msg = `${d > 0 ? '+1' : '−1'} ${name}`;
   if (d > 0 && before != null && before <= 0) msg = t('finishedKitchen', { name });
@@ -161,8 +200,8 @@ export function render() {
   const row = tableRow(cur), d = tableData(cur);
   $('#tableNum').textContent = cur;
   $('#tableLbl').textContent = isTablet() ? t('tablesBack') : t('tableBtn');
-  $$('.cell').forEach(c => { const q = d.items[c.dataset.id] || 0; c.classList.toggle('has', q > 0); c.querySelector('.qty').textContent = q || ''; });
-  $$('.tab').forEach(tb => { const q = itemsOf(tb.dataset.s).reduce((a, m) => a + (d.items[m.id] || 0), 0); const dot = tb.querySelector('.dot'); dot.hidden = !q; dot.textContent = q; });
+  $$('.cell').forEach(c => { const q = qtyOf(d, c.dataset.id); c.classList.toggle('has', q > 0); c.querySelector('.qty').textContent = q || ''; });
+  $$('.tab').forEach(tb => { const q = itemsOf(tb.dataset.s).reduce((a, m) => a + qtyOf(d, m.id), 0); const dot = tb.querySelector('.dot'); dot.hidden = !q; dot.textContent = q; });
   updateBar(row, d); paintStock(); showWaiter(); showSync();
   if (isTablet()) {
     if (screen === 'map') renderMap(); else { $('#opTitle').textContent = 'Tavolo ' + cur; renderOrder($('#opBody')); }
@@ -248,10 +287,19 @@ function renderOrder(body, force) {
     bindFields(body, n); return;
   }
   for (const s of SECTIONS) {
-    const lines = itemsOf(s.id, true).filter(m => d.items[m.id]); if (!lines.length) continue;
+    const lines = itemsOf(s.id, true).flatMap(m => idsOf(d, m.id).map(lid => [m, lid])); if (!lines.length) continue;
     h += `<div class="grp">${s.it}</div>`;
-    for (const m of lines) {
-      const q = d.items[m.id], sv = d.served[m.id] || 0, nt = d.notes[m.id] || '', id = esc(m.id);
+    for (const [m, lid] of lines) {
+      const q = d.items[lid], sv = d.served[lid] || 0, nt = d.notes[lid] || '', id = esc(lid), ck = customKind(m);
+      if (ck) {   // custom drink: show the whole recipe, edit it in the form
+        const r = parseRecipe(nt), taste = TASTES.find(x => x[0] === r.taste);
+        h += `<div class="line custom${sv >= q ? ' served' : ''}"><div class="t">${esc(m.name_it)}${r.name ? ` <b class="cname">«${esc(r.name)}»</b>` : ''}<small>${esc(m.name_en)}</small></div>
+        <div class="step"><button data-d="-1" data-id="${id}" aria-label="${t('oneLess')}">−</button><span class="n num">${q}</span><button data-d="1" data-id="${id}" aria-label="${t('oneMore')}">+</button></div>
+        <div class="lt num">${q} × ${eur(m.price)} = <b>${eur(q * m.price)}</b></div>
+        <div class="recipe">${taste ? `<span><b>${t('cdTaste')}</b> ${getLang() === 'it' ? taste[1] : taste[2]}</span>` : ''}${r.ing ? `<span><b>${t('cdIng')}</b> ${esc(r.ing)}</span>` : ''}${r.prep ? `<span><b>${t('cdPrep')}</b> ${esc(r.prep)}</span>` : ''}${!taste && !r.ing && !r.prep ? `<span class="muted">${t('cdEmpty')}</span>` : ''}</div>
+        <div class="lx"><button class="srv${sv >= q ? ' on' : ''}" data-srv="${id}">${sv >= q ? t('served') : t('servedXY', { a: sv, b: q })}</button><button class="nb" data-edit="${id}">✎ ${t('cdEdit')}</button></div></div>`;
+        continue;
+      }
       h += `<div class="line${sv >= q ? ' served' : ''}"><div class="t">${esc(m.name_it)}<small>${esc(m.name_en)}</small></div>
       <div class="step"><button data-d="-1" data-id="${id}" aria-label="${t('oneLess')}">−</button><span class="n num">${q}</span><button data-d="1" data-id="${id}" aria-label="${t('oneMore')}">+</button></div>
       <div class="lt num">${q} × ${eur(m.price)} = <b>${eur(q * m.price)}</b></div>
@@ -272,6 +320,7 @@ function renderOrder(body, force) {
   bindFields(body, n);
   body.querySelectorAll('.step button[data-id]').forEach(b => { b.onclick = () => add(b.dataset.id, +b.dataset.d); });
   body.querySelectorAll('[data-srv]').forEach(b => { b.onclick = () => { const id = b.dataset.srv, q = d.items[id], sv = d.served[id] || 0; tableOp(n, { t: 'served', id, n: sv >= q ? 0 : sv + 1 }); buzz(); }; });
+  body.querySelectorAll('[data-edit]').forEach(b => { b.onclick = () => { flushDrafts(); openCustom(ITEM()[baseId(b.dataset.edit)], b.dataset.edit); }; });
   body.querySelectorAll('[data-nb]').forEach(b => { b.onclick = () => { const i = body.querySelector(`[data-inote="${CSS.escape(b.dataset.nb)}"]`); i.hidden = false; i.focus(); }; });
   body.querySelectorAll('[data-inote]').forEach(i => { i.oninput = () => { const id = i.dataset.inote, v = i.value; draft('in' + n + id, () => tableOp(n, { t: 'inote', id, note: v })); }; i.onblur = flushDrafts; });
   $('#room', body).onchange = e => tableOp(n, { t: 'set', fields: { room: e.target.checked } });
@@ -293,6 +342,57 @@ function bindFields(body, n) {
   body.querySelectorAll('#bld [data-b]').forEach(b => { b.onclick = () => {
     flushDrafts(); const d = tableData(n); tableOp(n, { t: 'set', fields: { building: d.building === b.dataset.b ? '' : b.dataset.b } }); $('#bld', body).classList.remove('need');
   }; });
+}
+
+// ---------- the recipe form for a custom drink ----------
+const SUGGEST = {
+  cocktail: ['Gin', 'Vodka', 'Rum', 'Tequila', 'Prosecco', 'Campari', 'Vermouth', 'Lime', 'Limone', 'Zucchero di canna', 'Menta', 'Ghiaccio tritato'],
+  soft: ['Acqua tonica', 'Seltz', 'Sciroppo di fragola', 'Succo di limone', 'Succo d\'arancia', 'Succo di mela', 'Ginger beer', 'Lime', 'Menta fresca', 'Frutti di bosco'],
+};
+function openCustom(m, editId) {
+  if (!m) return;
+  if (!S.waiter) { openWaiterSheet(); return; }
+  const kind = customKind(m), n = cur, it = getLang() === 'it';
+  const r = editId ? parseRecipe(tableData(n).notes[editId]) : { name: '', taste: '', ing: '', prep: '' };
+  const s = sheet('customSheet'); s.querySelector('h3').textContent = m.name_it + (editId ? ' · ' + t('cdEdit') : '');
+  const body = sheetBody(s);
+  body.innerHTML = `<div class="cdform">
+    <p class="hint">${kind === 'soft' ? t('cdSoftHint') : t('cdCocktailHint')}</p>
+    <label class="field">${t('cdName')}<input id="cdName" type="text" maxlength="40" autocomplete="off" placeholder="${t('cdNameEg')}" value="${esc(r.name)}"></label>
+    ${kind === 'soft' ? `<div class="cdlbl">${t('cdTaste')}</div><div class="cdtaste" role="group" aria-label="${t('cdTaste')}">${TASTES.map(([k, a, b]) => `<button type="button" data-taste="${k}" class="${r.taste === k ? 'on' : ''}" aria-pressed="${r.taste === k}"><b>${it ? a : b}</b>${it ? b : a}</button>`).join('')}</div>` : ''}
+    <label class="field">${t('cdIng')}<textarea id="cdIng" rows="3" placeholder="${kind === 'soft' ? t('cdIngSoftEg') : t('cdIngCocktailEg')}">${esc(r.ing)}</textarea></label>
+    <div class="cdchips">${SUGGEST[kind].map(x => `<button type="button" data-ing="${esc(x)}">+ ${esc(x)}</button>`).join('')}</div>
+    <label class="field">${t('cdPrep')}<textarea id="cdPrep" rows="2" placeholder="${t('cdPrepEg')}">${esc(r.prep)}</textarea></label>
+    <p class="cdcount" id="cdCount"></p>
+    <div class="actions"><button class="btn" data-close>${t('cancel')}</button><button class="btn primary" id="cdSave">${editId ? t('cdSave') : t('cdAdd', { p: eur(m.price) })}</button></div></div>`;
+  let taste = r.taste;
+  const read = () => ({ name: $('#cdName', body).value, taste, ing: $('#cdIng', body).value, prep: $('#cdPrep', body).value });
+  const upd = () => { const left = NOTE_MAX - recipeText(read()).length, c = $('#cdCount', body); c.textContent = t('cdLeft', { n: left }); c.classList.toggle('over', left < 0); };
+  body.querySelectorAll('[data-taste]').forEach(b => { b.onclick = () => {
+    taste = taste === b.dataset.taste ? '' : b.dataset.taste;
+    body.querySelectorAll('[data-taste]').forEach(x => { x.classList.toggle('on', x.dataset.taste === taste); x.setAttribute('aria-pressed', x.dataset.taste === taste); });
+    body.querySelector('.cdtaste').classList.remove('need'); upd();
+  }; });
+  body.querySelectorAll('[data-ing]').forEach(b => { b.onclick = () => {
+    const ta = $('#cdIng', body), v = ta.value.trim();
+    ta.value = v ? v.replace(/[,\s]+$/, '') + ', ' + b.dataset.ing : b.dataset.ing; upd();
+  }; });
+  body.querySelectorAll('input,textarea').forEach(i => { i.oninput = upd; });
+  $('#cdSave', body).onclick = () => {
+    const rec = read(), text = recipeText(rec);
+    if (kind === 'soft' && !rec.taste) { body.querySelector('.cdtaste').classList.add('need'); toast(t('cdNeedTaste')); return; }
+    if (!clean(rec.ing) && !clean(rec.prep)) { $('#cdIng', body).focus(); toast(t('cdNeedIng')); return; }
+    if (text.length > NOTE_MAX) { toast(t('cdTooLong')); return; }
+    if (editId && tableData(n).items[editId]) tableOp(n, { t: 'inote', id: editId, note: text });
+    else {
+      const id = m.id + '~' + uid().slice(-6);
+      tableOp(n, { t: 'item', id, d: 1 }); tableOp(n, { t: 'inote', id, note: text });
+      toast(`+1 ${m.name_it}${rec.name ? ` «${clean(rec.name)}»` : ''}`, t('undo'), () => { tableOp(n, { t: 'item', id, d: -1 }); toast(t('undone')); });
+    }
+    buzz(); closeSheet(s); render();
+  };
+  upd(); openSheet(s);
+  setTimeout(() => (kind === 'soft' && !taste ? body.querySelector('[data-taste]') : $('#cdIng', body))?.focus({ preventScroll: true }), 50);
 }
 
 const askedCovers = {};

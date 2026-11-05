@@ -626,3 +626,22 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 .rgroup .rg-r>b{font-size:22px;margin-right:4px}
 .rgroup .rcard{margin-bottom:8px}
 @media (max-width:560px){.rcp-stats{font-size:13px}.rcp-stats td small{display:block;margin:0}.rgroup .rg-r{width:100%}.rgroup .rg-r .btn{flex:1}}
+
+/* ---------- custom drinks (Cocktail / Analcolico su misura) ---------- */
+.line.custom .cname{color:var(--gold);font-weight:700}
+.recipe{grid-column:1/-1;display:grid;gap:3px;margin:2px 0 4px;padding:9px 11px;border-radius:10px;background:var(--bg);border:1px dashed var(--line);font-size:13px;line-height:1.4}
+.recipe b{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.cdform{display:grid;gap:12px}
+.cdform .field{margin:0}
+.cdform textarea{width:100%;font:inherit;font-size:16px;font-weight:400;line-height:1.4;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);resize:vertical}
+.cdlbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:-4px}
+.cdtaste{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-radius:12px}
+.cdtaste button{min-height:54px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);font-size:12px;color:var(--muted)}
+.cdtaste button b{display:block;font-size:16px;color:var(--ink)}
+.cdtaste button.on{background:var(--bar);border-color:var(--bar);color:var(--bar-gold)}
+.cdtaste button.on b{color:var(--bar-gold)}
+.cdtaste.need{outline:2px solid var(--warn);outline-offset:3px}
+.cdchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:-4px}
+.cdchips button{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:13px}
+.cdcount{font-size:12px;color:var(--muted);text-align:right;margin:-6px 0 0}
+.cdcount.over{color:var(--danger);font-weight:700}

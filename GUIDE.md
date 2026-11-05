@@ -45,6 +45,15 @@
 
 ---
 
+
+### Custom drinks: Cocktail su misura · Analcolico su misura
+- Tap **Cocktail su misura** (Cocktails) or **Analcolico su misura** (Soft drinks): a form opens.
+- **Analcolico:** first choose the taste the guest likes: **Tonico · Dolce · Aspro** (Tonic · Sweet · Sour).
+- Write the **ingredients** (or tap the quick buttons, e.g. *+ Acqua tonica, + Sciroppo di fragola, + Seltz*) and the **preparation** (e.g. little ice, tall glass). A **name** is optional.
+- **Add to order**. Every custom drink is its own line with its recipe, so two different cocktails at the same table stay separate.
+- To change a recipe: **✎ Recipe** on the line. **−** on the menu card removes the last custom drink added.
+- The whole recipe goes to the reception, the history, the Excel file and the owner's statistics (as “Cocktail su misura” / “Analcolico su misura”).
+
 ## For the reception
 
 **Set up the reception PC (one time)**
@@ -100,3 +109,7 @@ The shifts come from the monthly planning (MED = Mehdi, ZAI = Zai, GAB = Gabri, 
 **Audit log** — who deleted, reopened or changed what, and when.
 
 History is **never deleted automatically**. Waiters only see **today**; you see **everything**.
+
+### Analcolico su misura: add it once
+Cocktail su misura is already in the menu. To add the non-alcoholic one: **Menu & prices → Soft drinks → new dish**:
+name **Analcolico su misura**, English **Tailor-made soft drink**, your price → **Add**. The app recognises every dish with “su misura” in the name and opens the recipe form.
