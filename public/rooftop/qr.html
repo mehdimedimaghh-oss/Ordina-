@@ -43,7 +43,7 @@
 <div class="sheet" id="sheet"></div>
 <script>
 const $ = s => document.querySelector(s);
-$('#url').value = location.origin + '/rooftop/';
+$('#url').value = new URL('./', location.href).href;
 function qrImg(text) {
   const q = qrcode(0, 'M'); q.addData(text); q.make();
   return q.createDataURL(8, 0);
@@ -54,7 +54,7 @@ function make() {
   const list = rooms.length ? rooms : [''];
   $('#sheet').innerHTML = list.map(r => {
     const link = r ? `${base}?room=${encodeURIComponent(r)}` : base;
-    return `<div class="card"><img class="logo" src="/logo.png" alt=""><div class="k">ROOFTOP COCKTAIL BAR</div><h2>Hotel Concordia</h2>
+    return `<div class="card"><img class="logo" src="logo.png" alt=""><div class="k">ROOFTOP COCKTAIL BAR</div><h2>Hotel Concordia</h2>
       <div class="qr"><img src="${qrImg(link)}" alt="QR"></div>
       <div class="l">Inquadra e scopri il menu<span>Scan to see the menu</span></div>
       ${r ? `<div class="room">CAMERA ${r}</div>` : ''}</div>`;
