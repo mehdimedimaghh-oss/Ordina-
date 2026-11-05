@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>La Terrazza · Hotel Concordia</title>
+<title>Concordia Rooftop Menu</title>
 <meta name="description" content="Rooftop menu · Hotel Concordia Roma">
 <meta name="theme-color" content="#0b1230">
 <link rel="icon" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@300;400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Great+Vibes&family=Figtree:wght@300;400;500;600&display=swap">
 <link rel="preload" as="image" href="media/view-sunset.jpg">
 <style>
 /* ============ colours per moment of the day ============ */
@@ -120,7 +120,7 @@ main{position:relative;z-index:2}
 
 /* featured aperitivo */
 .feature{text-align:center;padding:30px 24px 28px}
-.feature .big{font-family:Marcellus,serif;font-size:64px;line-height:1;color:var(--accent);margin:8px 0 6px}
+.feature .big{font-family:Marcellus,serif;font-size:54px;line-height:1;color:var(--accent);margin:4px 0 6px}
 .feature .big small{font-size:18px;color:var(--ink-2);margin-left:4px}
 .feature h3{font-family:Marcellus,serif;font-weight:400;font-size:24px}
 .feature p{color:var(--ink-2);font-weight:300;font-size:15px;max-width:30ch;margin:6px auto 0}
@@ -142,6 +142,21 @@ main{position:relative;z-index:2}
 .card .item{opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
 .card.in .item{opacity:1;transform:none}
 
+
+.gold{color:var(--accent);font-weight:500}
+.card.names{text-align:center;padding:10px 20px}
+.card.names .item{display:block;padding:13px 0}
+.card.names h3{font-size:21px}
+.card.names .sub{margin-top:2px}
+.card.custom{margin-top:16px;text-align:center;padding:26px 22px 24px}
+.custom .q,.feature .q{font-family:Marcellus,serif;font-size:17px;color:var(--ink-2)}
+.script{font-family:"Great Vibes",cursive;font-size:clamp(38px,11vw,50px);line-height:1.1;color:var(--accent);margin:4px 0 10px}
+.script.small{font-size:36px;margin:14px 0 0}
+.custom p,.feature p{color:var(--ink-2);font-weight:300;font-size:15px;max-width:34ch;margin:0 auto}
+.feature .q{font-style:italic;margin:6px 0 8px}
+.kb{animation:kb 40s ease-in-out infinite alternate;transform-origin:60% 40%}
+@keyframes kb{from{transform:scale(1.04) translate(0,0)}to{transform:scale(1.16) translate(-2%,1.5%)}}
+.foot .tagf{font-family:"Great Vibes",cursive;font-size:30px;color:var(--ink-2);margin-top:8px}
 /* footer */
 .foot{text-align:center;padding:30px 20px calc(env(safe-area-inset-bottom) + 50px);color:var(--ink-2);font-size:14px;font-weight:300}
 .foot img{width:64px;height:64px;border-radius:50%;margin-bottom:16px}
@@ -159,21 +174,20 @@ main{position:relative;z-index:2}
 </head>
 <body data-mode="sunset">
 
-<div class="curtain" id="curtain"><div><img src="/logo.png" alt=""><p>LA TERRAZZA · ROMA</p></div></div>
+<div class="curtain" id="curtain"><div><img src="/logo.png" alt=""><p>ROOFTOP COCKTAIL BAR</p></div></div>
 
 <!-- the living view of the rooftop -->
 <div class="stage" id="stage" aria-hidden="true">
   <img class="poster" data-m="morning" src="media/view-morning.jpg" alt="">
   <img class="poster" data-m="sunset" src="media/view-sunset.jpg" alt="">
-  <img class="poster" data-m="night" src="media/view-night.jpg" alt="">
+  <img class="poster kb" data-m="night" src="media/night-photo.jpg" alt="">
   <video data-m="morning" muted playsinline loop preload="none" poster="media/view-morning.jpg"></video>
   <video data-m="sunset" muted playsinline loop preload="none" poster="media/view-sunset.jpg"></video>
-  <video data-m="night" muted playsinline loop preload="none" poster="media/view-night.jpg"></video>
   <canvas id="fx"></canvas>
 </div>
 
 <header class="bar" id="bar">
-  <div class="brand"><img src="/logo.png" alt=""><span>LA TERRAZZA</span></div>
+  <div class="brand"><img src="/logo.png" alt=""><span>CONCORDIA</span></div>
   <button class="lang" id="lang" aria-label="Language">EN</button>
 </header>
 
@@ -181,8 +195,8 @@ main{position:relative;z-index:2}
   <section class="hero">
     <div class="inner">
       <div class="hello" id="hello" hidden></div>
-      <div class="eyebrow" data-t="eyebrow">Hotel Concordia · Roma</div>
-      <h1 class="split" id="title">La Terrazza</h1>
+      <div class="eyebrow">Rooftop Cocktail Bar · Roma</div>
+      <h1 class="split" id="title">Hotel Concordia</h1>
       <p class="tag" data-t="tag"></p>
       <div class="moments" id="moments" role="group">
         <button data-m="morning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span data-t="morning"></span></button>
@@ -202,85 +216,79 @@ main{position:relative;z-index:2}
 
 <script>
 /* =====================================================================
-   MENU — change names and prices here (same as the waiters' app).
+   MENU — change names and prices here. Copied from the printed menu.
    it = Italian, en = English. Prices in euro.
    ===================================================================== */
 const SETTINGS = {
   coverFee: 2,          // table service per person (€)
+  roomService: 10,      // room service supplement (€)
   hours: { it: '', en: '' },   // e.g. { it: 'Tutti i giorni 17:00 – 24:00', en: 'Every day 5 pm – midnight' }
 };
+// list items: [Italian name, English line under it, price, bottle price (wines only)]
 const MENU = [
-  { id: 'aperitivo', feature: true,
-    it: 'Aperitivo', en: 'Aperitif',
-    item: { it: 'Formula Aperitivo', en: 'Aperitif Experience', price: 25, per: { it: 'a persona', en: 'per person' },
-            d: { it: 'Un drink a scelta con le nostre specialità fatte in casa.', en: 'A drink of your choice with our homemade specialties.' } } },
-  { id: 'cocktail', it: 'Cocktail', en: 'Cocktails', note: { it: 'Tutti a € 15', en: 'All at € 15' }, items: [
-    ['Negroni Sbagliato', 'Campari, vermouth rosso, prosecco', 'Campari, red vermouth, prosecco', 15],
-    ['Americano Bianco', 'Bitter bianco, vermouth bianco, soda', 'White bitter, white vermouth, soda', 15],
-    ['Moscow Mule', 'Vodka, lime, ginger beer', 'Vodka, lime, ginger beer', 15],
-    ['Gin Lemon', 'Gin, limone, soda al limone', 'Gin, lemon, lemon soda', 15],
-    ['Mojito alla Frutta', 'Rum, menta, lime, frutta fresca', 'Rum, mint, lime, fresh fruit', 15],
-    ['Spritz alla Pesca', 'Prosecco, pesca, soda', 'Prosecco, peach, soda', 15],
-    ['Spritz al Bergamotto', 'Prosecco, bergamotto, soda', 'Prosecco, bergamot, soda', 15],
-    ['Parisienne', '', '', 15],
-    ['Margarita', 'Tequila, triple sec, lime', 'Tequila, triple sec, lime', 15],
-    ['Espresso Martini', 'Vodka, caffè espresso, liquore al caffè', 'Vodka, espresso, coffee liqueur', 15],
-    ['Cocktail su misura', 'Chiedi al barman', 'Tailor-made · ask the barman', 15],
-  ]},
-  { id: 'vino', it: 'Vini e bollicine', en: 'Wine & bubbles', glass: true, items: [
-    ['Prosecco Gemin DOC Treviso', 'Extra Dry', 'Extra Dry', 9, 29],
-    ['Spumante', '', 'Sparkling wine', 9, 29],
-    ['Gewürztraminer d’Isera', 'Bianco aromatico', 'Aromatic white', 10, 40],
-    ['Chardonnay Lazio', 'Bianco', 'White', 8, 32],
-    ['Syrah Divina', 'Rosso', 'Red', 10, 40],
-    ['Montepulciano d’Abruzzo', 'Rosso', 'Red', 8, 32],
-    ['Birra 0,33 l', '', 'Beer', 6.5],
+  { id: 'cocktail', type: 'cocktails', it: 'Cocktails', en: 'Cocktails', price: 15,
+    names: ['Negroni Sbagliato', 'Americano Bianco', 'Moscow Mule', 'Gin Lemon', 'Mojito alla Frutta', 'Spritz alla Pesca',
+            'Spritz al Bergamotto', 'Parisienne', 'Margarita', 'Espresso Martini'],
+    custom: { it: { q: 'La parola d’ordine?', h: 'Un cocktail su misura!', p: 'Ogni sera il nostro barman è in grado di creare un cocktail personalizzato: basta chiedere direttamente a lui!' },
+              en: { q: 'The secret?', h: 'A tailor-made cocktail!', p: 'Every evening, our barman can create a personalized cocktail – just ask him!' } } },
+  { id: 'aperitivo', type: 'feature', it: 'Formula Aperitivo', en: 'Aperitif Formula', price: 25,
+    per: { it: 'a persona', en: 'per person' },
+    sub: { it: 'Aperitivo con stuzzichini', en: 'Aperitif, with a snack' },
+    q: { it: 'Più di un aperitivo, meno di una cena…', en: 'More than an aperitif, less than a dinner…' },
+    d: { it: 'Accompagneremo il tuo drink con prodotti tipici fatti in casa.', en: 'We will accompany your drink with homemade local specialties.' } },
+  { id: 'pinsa', type: 'pinsa', it: 'Pinsa Romana farcita', en: 'Roman pinsa with toppings', price: 16, items: [
+    ['Bufala e Pachino', 'Buffalo mozzarella, Pachino tomatoes'],
+    ['Stracciatella, Mortadella, Pistacchio', 'Stracciatella, mortadella, pistachio'],
+    ['Fesa di Tacchino, Rucola e Scamorza affumicata', 'Turkey breast, rocket, smoked scamorza'],
   ]},
   { id: 'interlude' },
-  { id: 'pinsa', it: 'Pinsa Romana 72h', en: 'Roman pinsa', note: { it: 'Fugari Bistrot · impasto a lunga lievitazione', en: 'Fugari Bistrot · 72-hour dough' }, items: [
-    ['Bufala e Pachino', 'Mozzarella di bufala, pomodorini Pachino', 'Buffalo mozzarella, cherry tomatoes', 16],
-    ['Stracciatella, mortadella e pistacchio', '', 'Stracciatella, mortadella, pistachio', 16],
-    ['Fesa di tacchino, rucola e scamorza affumicata', '', 'Turkey, rocket, smoked scamorza', 16],
+  { id: 'vini', it: 'Vini', en: 'Wines', items: [
+    ['Vino Spumante', 'Sparkling wine', 9, 29],
+    ['Vino Bianco · Chardonnay Lazio', 'White wine', 8, 32],
+    ['Gewürztraminer d’Isera', '', 10, 40],
+    ['Vino Rosso · Montepulciano Abruzzo', 'Red wine', 8, 32],
+    ['Syrah Divina', '', 10, 40],
   ]},
-  { id: 'dolci', it: 'Dolci', en: 'Desserts', items: [
-    ['Dolce della casa', 'Chiedi il dolce del giorno', 'Homemade pastry · ask for today’s', 8],
+  { id: 'bollicine', it: 'Bollicine', en: 'Bubbles', items: [
+    ['Prosecco Gemin', 'DOC Treviso Extra Dry', 9, 29],
   ]},
-  { id: 'liquori', it: 'Amari e distillati', en: 'Digestifs & spirits', items: [
-    ['Limoncello di Capri', '', 'Lemon liqueur', 8.5],
-    ['Amaro Jägermeister', '', 'Herbal liqueur', 8.5],
-    ['Amaro Jefferson', '', 'Herbal liqueur', 11],
-    ["Whisky Jack Daniel's", '', 'Whiskey', 11],
+  { id: 'birra', it: 'Birra e Amari', en: 'Beer & spirits', items: [
+    ['Birra 0,33 cl', 'Beer', 6.5],
+    ['Limoncello di Capri', '', 8.5],
+    ['Amaro Jägermeister', '', 8.5],
+    ['Amaro Jefferson', '', 11],
+    ['Whisky Jack Daniel’s', '', 11],
   ]},
-  { id: 'caffe', it: 'Caffetteria', en: 'Coffee & tea', items: [
-    ['Caffè espresso', '', 'Espresso', 3], ['Caffè decaffeinato', '', 'Decaf', 3.5],
-    ['Orzo', '', 'Barley coffee', 4], ['Ginseng', '', 'Ginseng coffee', 4],
-    ['Caffè americano', '', 'American coffee', 5], ['Cappuccino', '', 'Cappuccino', 5],
-    ['Tè nero · verde · Earl Grey', '', 'Black · green · Earl Grey tea', 5], ['Cioccolata calda', '', 'Hot chocolate', 5],
+  { id: 'dolci', it: 'Dolci della casa', en: 'Home made pastry', items: [
+    ['Dolci della casa', 'Home made pastry', 8],
   ]},
-  { id: 'bibite', it: 'Analcolici', en: 'Soft drinks', items: [
-    ['Acqua minerale', '', 'Mineral water', 3.5], ['Coca-Cola · Coca-Cola Zero', '', 'Coke · Coke Zero', 5],
-    ['Fanta', '', '', 5], ['Schweppes Tonica', '', 'Tonic water', 5],
-    ['Spremuta d’arancia', '', 'Fresh orange juice', 6.5], ['Red Bull', '', '', 6.5],
+  { id: 'caffe', it: 'Caffetteria', en: 'Coffee & drinks', items: [
+    ['Caffè Espresso', 'Espresso', 3], ['Caffè decaffeinato', 'Decaf', 3.5], ['Orzo / Ginseng', 'Barley / ginseng coffee', 4],
+    ['Caffè Americano', 'American coffee', 5], ['Cappuccino', '', 5], ['Tè (nero / verde / Earl Grey)', 'Tea (black / green / Earl Grey)', 5],
+    ['Cioccolata Calda', 'Hot chocolate', 5], ['Spremuta d’arancia', 'Fresh orange juice', 6.5],
+    ['Coca Cola / Coca Cola Zero / Fanta', '', 5], ['Red Bull', '', 6.5], ['Schweppes Tonica', 'Tonic water', 5], ['Acqua Minerale', 'Mineral water', 3.5],
   ]},
 ];
 
 const TXT = {
-  it: { tag: 'Roma ai tuoi piedi. Un drink tra i tetti, dal mattino alle stelle.', morning: 'Mattina', sunset: 'Tramonto', night: 'Notte',
-        scroll: 'Scorri il menu', now: 'Ora a Roma', sunsetAt: 'tramonto alle', glass: 'calice', bottle: 'bottiglia',
-        interH: 'Sopra i tetti di Roma', interP: 'Tra campanili e cupole, il tuo tavolo ti aspetta.',
-        cover: 'Servizio al tavolo', perPerson: 'a persona', room: 'Puoi addebitare tutto <b>sulla tua camera</b>: pensa a tutto la reception al check-out.',
+  it: { tag: 'Un’esperienza di gusto nel cuore di Roma', morning: 'Mattina', sunset: 'Tramonto', night: 'Notte',
+        scroll: 'Scorri il menu', now: 'Ora a Roma', sunsetAt: 'tramonto alle', glass: 'Calice', bottle: 'Bottiglia', all: 'Tutti a',
+        interH: 'Sopra i tetti di Roma', interP: 'Tra campanili e cupole, il tuo tavolo ti aspetta.', salute: 'Salute!',
+        cover: 'Servizio al tavolo', perPerson: 'a persona', roomSvc: 'Supplemento servizio in camera',
+        room: 'Puoi addebitare tutto <b>sulla tua camera</b>: pensa a tutto la reception al check-out.',
         allergens: 'Allergie o intolleranze? <b>Chiedi al nostro personale</b> prima di ordinare.', hello: 'Benvenuti · Camera', hours: 'Orari' },
-  en: { tag: 'Rome at your feet. A drink above the rooftops, from morning to the stars.', morning: 'Morning', sunset: 'Sunset', night: 'Night',
-        scroll: 'Scroll the menu', now: 'Rome time', sunsetAt: 'sunset at', glass: 'glass', bottle: 'bottle',
-        interH: 'Above the rooftops of Rome', interP: 'Among bell towers and domes, your table is waiting.',
-        cover: 'Table service', perPerson: 'per person', room: 'You can <b>charge everything to your room</b>: reception settles it at check-out.',
+  en: { tag: 'A taste experience in the heart of Rome', morning: 'Morning', sunset: 'Sunset', night: 'Night',
+        scroll: 'Scroll the menu', now: 'Rome time', sunsetAt: 'sunset at', glass: 'Glass', bottle: 'Bottle', all: 'All at',
+        interH: 'Above the rooftops of Rome', interP: 'Among bell towers and domes, your table is waiting.', salute: 'Cheers!',
+        cover: 'Table service', perPerson: 'per person', roomSvc: 'Room service supplement',
+        room: 'You can <b>charge everything to your room</b>: reception settles it at check-out.',
         allergens: 'Allergies or intolerances? <b>Please ask our staff</b> before ordering.', hello: 'Welcome · Room', hours: 'Opening hours' },
 };
 
 /* ============================ helpers ============================ */
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const price = n => Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',').replace(/0$/, '');
+const price = n => Number(n).toFixed(2).replace('.', ',');
 const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const saveData = navigator.connection && navigator.connection.saveData;
@@ -317,40 +325,51 @@ function render() {
   const room = new URLSearchParams(location.search).get('room');
   if (room && /^[\w\- ]{1,8}$/.test(room)) { $('#hello').hidden = false; $('#hello').textContent = `${t.hello} ${room}`; }
 
-  let chips = '', html = '', i = 0;
+  let chips = '', html = '';
   for (const s of MENU) {
     if (s.id === 'interlude') {
       html += `<section class="interlude" id="interlude"><div class="frame">
-        ${['morning', 'sunset', 'night'].map(m => `<img data-m="${m}" src="media/terrace-${m}.jpg" alt=""><video data-m="${m}" muted playsinline loop preload="none"></video>`).join('')}
+        ${['morning', 'sunset'].map(m => `<img data-m="${m}" src="media/terrace-${m}.jpg" alt=""><video data-m="${m}" muted playsinline loop preload="none"></video>`).join('')}<img class="kb" data-m="night" src="media/night-photo.jpg" alt="">
         <div class="words"><h2>${t.interH}</h2><p>${t.interP}</p></div></div></section>`;
       continue;
     }
-    i++;
     chips += `<a href="#${s.id}">${esc(s[lang])}</a>`;
-    const head = `<div class="sec-head rv"><div class="num">${String(i).padStart(2, '0')}</div><h2>${esc(s[lang])}</h2>${s.note ? `<p>${esc(s.note[lang])}</p>` : ''}<span class="rule"></span></div>`;
-    if (s.feature) {
-      const it = s.item;
-      html += `<section class="sec" id="${s.id}">${head}<div class="card feature rv"><span class="badge">${lang === 'it' ? 'Esperienza' : 'Experience'}</span>
-        <div class="big">€${price(it.price)}<small>${esc(it.per[lang])}</small></div><h3>${esc(it[lang])}</h3><p>${esc(it.d[lang])}</p></div></section>`;
+    const other = lang === 'it' ? s.en : s.it;
+    const head = (note) => `<div class="sec-head rv"><h2>${esc(s[lang])}</h2><p>${note || esc(other)}</p><span class="rule"></span></div>`;
+    if (s.type === 'cocktails') {
+      const c = s.custom[lang];
+      html += `<section class="sec" id="${s.id}">${head(`${t.all} <b class="gold">€ ${price(s.price)}</b>`)}
+        <div class="card names rv">${s.names.map(n => `<div class="item"><h3>${esc(n)}</h3></div>`).join('')}</div>
+        <div class="card custom rv"><div class="q">${esc(c.q)}</div><div class="script">${esc(c.h)}</div><p>${esc(c.p)}</p>
+        <div class="script small">${t.salute}</div></div></section>`;
       continue;
     }
-    const rows = s.items.map(([name, dIt, dEn, p, bottle]) => {
-      const sub = lang === 'it' ? (dIt || '') : (dEn || dIt || '');
-      const subLine = lang === 'it' && dEn && !dIt ? dEn : sub;   // Italian name + English under
-      if (s.glass && bottle) return `<div class="item"><h3>${esc(name)}</h3>${subLine ? `<div class="sub">${esc(subLine)}</div>` : ''}
-        <div class="pair"><span>${t.glass}<b>€${price(p)}</b></span><span>${t.bottle}<b>€${price(bottle)}</b></span></div></div>`;
-      return `<div class="item"><h3>${esc(name)}</h3><div class="price">€${price(p)}</div>${subLine ? `<div class="sub">${esc(subLine)}</div>` : ''}</div>`;
+    if (s.type === 'feature') {
+      html += `<section class="sec" id="${s.id}">${head(esc(s.sub[lang]))}<div class="card feature rv">
+        <div class="big">€ ${price(s.price)}<small>${esc(s.per[lang])}</small></div><div class="q">${esc(s.q[lang])}</div><p>${esc(s.d[lang])}</p></div></section>`;
+      continue;
+    }
+    if (s.type === 'pinsa') {
+      html += `<section class="sec" id="${s.id}">${head(`${esc(other)} · <b class="gold">€ ${price(s.price)}</b>`)}<div class="card names rv">
+        ${s.items.map(([n, en]) => `<div class="item"><h3>${esc(n)}</h3>${lang === 'en' && en ? `<div class="sub">${esc(en)}</div>` : ''}</div>`).join('')}</div></section>`;
+      continue;
+    }
+    const rows = s.items.map(([name, en, p, bottle]) => {
+      const sub = en ? `<div class="sub">${esc(en)}</div>` : '';
+      if (bottle) return `<div class="item"><h3>${esc(name)}</h3>${sub}
+        <div class="pair"><span>${t.glass}<b>€ ${price(p)}</b></span><span>${t.bottle}<b>€ ${price(bottle)}</b></span></div></div>`;
+      return `<div class="item"><h3>${esc(name)}</h3><div class="price">€ ${price(p)}</div>${sub}</div>`;
     }).join('');
-    html += `<section class="sec" id="${s.id}">${head}<div class="card rv">${rows}</div></section>`;
+    html += `<section class="sec" id="${s.id}">${head()}<div class="card rv">${rows}</div></section>`;
   }
   $('#chips').innerHTML = chips;
   $('#menu').innerHTML = html;
   const hours = SETTINGS.hours[lang];
   $('#foot').innerHTML = `<img src="/logo.png" alt="Hotel Concordia"><div class="notes">
     ${hours ? `<div><b>${t.hours}</b> · ${esc(hours)}</div>` : ''}
-    <div>${t.cover} <b>€${price(SETTINGS.coverFee)}</b> ${t.perPerson}</div>
+    <div>${t.cover} <b>€ ${price(SETTINGS.coverFee)}</b> ${t.perPerson}<br>${t.roomSvc} <b>€ ${price(SETTINGS.roomService)}</b></div>
     <div>${t.room}</div><div>${t.allergens}</div></div>
-    <div class="sign">HOTEL CONCORDIA · ROMA</div>`;
+    <div class="sign">HOTEL CONCORDIA · ROMA</div><div class="tagf">${t.tag}</div>`;
   observe();
   setMode(mode, true);
   tickClock();
@@ -424,8 +443,8 @@ const fx = (() => {
   function size() {
     dpr = Math.min(devicePixelRatio || 1, 2); W = cv.clientWidth; H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
     const r = (a, b) => a + Math.random() * (b - a);
-    stars = Array.from({ length: Math.round(W * H / 4200) }, () => ({ x: r(0, W), y: Math.pow(Math.random(), 1.6) * H * .46, s: r(.3, 1.4), p: r(0, 6.3), v: r(.6, 2.2) }));
-    lights = Array.from({ length: 46 }, () => ({ x: r(0, W), y: r(H * .47, H * .62), s: r(.8, 2.4), p: r(0, 6.3), v: r(.4, 1.6), c: Math.random() < .8 ? [255, 196, 120] : [255, 236, 200] }));
+    stars = Array.from({ length: Math.round(W * H / 6500) }, () => ({ x: r(0, W), y: Math.pow(Math.random(), 1.8) * H * .34, s: r(.3, 1.4), p: r(0, 6.3), v: r(.6, 2.2) }));
+    lights = Array.from({ length: 0 }, () => ({ x: r(0, W), y: r(H * .47, H * .62), s: r(.8, 2.4), p: r(0, 6.3), v: r(.4, 1.6), c: Math.random() < .8 ? [255, 196, 120] : [255, 236, 200] }));
     motes = Array.from({ length: 26 }, () => ({ x: r(0, W), y: r(0, H), s: r(.6, 2), vx: r(-.08, .08), vy: r(-.18, -.04), p: r(0, 6.3) }));
   }
   function frame(now) {
@@ -471,7 +490,7 @@ const fx = (() => {
 })();
 
 /* ============================ start ============================ */
-$('#title').innerHTML = 'La Terrazza'.split(' ').map((w, i) => `<span style="transition-delay:${.25 + i * .18}s">${w}</span>`).join(' ');
+$('#title').innerHTML = 'Hotel Concordia'.split(' ').map((w, i) => `<span style="transition-delay:${.25 + i * .18}s">${w}</span>`).join(' ');
 $('#moments').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { userPicked = true; setMode(b.dataset.m); } });
 $('#lang').addEventListener('click', () => { lang = lang === 'it' ? 'en' : 'it'; store.set('tz-lang', lang); render(); onScroll(); });
 mode = autoMode();
