@@ -58,7 +58,8 @@
 - Charge it to the room, then tap **Charged ✓**. You can do it in the pop-up or later in the list.
 - **Reopened** orders are crossed out with "do not charge": wait for the new order. If the owner deletes an order, you get a message too.
 - At the top: today's total and how many orders are still **to charge**.
-- **Download Excel** = all today's orders in an Excel file.
+- **History:** at the top tap **Yesterday**, or tap the date and choose any day of the last 60 days (or **‹ ›** to go one day back/forward). You see that day's orders, total and which ones were charged. Past days are only to look — **Back to today** returns to the live list (new orders still pop up meanwhile).
+- **Download Excel** = all the orders of the day you are looking at.
 - **Sound: On/Off** and **IT/EN** are at the top.
 - **Log out** at the top right closes the reception screen on this PC.
 

@@ -115,6 +115,11 @@ On each device, open the website link once:
    - for each physical table T1–T10 choose the **app table number** the waiters tap, tick **Active** (or untick = CLOSED) → **Save tables**;
    - check the chairs: the start is 26 on the rooftop + 5 in storage = 31. Correct the numbers if needed → **Save chair count**.
 
+## Step 11 — Reception history (one time)
+
+1. **Supabase → SQL Editor → New query**: paste **`supabase/migrations/20261108000000_reception_history.sql`** → **Run** → "Success".
+2. Now the reception screen has **‹ Yesterday / a date / ›** at the top: reception can look at the orders of the **last 60 days** (only look — nothing can be changed). Waiters still see only today.
+
 ## Good to know
 
 - **Free plans:** Supabase Free has 500 MB of database — enough for many years of lunch orders. A free Supabase project is **paused after 7 days with no use** (for example when the restaurant is closed for the season). Nothing is lost: open supabase.com and click **Restore project**.

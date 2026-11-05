@@ -116,7 +116,12 @@ await staff.rpc('table_op', { p_table: 11, p_op: { t: 'clear' }, p_token: token 
 
 console.log('Reception login');
 const rToday = await recep.from('orders').select('day');
-ok(rToday.data.length > 0 && rToday.data.every(o => o.day === sql(`select public.rome_today()`)), 'reception sees only today\'s orders');
+{
+  // reception history (20261108): today + the last 60 days, read only; without that file: only today
+  const hist = sql(`select count(*) from pg_proc where proname = 'reception_history_days'`) === '1';
+  const from = sql(`select (public.rome_today() - ${hist ? 60 : 0})::text`), to = sql(`select public.rome_today()::text`);
+  ok(rToday.data.length > 0 && rToday.data.every(o => o.day >= from && o.day <= to), `reception sees only ${hist ? 'the last 60 days' : 'today'}`);
+}
 ok(!(await recep.from('menu_items').select('*')).data?.length && !(await recep.from('open_tables').select('*')).data?.length, 'reception cannot read menu or open tables');
 ok(!!(await recep.rpc('table_op', { p_table: 3, p_op: { t: 'item', id: 'espresso', d: 1 } })).error, 'reception cannot take orders');
 ok(!!(await recep.rpc('delete_order', { p_id: mine.id })).error && !(await recep.from('audit_log').select('*')).data?.length, 'reception cannot delete or read the audit log');

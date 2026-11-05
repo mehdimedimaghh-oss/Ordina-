@@ -596,3 +596,10 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 .turnline{font-size:13px;color:var(--muted)}
 .turnline b{color:var(--ink)}
 @media (max-width:600px){.sn-row{grid-template-columns:1fr;gap:4px}}
+
+/* reception history: day picker */
+.rcp-days{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.rcp-days .hbtn[disabled]{opacity:.35;cursor:default}
+.rcp-pick{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-weight:800;cursor:pointer}
+.rcp-pick input{border:0;background:transparent;font:inherit;font-weight:600;color:inherit;min-height:40px}
+.rcp-ro{margin:0 0 10px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px dashed var(--line);font-size:14px;color:var(--muted)}

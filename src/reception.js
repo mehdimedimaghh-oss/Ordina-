@@ -1,7 +1,7 @@
 // Reception screen (PC of the reception): today's orders live, pop-up + sound + PC notification
 // for every new order, "Charged ✓" button, Excel of the day.
-import { esc, eur, $, $$, today, hhmm, roomLabel, ms } from './data.js';
-import { S, LS, reload, markCharged, logout } from './store.js';
+import { esc, eur, $, $$, today, addDays, dayLabel, hhmm, roomLabel, ms } from './data.js';
+import { S, LS, sb, reload, markCharged, logout, fetchOrders } from './store.js';
 import { fromServer, coversLabel } from './waiter.js';
 import { toast } from './ui.js';
 import { t, getLang, chooseLang } from './i18n.js';
@@ -9,6 +9,9 @@ import { buildXlsx, download } from './xlsx.js';
 
 let root = null, started = false, seen = null, known = null, popupQueue = [], timer = null, audio = null, mountAt = 0, baseline = true;
 const soundOn = () => LS.get('recvSound', true);
+// history: viewDay = null → today (live) · 'YYYY-MM-DD' → a past day (read only)
+let viewDay = null, past = null, pastErr = '', pastSeq = 0, histDays = null;
+const minDay = () => (S.role === 'owner' ? '2020-01-01' : addDays(today(), -(histDays || 60)));
 
 export function mountReception(app) {
   root = app;
@@ -16,8 +19,9 @@ export function mountReception(app) {
   const saved = LS.get('recvSeen:' + today(), null);
   seen = new Set(saved || []);
   baseline = !!saved;          // first time on this PC today: orders already there are only listed, no pop-up
-  mountAt = Date.now(); known = null; popupQueue = [];
+  mountAt = Date.now(); known = null; popupQueue = []; viewDay = null; past = null;
   draw();
+  checkHistory();
   clearInterval(timer);
   timer = setInterval(() => { if (navigator.onLine) reload('today'); }, 20000);   // safety net if a live message is lost
   reload('today');
@@ -33,8 +37,50 @@ function orders() {
 export function receptionRender() {
   if (!root || !$('#recvList')) return;
   const list = orders();
-  detectChanges(list);
-  drawList(list);
+  detectChanges(list);           // pop-ups for new orders work also while looking at another day
+  if (viewDay) drawPast(); else drawList(list);
+}
+
+// ---------- history (past days, read only) ----------
+async function checkHistory() {
+  if (S.role === 'owner') { histDays = 99999; return; }
+  try { const { data, error } = await sb.rpc('reception_history_days'); histDays = error ? 0 : data; } catch { histDays = 0; }
+  drawDayBar();
+}
+function drawDayBar() {
+  const el = $('#rcpDays'); if (!el) return;
+  const d = viewDay || today();
+  el.innerHTML = `<button class="hbtn" id="dPrev" aria-label="${t('prevDay')}" ${d <= minDay() ? 'disabled' : ''}>‹</button>
+    <label class="rcp-pick"><span>${viewDay ? esc(dayLabel(viewDay, true)) : t('todayLive')}</span><input type="date" id="dPick" value="${d}" min="${minDay()}" max="${today()}" aria-label="${t('chooseDay')}"></label>
+    <button class="hbtn" id="dNext" aria-label="${t('nextDay')}" ${!viewDay ? 'disabled' : ''}>›</button>
+    ${viewDay ? `<button class="btn primary" id="dToday">${t('backToday')}</button>` : `<button class="hbtn" id="dYest" ${histDays === 0 ? 'disabled' : ''}>${t('yesterday')}</button>`}`;
+  $('#dPrev').onclick = () => goDay(addDays(d, -1));
+  $('#dNext').onclick = () => goDay(addDays(d, 1));
+  $('#dPick').onchange = e => { if (e.target.value) goDay(e.target.value); };
+  const y = $('#dYest'); if (y) y.onclick = () => goDay(addDays(today(), -1));
+  const tb = $('#dToday'); if (tb) tb.onclick = () => goDay(today());
+}
+async function goDay(d) {
+  if (d >= today()) { viewDay = null; past = null; drawDayBar(); receptionRender(); return; }
+  if (d < minDay()) d = minDay();
+  viewDay = d; past = null; pastErr = ''; drawDayBar(); drawPast();
+  if (histDays === 0) { pastErr = t('histNotInstalled'); drawPast(); return; }
+  const seq = ++pastSeq;
+  try {
+    const rows = await fetchOrders(d, d);
+    if (seq !== pastSeq) return;
+    past = rows.map(o => ({ ...fromServer(o), chargedAt: ms(o.charged_at), chargedBy: o.charged_by })).sort((a, b) => b.closedAt - a.closedAt);
+  } catch (e) { if (seq !== pastSeq) return; pastErr = e.message + '. ' + t('checkInternet'); }
+  drawPast();
+}
+function drawPast() {
+  const el = $('#recvList'); if (!el) return;
+  if (pastErr) { $('#recvSum').innerHTML = ''; el.innerHTML = `<p class="err">${esc(pastErr)}</p>`; return; }
+  if (!past) { $('#recvSum').innerHTML = ''; el.innerHTML = `<p class="hint">${t('loading')}</p>`; return; }
+  const ok = past.filter(o => o.status === 'closed'), todo = ok.filter(o => !o.chargedAt);
+  $('#recvSum').innerHTML = `<div class="kpi main"><small>${esc(dayLabel(viewDay, true))}</small><b class="num">${eur(ok.reduce((a, o) => a + o.total, 0))}</b></div>
+    <div class="kpi"><small>${t('ordersN', { n: ok.length })}</small><b class="num">${todo.length ? t('notChargedN', { n: todo.length }) : (ok.length ? t('allCharged') : '—')}</b></div>`;
+  el.innerHTML = `<p class="rcp-ro">🔒 ${t('pastReadOnly')}</p>` + (past.length ? past.map(o => card(o, true)).join('') : `<p class="empty-order">${t('noOrdersDay')}</p>`);
 }
 
 function detectChanges(list) {
@@ -78,6 +124,7 @@ function draw() {
     </div>
     ${started ? '' : `<button class="rcp-start" id="recvStart"><b>${t('startRecv')}</b><span>${t('startHint')}</span></button>`}
     ${notif === 'denied' ? `<p class="rcp-warn">${t('notifBlocked')}</p>` : ''}
+    <div class="rcp-days" id="rcpDays"></div>
     <div class="rcp-sum" id="recvSum"></div>
     <div id="recvList"></div></div>`;
   $('#rcpDate').textContent = new Date().toLocaleDateString(getLang() === 'it' ? 'it-IT' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' });
@@ -89,6 +136,7 @@ function draw() {
     if (S.role === 'owner') { leaveReception(); location.hash = '#owner'; return; }   // the owner just goes back to the dashboard
     if (confirm(t('exitRecv'))) { leaveReception(); logout(); }
   };
+  drawDayBar();
   receptionRender();
 }
 
@@ -112,7 +160,7 @@ function drawList(list) {
   $$('[data-charge]', el).forEach(b => { b.onclick = () => charge(list.find(o => String(o.id) === b.dataset.charge), b.dataset.on === '1', b); });
 }
 
-function card(o) {
+function card(o, readOnly) {
   const reopened = o.status === 'reopened';
   return `<div class="rcard${o.chargedAt ? ' done' : ''}${reopened ? ' reopened' : ''}">
     <div class="rc-l"><div class="rc-t">${t('tableLabel', { n: o.table })}</div><div class="rc-h num">${hhmm(o.closedAt)}</div>${o.covers ? `<div class="rc-cv">👥 ${coversLabel(o.covers)}</div>` : ''}</div>
@@ -124,8 +172,8 @@ function card(o) {
     </div>
     <div class="rc-r"><div class="rc-tot num">${eur(o.total)}</div>
       ${reopened ? `<span class="waitbadge">${t('reopenedBadge')}</span>`
-        : o.chargedAt ? `<span class="rc-ok">${t('chargedBadge', { time: hhmm(o.chargedAt) })}</span><button class="linkbtn" data-charge="${o.id}" data-on="0">${t('notCharged')}</button>`
-          : `<button class="btn primary" data-charge="${o.id}" data-on="1">${t('markCharged')}</button>`}</div></div>`;
+        : o.chargedAt ? `<span class="rc-ok">${t('chargedBadge', { time: hhmm(o.chargedAt) })}</span>${readOnly ? '' : `<button class="linkbtn" data-charge="${o.id}" data-on="0">${t('notCharged')}</button>`}`
+          : readOnly ? `<span class="waitbadge">${t('notChargedBadge')}</span>` : `<button class="btn primary" data-charge="${o.id}" data-on="1">${t('markCharged')}</button>`}</div></div>`;
 }
 
 async function charge(o, on, btn) {
@@ -182,8 +230,9 @@ function systemNote(title, body, tag) {
 // ---------- Excel of the day ----------
 function exportDay() {
   const rows = [['Ora / Time', 'Tavolo', 'Cliente', 'Edificio', 'Camera', 'Ordine / Items', 'Serv. camera', 'Note', 'Coperti', 'Totale €', 'Cameriere', 'Stato', 'Addebitato / Charged']];
-  for (const o of orders().slice().reverse()) rows.push([hhmm(o.closedAt), +o.table, o.client, o.building, o.roomNo,
+  const day = viewDay || today(), list = viewDay ? (past || []) : orders();
+  for (const o of list.slice().reverse()) rows.push([hhmm(o.closedAt), +o.table, o.client, o.building, o.roomNo,
     o.items.map(l => `${l.qty}x ${l.it}${l.note ? ' (' + l.note + ')' : ''}`).join(', '), o.roomService ? 'Sì' : '', o.note, o.covers || 0, o.total, o.waiter,
     o.status === 'closed' ? 'Inviato' : 'Riaperto', o.chargedAt ? hhmm(o.chargedAt) : '']);
-  download(buildXlsx([{ name: today(), rows }]), `reception_${today()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  download(buildXlsx([{ name: day, rows }]), `reception_${day}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
