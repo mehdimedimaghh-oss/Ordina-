@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Great+Vibes&family=Figtree:wght@300;400;500;600&display=swap">
-<link rel="preload" as="image" href="media/sunset-photo.jpg">
+
 <style>
 /* ============ colours per moment of the day ============ */
 :root{
@@ -35,7 +35,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 /* ============ the living view (fixed behind everything) ============ */
 .stage{position:fixed;inset:0;z-index:0;overflow:hidden;background:#0b1230}
-.stage video,.stage .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease;
+.stage .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease;
   transform:scale(calc(1.06 + var(--scroll)*.10)) translateY(calc(var(--scroll)*-3%));will-change:transform,opacity}
 .stage .on{opacity:1}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
@@ -126,12 +126,14 @@ main{position:relative;z-index:2}
 .feature p{color:var(--ink-2);font-weight:300;font-size:15px;max-width:30ch;margin:6px auto 0}
 .badge{display:inline-block;font-size:11px;letter-spacing:.28em;text-transform:uppercase;padding:6px 12px 6px 14px;border-radius:999px;border:1px solid var(--line);color:var(--accent)}
 
-/* interlude with the terrace video */
-.interlude{position:relative;margin:10px -16px 60px;height:120svh}
-.interlude .frame{position:sticky;top:12svh;height:76svh;margin:0 auto;width:calc(100% - 32px);max-width:620px;border-radius:28px;overflow:hidden;
+/* interlude: a day on the terrace, driven by scroll */
+.interlude{position:relative;margin:10px -16px 60px;height:230svh}
+.interlude .frame{position:sticky;top:calc(env(safe-area-inset-top) + 122px);height:calc(100svh - 150px);margin:0 auto;width:calc(100% - 32px);max-width:620px;border-radius:28px;overflow:hidden;
   clip-path:inset(calc((1 - var(--p,0)) * 14%) calc((1 - var(--p,0)) * 10%) round 28px);box-shadow:0 30px 80px rgba(0,0,0,.4)}
-.interlude video,.interlude img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.4s;transform:scale(calc(1.25 - var(--p,0)*.25))}
-.interlude .on{opacity:1}
+.interlude img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(calc(1.22 - var(--q,0)*.18)) translateY(calc(var(--q,0)*-2%));transform-origin:60% 45%;will-change:opacity,transform}
+.interlude .when{position:absolute;top:18px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+.interlude .when span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:6px 11px;border-radius:999px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.18);color:var(--ink-2);transition:all .5s;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.interlude .when span.on{background:var(--accent);color:#1b1530;border-color:transparent;font-weight:600}
 .interlude .words{position:absolute;inset:auto 0 0;padding:28px 24px 30px;text-align:center;background:linear-gradient(transparent,rgba(0,0,0,.62))}
 .interlude .words h2{font-family:Marcellus,serif;font-weight:400;font-size:clamp(28px,8vw,40px);line-height:1.1}
 .interlude .words p{color:var(--ink-2);font-weight:300;margin-top:8px}
@@ -178,10 +180,9 @@ main{position:relative;z-index:2}
 
 <!-- the living view of the rooftop -->
 <div class="stage" id="stage" aria-hidden="true">
-  <img class="poster" data-m="day" src="media/view-day.jpg" alt="">
+  <img class="poster kb" data-m="day" src="media/day-photo.jpg" alt="">
   <img class="poster kb" data-m="sunset" src="media/sunset-photo.jpg" alt="">
   <img class="poster kb" data-m="night" src="media/night-photo.jpg" alt="">
-  <video data-m="day" muted playsinline loop preload="none" poster="media/view-day.jpg"></video>
   <canvas id="fx"></canvas>
 </div>
 
@@ -272,13 +273,13 @@ const MENU = [
 const TXT = {
   it: { tag: 'Un’esperienza di gusto nel cuore di Roma', day: 'Giorno', sunset: 'Tramonto', night: 'Notte',
         scroll: 'Scorri il menu', now: 'Ora a Roma', sunsetAt: 'tramonto alle', glass: 'Calice', bottle: 'Bottiglia', all: 'Tutti a',
-        interH: 'Sopra i tetti di Roma', interP: 'Tra campanili e cupole, il tuo tavolo ti aspetta.', salute: 'Salute!',
+        interH: 'Un giorno sulla terrazza', interP: 'Continua a scorrere: dal sole di mezzogiorno alle stelle.', salute: 'Salute!',
         cover: 'Servizio al tavolo', perPerson: 'a persona', roomSvc: 'Supplemento servizio in camera',
         room: 'Puoi addebitare tutto <b>sulla tua camera</b>: pensa a tutto la reception al check-out.',
         allergens: 'Allergie o intolleranze? <b>Chiedi al nostro personale</b> prima di ordinare.', hello: 'Benvenuti · Camera', hours: 'Orari', open: 'Rooftop aperto' },
   en: { tag: 'A taste experience in the heart of Rome', day: 'Day', sunset: 'Sunset', night: 'Night',
         scroll: 'Scroll the menu', now: 'Rome time', sunsetAt: 'sunset at', glass: 'Glass', bottle: 'Bottle', all: 'All at',
-        interH: 'Above the rooftops of Rome', interP: 'Among bell towers and domes, your table is waiting.', salute: 'Cheers!',
+        interH: 'A day on the terrace', interP: 'Keep scrolling: from the midday sun to the stars.', salute: 'Cheers!',
         cover: 'Table service', perPerson: 'per person', roomSvc: 'Room service supplement',
         room: 'You can <b>charge everything to your room</b>: reception settles it at check-out.',
         allergens: 'Allergies or intolerances? <b>Please ask our staff</b> before ordering.', hello: 'Welcome · Room', hours: 'Opening hours', open: 'Rooftop open' },
@@ -290,7 +291,6 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const price = n => Number(n).toFixed(2).replace('.', ',');
 const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const saveData = navigator.connection && navigator.connection.saveData;
 let lang = store.get('tz-lang') || ((navigator.language || 'it').toLowerCase().startsWith('it') ? 'it' : 'en');
 let mode = 'sunset', userPicked = false;
 
@@ -328,7 +328,8 @@ function render() {
   for (const s of MENU) {
     if (s.id === 'interlude') {
       html += `<section class="interlude" id="interlude"><div class="frame">
-        ${['day', 'sunset'].map(m => `<img data-m="${m}" src="media/terrace-${m}.jpg" alt=""><video data-m="${m}" muted playsinline loop preload="none"></video>`).join('')}<img class="kb" data-m="night" src="media/night-photo.jpg" alt="">
+        ${['day', 'sunset', 'night'].map(m => `<img data-tl="${m}" src="media/${m}-photo.jpg" alt="" style="opacity:${m === 'day' ? 1 : 0}">`).join('')}
+        <div class="when">${['day', 'sunset', 'night'].map(m => `<span data-tl="${m}">${t[m]}</span>`).join('')}</div>
         <div class="words"><h2>${t.interH}</h2><p>${t.interP}</p></div></div></section>`;
       continue;
     }
@@ -382,20 +383,10 @@ function setMode(m, quiet) {
   const meta = { day: '#1b2c5c', sunset: '#3a1f3a', night: '#05081c' }[m];
   $('meta[name="theme-color"]').content = meta;
   swap($('#stage'), m);
-  const inter = $('#interlude .frame'); if (inter) swap(inter, m, !interVisible);
   fx.mode = m;
 }
-function swap(root, m, lazy) {
-  root.querySelectorAll('[data-m]').forEach(el => {
-    const on = el.dataset.m === m;
-    if (el.tagName === 'VIDEO') {
-      if (on && !reduce && !saveData && !lazy) {
-        if (!el.src) { el.src = (root.id === 'stage' ? 'media/view-' : 'media/terrace-') + m + '.mp4'; el.load(); }
-        el.play().then(() => el.classList.add('on')).catch(() => {});
-        el.addEventListener('playing', () => el.dataset.m === mode && el.classList.add('on'), { once: true });
-      } else { el.classList.remove('on'); if (!on) el.pause(); }
-    } else el.classList.toggle('on', on);
-  });
+function swap(root, m) {
+  root.querySelectorAll('[data-m]').forEach(el => el.classList.toggle('on', el.dataset.m === m));
 }
 function tickClock() {
   const t = TXT[lang], now = Date.now(), { set } = sunTimes(new Date(now));
@@ -404,17 +395,12 @@ function tickClock() {
 }
 
 /* ============================ scroll effects ============================ */
-let interVisible = false, io;
+let io;
 function observe() {
   io && io.disconnect();
   io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: .08 });
   $$('.rv').forEach(el => io.observe(el));
   $$('.card').forEach(c => c.querySelectorAll('.item').forEach((it, k) => it.style.transitionDelay = Math.min(k * 70, 700) + 'ms'));
-  const inter = $('#interlude');
-  if (inter) new IntersectionObserver(([e]) => {
-    interVisible = e.isIntersecting;
-    if (interVisible) swap(inter.querySelector('.frame'), mode); else inter.querySelectorAll('video').forEach(x => x.pause());
-  }, { rootMargin: '200px 0px' }).observe(inter);
 }
 let ticking = false;
 function onScroll() {
@@ -426,7 +412,16 @@ function onScroll() {
     $('#bar').classList.toggle('solid', y > h * .55);
     $('#chipbar').classList.toggle('solid', $('#chipbar').getBoundingClientRect().top <= $('#bar').offsetHeight + 1);
     const inter = $('#interlude');
-    if (inter) { const r = inter.getBoundingClientRect(); const p = Math.max(0, Math.min(1, (h - r.top) / (h * 0.9))); inter.style.setProperty('--p', p.toFixed(3)); }
+    if (inter) {
+      const r = inter.getBoundingClientRect(), cl = v => Math.max(0, Math.min(1, v));
+      inter.style.setProperty('--p', cl((h - r.top) / (h * 0.9)).toFixed(3));
+      // a day on the terrace: while the card is held on screen, scrolling turns day into sunset, then night
+      const q = cl(-r.top / (r.height - h)), k = q * 2.4 - 0.2, w = { day: cl(1 - k), sunset: cl(1 - Math.abs(k - 1)), night: cl(k - 1) };
+      inter.style.setProperty('--q', q.toFixed(3));
+      inter.querySelectorAll('img[data-tl]').forEach(im => im.style.opacity = (im.dataset.tl === 'day' ? 1 : w[im.dataset.tl]).toFixed(3));
+      const top = Object.keys(w).reduce((a, b) => w[b] > w[a] ? b : a);
+      inter.querySelectorAll('.when span').forEach(sp => sp.classList.toggle('on', sp.dataset.tl === top));
+    }
     // highlight the chip of the section on screen
     let cur = null; for (const s of $$('.sec')) if (s.getBoundingClientRect().top < h * .4) cur = s.id;
     $$('#chips a').forEach(a => { const on = a.getAttribute('href') === '#' + cur; if (on && !a.classList.contains('on')) a.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); a.classList.toggle('on', on); });
