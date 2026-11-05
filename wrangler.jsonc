@@ -3,5 +3,7 @@
 {
   "name": "concordia-rooftop",
   "compatibility_date": "2025-09-01",
+  "workers_dev": true,      // free address: concordia-rooftop.<your-name>.workers.dev
+  "preview_urls": false,
   "assets": { "directory": "./public/rooftop" }
 }
