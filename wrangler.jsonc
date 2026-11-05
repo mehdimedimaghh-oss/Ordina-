@@ -1,0 +1,7 @@
+// Cloudflare: publishes ONLY the guests' rooftop menu (public/rooftop).
+// The staff app stays on Vercel and is not touched by this file.
+{
+  "name": "concordia-rooftop",
+  "compatibility_date": "2025-09-01",
+  "assets": { "directory": "./public/rooftop" }
+}
