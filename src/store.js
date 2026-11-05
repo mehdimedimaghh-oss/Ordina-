@@ -32,7 +32,7 @@ let emitT = null;
 export function emit() { cache = null; clearTimeout(emitT); emitT = setTimeout(() => subs.forEach(f => f()), 0); }
 
 // ---------- pure logic, same rules as the SQL function table_op ----------
-export const emptyData = () => ({ items: {}, notes: {}, served: {}, client: '', roomNo: '', building: '', room: false, note: '', covers: 0 });
+export const emptyData = () => ({ items: {}, notes: {}, served: {}, client: '', roomNo: '', building: '', room: false, note: '', covers: 0, coverOff: false });
 const norm = d => ({ ...emptyData(), ...(d || {}), items: { ...(d?.items || {}) }, notes: { ...(d?.notes || {}) }, served: { ...(d?.served || {}) } });
 export const count = d => Object.values(d?.items || {}).reduce((a, b) => a + b, 0);
 const isBlank = d => !count(d) && !d.client && !d.roomNo && !d.note && !d.building && !d.room && !d.covers;
@@ -56,6 +56,7 @@ export function applyOp(row, op, at, waiterName) {
       if (['client', 'roomNo', 'note'].includes(k)) d[k] = String(v ?? '');
       else if (k === 'building' && ['', 'HCO', 'DEP'].includes(v || '')) d.building = v || '';
       else if (k === 'room') d.room = !!v;
+      else if (k === 'coverOff') d.coverOff = !!v;
       else if (k === 'covers') d.covers = Math.min(99, Math.max(0, parseInt(v, 10) || 0));
     }
   } else if (op.t === 'clear') {
@@ -359,6 +360,7 @@ export const moveChairs = (from, to, n) => must(sb.rpc('chairs_move', { p_from: 
 export const ownerSetChairs = counts => must(sb.rpc('owner_set_chairs', { p_counts: counts })).then(r => { S.roof = { ...S.roof, chairs: r }; persist(); emit(); return r; });
 export const ownerSetRoofTable = (id, app, active) => must(sb.rpc('owner_set_rooftop_table', { p_id: id, p_app: app, p_active: active })).then(() => loaders.roof());
 export const markCharged = (id, on, by) => must(sb.rpc('mark_charged', { p_id: id, p_charged: on, p_by: by || 'Reception' })).then(r => { loaders.today(); return r; });
+export const setCoverFee = fee => must(sb.rpc('owner_set_cover_fee', { p_fee: fee })).then(r => { loaders.settings(); return r; });
 export const markChargedMany = (ids, by) => must(sb.rpc('mark_charged_many', { p_ids: ids, p_by: by || 'Reception' })).then(r => { loaders.today(); return r; });
 // reception: the days from..to + every order not charged yet, of any age (a room bill is paid at check-out)
 export const fetchReception = (from, to) => must(sb.from('orders').select('*, order_lines(*)')

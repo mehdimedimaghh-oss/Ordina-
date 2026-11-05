@@ -34,6 +34,8 @@ export const dayLabel = (k, long) => {
   if (k === addDays(today(), -1)) return it ? 'Ieri' : 'Yesterday';
   return parseDay(k).toLocaleDateString(it ? 'it-IT' : 'en-GB', long ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' } : { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
 };
+// table service (coperto): guests × price per person used in that order
+export const coverAmt = o => (o.covers || 0) * (o.coverFee || 0);
 export const ms = v => typeof v === 'number' ? v : (v ? Date.parse(v) : 0);
 export const roomLabel = o => [o.building || '', (o.roomNo ?? o.room_no ?? '').trim()].filter(Boolean).join(' ');
 export const uid = () => 'o' + Date.now() + Math.random().toString(36).slice(2, 7);

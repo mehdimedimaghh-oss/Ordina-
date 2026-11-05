@@ -125,6 +125,12 @@ On each device, open the website link once:
 1. **Supabase → SQL Editor → New query**: paste **`supabase/migrations/20261109000000_reception_charge_any_day.sql`** → **Run** → "Success". (It already contains step 11: if you skipped step 11, run only this one.)
 2. Now reception can tick **Charged ✓** on any day (a room often pays everything at check-out), sees every order **not charged yet** in the tab **To charge** (grouped by room, with **Charge all ✓** and **Print**), and a table with how many orders are charged / to charge. Waiters: unchanged, only today.
 
+## Step 13 — New rooftop bar menu + table service € 2 per person (one time)
+
+1. **Supabase → SQL Editor → New query**: paste **`supabase/migrations/20261110000000_new_menu_table_service.sql`** → **Run** → "Success".
+2. The menu changes on every device: new cocktails, Gewürztraminer, Syrah, Prosecco, new wine prices. Old cocktails are only hidden (old orders keep them). Lunch dishes are not touched.
+3. **Table service (coperto):** every order gets guests × € 2,00 by itself. The waiter can untick "Servizio al tavolo" for one table. The owner changes the price in **Menu & prices → Table service**.
+
 ## Good to know
 
 - **Free plans:** Supabase Free has 500 MB of database — enough for many years of lunch orders. A free Supabase project is **paused after 7 days with no use** (for example when the restaurant is closed for the season). Nothing is lost: open supabase.com and click **Restore project**.

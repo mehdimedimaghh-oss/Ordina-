@@ -24,6 +24,7 @@
 - **Coperti / Guests:** tap **+** to set how many people are at the table. If you forget, the app reminds you when you send (tap Send again to send without).
 - **Chairs (rooftop tables):** under Ospiti you see **🪑 Chairs here** and how many are missing (e.g. 5 guests, 3 chairs → *2 more needed*). Tap **Move chairs** → **Take** chairs from storage or from a free table. Chairs you don't need: send them back to storage. The owner sees it live in 3D. (Needs internet.)
 - **Room service** tick = + € 10.
+- **Servizio al tavolo / Table service:** added by itself = guests × € 2,00 (e.g. 2 guests = € 4,00). You see it above the total. Untick it only if this table must not pay it.
 - **Served 0/2**: tap each time you bring one portion. When everything is served it becomes green **✓ Served**.
 
 **Colors on the map and on dishes**

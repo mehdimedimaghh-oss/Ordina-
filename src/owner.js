@@ -1,7 +1,7 @@
 // Owner pages: dashboard (calendar, day/week/month), menu editor, waiters, import, audit log.
 // Every text exists in English and Italian: L('English', 'Italiano') picks the language chosen with the IT/EN button.
-import { SECTIONS, eur, eurShort, esc, $, $$, today, addDays, parseDay, dayLabel, hhmm } from './data.js';
-import { S, fetchAllOrders, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWaiters, saveWaiter, saveMenuItem, addMenuItem, importOrders, setSheetUrl, sheetStatus, sheetTest, reload, ownerSetChairs, ownerSetRoofTable } from './store.js';
+import { SECTIONS, eur, eurShort, esc, $, $$, today, addDays, parseDay, dayLabel, hhmm, coverAmt } from './data.js';
+import { S, fetchAllOrders, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWaiters, saveWaiter, saveMenuItem, addMenuItem, importOrders, setSheetUrl, sheetStatus, sheetTest, reload, ownerSetChairs, ownerSetRoofTable, setCoverFee } from './store.js';
 import { fromServer, orderCard, bindOrderCards, setTheme } from './waiter.js';
 import { toast } from './ui.js';
 import { staffNowHtml } from './staffnow.js';
@@ -145,10 +145,10 @@ function stats(el, orders, rg, body) {
 function exportSheets(orders) {
   const date = o => o.day.split('-').reverse().join('/');
   const sent = L('sent', 'inviato'), reo = L('reopened (not counted)', 'riaperto (non conteggiato)');
-  const head = L(['Date', 'Time', 'Table', 'Waiter', 'Client', 'Building', 'Room', 'Items', 'Room service', 'Note', 'Guests', 'Total €', 'Status'],
-    ['Data', 'Ora', 'Tavolo', 'Cameriere', 'Cliente', 'Edificio', 'Camera', 'Articoli', 'Servizio in camera', 'Note', 'Ospiti', 'Totale €', 'Stato']);
+  const head = L(['Date', 'Time', 'Table', 'Waiter', 'Client', 'Building', 'Room', 'Items', 'Room service', 'Note', 'Guests', 'Table service €', 'Total €', 'Status'],
+    ['Data', 'Ora', 'Tavolo', 'Cameriere', 'Cliente', 'Edificio', 'Camera', 'Articoli', 'Servizio in camera', 'Note', 'Ospiti', 'Servizio al tavolo €', 'Totale €', 'Stato']);
   const rows = [head, ...orders.map(o => [date(o), hhmm(o.closedAt), +o.table, o.waiter, o.client, o.building, o.roomNo,
-    o.items.map(l => `${l.qty}x ${l.it}${l.note ? ' (' + l.note + ')' : ''}`).join(', '), o.roomService ? L('yes', 'sì') : '', o.note, o.covers || 0, o.total, o.status === 'closed' ? sent : reo])];
+    o.items.map(l => `${l.qty}x ${l.it}${l.note ? ' (' + l.note + ')' : ''}`).join(', '), o.roomService ? L('yes', 'sì') : '', o.note, o.covers || 0, coverAmt(o), o.total, o.status === 'closed' ? sent : reo])];
   const lines = [L(['Date', 'Time', 'Table', 'Waiter', 'Client', 'Building', 'Room', 'Dish', 'Section', 'Qty', 'Price €', 'Line total €', 'Dish note', 'Status'],
     ['Data', 'Ora', 'Tavolo', 'Cameriere', 'Cliente', 'Edificio', 'Camera', 'Piatto', 'Sezione', 'Qtà', 'Prezzo €', 'Totale riga €', 'Nota piatto', 'Stato'])];
   for (const o of orders) for (const l of o.items) lines.push([date(o), hhmm(o.closedAt), +o.table, o.waiter, o.client, o.building, o.roomNo, l.it, l.sec, l.qty, l.p, l.qty * l.p, l.note, o.status === 'closed' ? sent : L('reopened', 'riaperto')]);
@@ -203,9 +203,26 @@ function bindRoof(body) {
   };
 }
 
+// ---- table service (coperto) per person ----
+function coverPanel() {
+  const on = S.settings.cover_fee != null;
+  return `<div class="panel" style="margin-bottom:14px"><h3>${L('Table service (coperto)', 'Servizio al tavolo (coperto)')}</h3>
+    ${on ? `<p class="hint">${L('Added by itself to every order: guests × this price (e.g. 2 guests × € 2,00 = € 4,00). The waiter can untick it for one table. Old orders keep the price they had.', 'Aggiunto da solo a ogni ordine: ospiti × questo prezzo (es. 2 ospiti × € 2,00 = € 4,00). Il cameriere può toglierlo per un tavolo. Gli ordini vecchi tengono il prezzo che avevano.')}</p>
+    <div class="tools"><label class="field" style="margin:0;max-width:220px">${L('Price per person €', 'Prezzo a persona €')}<input type="number" id="cfee" min="0" max="50" step="0.5" inputmode="decimal" value="${Number(S.settings.cover_fee)}"></label><button class="btn primary" id="cfeeSave">${L('Save', 'Salva')}</button></div>`
+    : `<p class="hint">${L('Not installed yet: run supabase/migrations/20261110000000_new_menu_table_service.sql in Supabase (SETUP.md, step 13).', 'Non ancora installato: esegui supabase/migrations/20261110000000_new_menu_table_service.sql in Supabase (SETUP.md, passo 13).')}</p>`}</div>`;
+}
+function bindCover(body) {
+  const b = $('#cfeeSave', body); if (!b) return;
+  b.onclick = async () => {
+    const v = Number($('#cfee', body).value);
+    if (!(v >= 0 && v <= 50)) { toast(L('Write a price between 0 and 50', 'Scrivi un prezzo tra 0 e 50')); return; }
+    try { await setCoverFee(v); toast(L('Table service saved: ', 'Servizio al tavolo salvato: ') + eur(v) + L(' per person', ' a persona')); } catch (e) { toast(e.message, null, null, 6000); }
+  };
+}
+
 function menuEditor(body) {
   if (!S.roof.tables.length) reload('roof').then(() => { if (tab === 'menu' && !body.querySelector('#rtSave')) menuEditor(body); }).catch(() => {});
-  let h = roofPanel() + `<p class="hint">${L('Change a name or a price and tap Save. “Hide” removes a dish from the menu without losing it in old orders. Changes appear on every device at once and are written in the audit log.',
+  let h = coverPanel() + roofPanel() + `<p class="hint">${L('Change a name or a price and tap Save. “Hide” removes a dish from the menu without losing it in old orders. Changes appear on every device at once and are written in the audit log.',
     'Cambia un nome o un prezzo e tocca Salva. “Nascondi” toglie un piatto dal menu senza perderlo negli ordini vecchi. Le modifiche appaiono subito su tutti i dispositivi e vengono scritte nel registro.')}</p>`;
   for (const s of SECTIONS) {
     const items = S.menu.filter(m => m.section === s.id).sort((a, b) => a.sort - b.sort);
@@ -215,7 +232,7 @@ function menuEditor(body) {
       <div class="mrow" data-new="${s.id}"><input type="text" data-f="name_it" placeholder="${L('New dish (Italian)', 'Nuovo piatto (italiano)')}"><input type="text" data-f="name_en" placeholder="${L('English subtitle', 'Sottotitolo inglese')}"><input type="number" data-f="price" step="0.5" min="0" inputmode="decimal" placeholder="€"><span></span><button class="btn primary" data-add>${L('Add', 'Aggiungi')}</button></div></div>`;
   }
   body.innerHTML = h;
-  bindRoof(body);
+  bindRoof(body); bindCover(body);
   $$('.mrow[data-id]', body).forEach(r => {
     const btn = $('[data-save]', r);
     r.addEventListener('input', () => { btn.disabled = false; btn.classList.add('primary'); });
@@ -271,7 +288,7 @@ async function downloadBackup(btn, info) {
       uid: o.uid, table: String(o.table_no), client: o.client, roomNo: o.room_no, building: o.building, waiter: o.waiter_name,
       items: (o.order_lines || []).slice().sort((a, b) => a.pos - b.pos).map(l => ({ id: l.item_id, it: l.name, qty: l.qty, p: Number(l.price), sec: l.section, note: l.note })),
       roomService: o.room_service, roomFee: Number(o.room_fee), note: o.note, total: Number(o.total), closedAt: Date.parse(o.closed_at), day: o.day,
-      covers: o.covers || 0, chargedAt: o.charged_at, chargedBy: o.charged_by,
+      covers: o.covers || 0, coverFee: Number(o.cover_fee || 0), chargedAt: o.charged_at, chargedBy: o.charged_by,
     });
     const sent = rows.filter(o => o.status === 'closed'), reopened = rows.filter(o => o.status !== 'closed');
     const stamp = today();
@@ -330,6 +347,7 @@ const ACT = {
   rooftop_table: d => L(`Rooftop table: app table ${d.app_table ?? '—'} · ${d.active === false ? 'CLOSED' : 'ACTIVE'}`, `Tavolo rooftop: tavolo app ${d.app_table ?? '—'} · ${d.active === false ? 'CHIUSO' : 'ATTIVO'}`),
   sheet_on: () => L('Reception sheet: turned on (link saved)', 'Foglio reception: attivato (link salvato)'),
   sheet_off: () => L('Reception sheet: turned off', 'Foglio reception: disattivato'),
+  cover_fee: d => L(`Table service per person: ${eur(d.before ?? 0)} → ${eur(d.after)}`, `Servizio al tavolo a persona: ${eur(d.before ?? 0)} → ${eur(d.after)}`),
   history_import: d => L(`Imported history: ${d.imported} new, ${d.already_there} already there`, `Storico importato: ${d.imported} nuovi, ${d.already_there} già presenti`),
 };
 // ================= 3D Live Rooftop (loaded only when the owner opens it) =================

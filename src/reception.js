@@ -2,7 +2,7 @@
 //  · Today (live): pop-up + sound + PC notification for every new order, "Charged ✓"
 //  · To charge: every order not charged yet (any day), grouped by room, "Charge all", print the room bill, stats table
 //  · History: any day (last 60 days), with "Charged ✓" too (a room often pays everything at check-out)
-import { esc, eur, $, $$, today, addDays, dayLabel, hhmm, roomLabel, ms } from './data.js';
+import { esc, eur, $, $$, today, addDays, dayLabel, hhmm, roomLabel, ms, coverAmt } from './data.js';
 import { S, LS, sb, reload, markCharged, markChargedMany, logout, fetchOrders, fetchReception } from './store.js';
 import { fromServer, coversLabel } from './waiter.js';
 import { toast } from './ui.js';
@@ -171,7 +171,7 @@ async function chargeAll(list, btn) {
 function printBill(room, list) {
   if (!list?.length) return;
   const tot = list.reduce((s, o) => s + o.total, 0), it = getLang() === 'it';
-  const rows = list.map(o => `<tr><td>${esc(o.day.split('-').reverse().join('/'))} ${hhmm(o.closedAt)}</td><td>${o.items.map(l => `${l.qty}× ${esc(l.it)}`).join('<br>')}${o.roomService ? `<br>+ ${t('roomService')}` : ''}</td><td class="n">${eur(o.total)}</td></tr>`).join('');
+  const rows = list.map(o => `<tr><td>${esc(o.day.split('-').reverse().join('/'))} ${hhmm(o.closedAt)}</td><td>${o.items.map(l => `${l.qty}× ${esc(l.it)}`).join('<br>')}${o.roomService ? `<br>+ ${t('roomService')}` : ''}${coverAmt(o) ? `<br>+ ${t('tableService')} ${o.covers} × ${eur(o.coverFee)}` : ''}</td><td class="n">${eur(o.total)}</td></tr>`).join('');
   const w = window.open('', '_blank'); if (!w) { toast(t('popupBlocked')); return; }
   w.document.write(`<!doctype html><html lang="${it ? 'it' : 'en'}"><head><meta charset="utf-8"><title>${t('room')} ${esc(room)}</title>
     <style>body{font:15px/1.45 system-ui,sans-serif;color:#111;margin:32px}h1{font-size:22px;margin:0}small{color:#555}table{width:100%;border-collapse:collapse;margin-top:18px}
@@ -233,7 +233,7 @@ function card(o, opt = {}) {
     <div class="rc-l"><div class="rc-t">${t('tableLabel', { n: o.table })}</div><div class="rc-h num">${opt.day && o.day !== today() ? esc(dayLabel(o.day)) + ' · ' : ''}${hhmm(o.closedAt)}</div>${o.covers ? `<div class="rc-cv">👥 ${coversLabel(o.covers)}</div>` : ''}</div>
     <div class="rc-m">
       <div class="rc-who">${esc(o.client || '—')}${roomLabel(o) ? `<span class="rc-room">${t('room')} ${esc(roomLabel(o))}</span>` : ''}</div>
-      <div class="rc-items">${o.items.map(l => `<b>${l.qty}×</b> ${esc(l.it)}${l.note ? ` <i>(${esc(l.note)})</i>` : ''}`).join(' · ')}${o.roomService ? ` · <b>+</b> ${t('roomService')}` : ''}</div>
+      <div class="rc-items">${o.items.map(l => `<b>${l.qty}×</b> ${esc(l.it)}${l.note ? ` <i>(${esc(l.note)})</i>` : ''}`).join(' · ')}${o.roomService ? ` · <b>+</b> ${t('roomService')}` : ''}${coverAmt(o) ? ` · <b>+</b> ${t('tableService')} ${o.covers} × ${eur(o.coverFee)}` : ''}</div>
       ${o.note ? `<div class="rc-note">${esc(o.note)}</div>` : ''}
       <div class="rc-w">${t('waiterShort')}: ${esc(o.waiter || '—')}</div>
     </div>
@@ -329,7 +329,7 @@ function nextPopup() {
     <div class="top"><div><div class="lbl">🔔 ${t('newOrder')}${popupQueue.length ? ` · +${popupQueue.length}` : ''}</div><h2>${t('tableLabel', { n: o.table })}</h2></div><div class="rc-h num" style="font-size:22px">${hhmm(o.closedAt)}</div></div>
     ${o.client ? `<div class="who">${esc(o.client)}</div>` : ''}${roomLabel(o) ? `<div class="room">${t('room')} ${esc(roomLabel(o))}</div>` : ''}${o.covers ? `<div class="covers">👥 ${coversLabel(o.covers)}</div>` : ''}
     <ul>${o.items.map(l => `<li><b>${l.qty}×</b><span>${esc(l.it)}${l.note ? `<i>${esc(l.note)}</i>` : ''}</span><span class="num">${eur(l.qty * l.p)}</span></li>`).join('')}
-    ${o.roomService ? `<li><b>+</b><span>${t('roomService')}</span><span class="num">${eur(o.roomFee || 10)}</span></li>` : ''}</ul>
+    ${o.roomService ? `<li><b>+</b><span>${t('roomService')}</span><span class="num">${eur(o.roomFee || 10)}</span></li>` : ''}${coverAmt(o) ? `<li><b>+</b><span>${t('tableService')} ${o.covers} × ${eur(o.coverFee)}</span><span class="num">${eur(coverAmt(o))}</span></li>` : ''}</ul>
     ${o.note ? `<div class="note">${esc(o.note)}</div>` : ''}
     <div class="grand"><span>Totale</span><b class="num">${eur(o.total)}</b></div>
     <div class="meta">${t('waiterShort')}: ${esc(o.waiter || '—')}</div>
@@ -367,11 +367,11 @@ function systemNote(title, body, tag) {
 
 // ---------- Excel: the tab you are looking at ----------
 function exportDay() {
-  const rows = [['Data / Date', 'Ora / Time', 'Tavolo', 'Cliente', 'Edificio', 'Camera', 'Ordine / Items', 'Serv. camera', 'Note', 'Coperti', 'Totale €', 'Cameriere', 'Stato', 'Addebitato / Charged']];
+  const rows = [['Data / Date', 'Ora / Time', 'Tavolo', 'Cliente', 'Edificio', 'Camera', 'Ordine / Items', 'Serv. camera', 'Note', 'Coperti', 'Servizio al tavolo €', 'Totale €', 'Cameriere', 'Stato', 'Addebitato / Charged']];
   const name = tab === 'hist' ? viewDay : tab === 'todo' ? 'da_addebitare_' + today() : today();
   const list = tab === 'hist' ? (past || []) : tab === 'todo' ? (toChargeList() || []) : orders();
   for (const o of list.slice().sort((a, b) => a.closedAt - b.closedAt)) rows.push([o.day.split('-').reverse().join('/'), hhmm(o.closedAt), +o.table, o.client, o.building, o.roomNo,
-    o.items.map(l => `${l.qty}x ${l.it}${l.note ? ' (' + l.note + ')' : ''}`).join(', '), o.roomService ? 'Sì' : '', o.note, o.covers || 0, o.total, o.waiter,
+    o.items.map(l => `${l.qty}x ${l.it}${l.note ? ' (' + l.note + ')' : ''}`).join(', '), o.roomService ? 'Sì' : '', o.note, o.covers || 0, coverAmt(o), o.total, o.waiter,
     o.status === 'closed' ? 'Inviato' : 'Riaperto', o.chargedAt ? new Date(o.chargedAt).toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '']);
   download(buildXlsx([{ name: name.slice(0, 31), rows }]), `reception_${name}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }

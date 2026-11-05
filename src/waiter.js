@@ -1,5 +1,5 @@
 // Waiter screens: menu, order, table map (tablet), today's history, stock, PIN switch.
-import { SECTIONS, TABLES, LATE_MIN, eur, eurShort, esc, $, $$, today, hhmm, ms, roomLabel, uid, dayLabel } from './data.js';
+import { SECTIONS, TABLES, LATE_MIN, eur, eurShort, esc, $, $$, today, hhmm, ms, roomLabel, uid, dayLabel, coverAmt } from './data.js';
 import {
   S, LS, tableRow, tableData, stockLeft, views, tableOp, submitOrder, stockSet, stockNewDay, setAlert, count,
   reopenOrder, deleteOrder, waiterLogin, waiterLogout, logout, openedMs, flush, reload, roofOfApp, chairsAt, moveChairs,
@@ -21,10 +21,14 @@ export function ITEM() {
 }
 const itemsOf = (sec, all) => S.menu.filter(m => m.section === sec && (all || !m.hidden)).sort((a, b) => a.sort - b.sort);
 const fee = () => Number(S.settings.room_fee ?? 10);
+// table service per person: only when the owner's database has it (SQL step 13); before that = 0, like always
+export const coverFee = () => (S.settings.cover_fee == null ? 0 : Number(S.settings.cover_fee) || 0);
+const coverOf = d => (d.coverOff ? 0 : (d.covers || 0) * coverFee());
 function total(d) {
   const I = ITEM(); let s = 0;
   for (const [id, q] of Object.entries(d.items)) s += (I[id] ? Number(I[id].price) : 0) * q;
   if (d.room && count(d)) s += fee();
+  if (count(d)) s += coverOf(d);
   return s;
 }
 const mins = row => { const o = openedMs(row); return o ? Math.max(0, Math.floor((Date.now() - o) / 60000)) : 0; };
@@ -47,7 +51,7 @@ export function fromServer(o) {
   return {
     key: 's' + o.id, id: o.id, uid: o.uid, table: String(o.table_no), client: o.client, roomNo: o.room_no, building: o.building, waiter: o.waiter_name,
     items: (o.order_lines || []).slice().sort((a, b) => a.pos - b.pos).map(l => ({ id: l.item_id, it: l.name, qty: l.qty, p: Number(l.price), sec: l.section, note: l.note })),
-    roomService: o.room_service, roomFee: Number(o.room_fee), note: o.note, total: Number(o.total), closedAt: ms(o.closed_at), status: o.status, day: o.day, source: o.source, chargedAt: ms(o.charged_at), chargedBy: o.charged_by, covers: o.covers || 0,
+    roomService: o.room_service, roomFee: Number(o.room_fee), note: o.note, total: Number(o.total), closedAt: ms(o.closed_at), status: o.status, day: o.day, source: o.source, chargedAt: ms(o.charged_at), chargedBy: o.charged_by, covers: o.covers || 0, coverFee: Number(o.cover_fee || 0),
   };
 }
 function todayOrders() {
@@ -65,7 +69,7 @@ function snapshot(n) {
   for (const [id, q] of Object.entries(d.items)) if (!seen.has(id)) lines.push({ id, it: id, qty: q, p: 0, sec: '', note: d.notes[id] || '' });
   const now = Date.now();
   return {
-    uid: uid(), table: String(n), client: d.client.trim(), roomNo: d.roomNo.trim(), building: d.building, waiter: S.waiter?.name || '', covers: d.covers || 0,
+    uid: uid(), table: String(n), client: d.client.trim(), roomNo: d.roomNo.trim(), building: d.building, waiter: S.waiter?.name || '', covers: d.covers || 0, coverFee: d.coverOff ? 0 : coverFee(),
     items: lines, roomService: !!d.room, roomFee: d.room ? fee() : 0, note: d.note.trim(), total: total(d), closedAt: now, day: today(),
   };
 }
@@ -230,7 +234,7 @@ function paintStock() {
 // ---------- the order (phone: bottom sheet · tablet: right panel) ----------
 function renderOrder(body, force) {
   const ae = document.activeElement;
-  if (!force && ae && body.contains(ae) && /INPUT|TEXTAREA/.test(ae.tagName)) return;
+  if (!force && ae && body.contains(ae) && /INPUT|TEXTAREA/.test(ae.tagName) && ae.type !== 'checkbox') return;   // never redraw under typing fingers (a tick box is not typing)
   const n = cur, row = tableRow(n), d = tableData(n), k = count(d);
   const os = document.getElementById('orderSheet'); if (os) os.querySelector('h3').textContent = 'Tavolo ' + n;
   const ws = k ? toServe(d) : 0;
@@ -256,6 +260,7 @@ function renderOrder(body, force) {
     }
   }
   h += `<div class="opt"><label for="room">${t('roomService')}<small>${t('roomFee', { fee: eur(fee()) })}</small></label><input type="checkbox" id="room" ${d.room ? 'checked' : ''}></div>
+  ${coverFee() ? `<div class="opt"><label for="coverChk">${t('tableService')}<small>${d.covers ? `${d.covers} × ${eur(coverFee())} = <b>${eur(d.covers * coverFee())}</b>` : t('tableServiceHelp', { fee: eur(coverFee()) })}</small></label><input type="checkbox" id="coverChk" ${d.coverOff ? '' : 'checked'}></div>` : ''}
   <textarea id="note" placeholder="${t('kitchenNote')}">${esc(d.note)}</textarea>
   <div class="total"><span>Totale</span><b class="num">${eur(total(d))}</b></div>
   <div class="actions"><button class="btn" id="copyBtn">${t('copyOrder')}</button><button class="btn primary" id="closeBtn">${t('sendReception')}</button>
@@ -270,6 +275,7 @@ function renderOrder(body, force) {
   body.querySelectorAll('[data-nb]').forEach(b => { b.onclick = () => { const i = body.querySelector(`[data-inote="${CSS.escape(b.dataset.nb)}"]`); i.hidden = false; i.focus(); }; });
   body.querySelectorAll('[data-inote]').forEach(i => { i.oninput = () => { const id = i.dataset.inote, v = i.value; draft('in' + n + id, () => tableOp(n, { t: 'inote', id, note: v })); }; i.onblur = flushDrafts; });
   $('#room', body).onchange = e => tableOp(n, { t: 'set', fields: { room: e.target.checked } });
+  const cc = $('#coverChk', body); if (cc) cc.onchange = e => tableOp(n, { t: 'set', fields: { coverOff: !e.target.checked } });
   const note = $('#note', body); note.oninput = () => { const v = note.value; draft('note' + n, () => tableOp(n, { t: 'set', fields: { note: v } })); }; note.onblur = flushDrafts;
   $('#closeBtn', body).onclick = () => closeTable(n);
   $('#recvBtn', body).onclick = () => { flushDrafts(); receptionView({ ...snapshot(n), closedAt: 0 }); };
@@ -394,7 +400,7 @@ function dayText(list) {
   [...list].reverse().forEach(o => {
     out += `\n${hhmm(o.closedAt)} Tavolo ${o.table}` + (o.client ? ` · ${o.client}` : '') + (roomLabel(o) ? ` · Camera ${roomLabel(o)}` : '') + ` · ${o.waiter} — ${eur(o.total)}\n`;
     o.items.forEach(l => { out += `  ${l.qty}x ${l.it}${l.note ? ` — ${l.note}` : ''}\n`; });
-    if (o.roomService) out += '  Servizio in camera\n'; if (o.note) out += `  Note: ${o.note}\n`;
+    if (o.roomService) out += '  Servizio in camera\n'; if (coverAmt(o)) out += `  Servizio al tavolo ${o.covers} × ${eur(o.coverFee)}\n`; if (o.note) out += `  Note: ${o.note}\n`;
   });
   return out + `\nTOTALE GIORNO ${eur(list.reduce((a, o) => a + o.total, 0))} (${list.length} tavoli)`;
 }
@@ -402,7 +408,7 @@ export function orderCard(o, opts = {}) {
   return `<div class="ho${o.status === 'reopened' ? ' reopened' : ''}"><div class="ho-top"><div class="ho-t">Tavolo ${esc(o.table)}<small>${opts.withDay ? esc(dayLabel(o.day)) + ' · ' : ''}${hhmm(o.closedAt)} · ${esc(o.waiter || '—')}${o.covers ? ' · 👥 ' + coversLabel(o.covers) : ''}${o.pending ? `<span class="waitbadge">${t('waitingUpload')}</span>` : ''}${o.status === 'reopened' ? `<span class="waitbadge">${t('reopenedNotCounted')}</span>` : ''}${o.source === 'import' ? ' · ' + t('oldApp') : ''}${o.chargedAt ? `<span class="rc-ok sm">${t('chargedBadge', { time: hhmm(o.chargedAt) })}</span>` : ''}</small></div><div class="ho-tot num">${eur(o.total)}</div>
     ${(o.client || roomLabel(o)) ? `<div class="ho-who">${esc(o.client || '—')}${roomLabel(o) ? `<span class="rm">${t('room')} ${esc(roomLabel(o))}</span>` : ''}</div>` : ''}</div>
     <ul class="ho-items">${o.items.map(l => `<li><b>${l.qty}×</b> ${esc(l.it)}${l.note ? ` <i>(${esc(l.note)})</i>` : ''} <span class="num">· ${eur(l.qty * l.p)}</span></li>`).join('')}
-    ${o.roomService ? `<li><b>+</b> ${t('roomService')} · ${eur(o.roomFee || 10)}</li>` : ''}</ul>
+    ${o.roomService ? `<li><b>+</b> ${t('roomService')} · ${eur(o.roomFee || 10)}</li>` : ''}${coverAmt(o) ? `<li><b>+</b> ${t('tableService')} ${o.covers} × ${eur(o.coverFee)} · ${eur(coverAmt(o))}</li>` : ''}</ul>
     ${o.note ? `<div class="ho-note">Note: ${esc(o.note)}</div>` : ''}
     <div class="ho-act"><button data-recv="${o.key}">${t('receptionView')}</button>${!o.pending && o.status === 'closed' && opts.reopen !== false ? `<button data-reopen="${o.key}">${t('reopen')}</button>` : ''}${S.role === 'owner' && !o.pending ? `<button class="del" data-del="${o.key}">${t('delete')}</button>` : ''}</div></div>`;
 }

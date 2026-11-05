@@ -1,4 +1,4 @@
-import { $, $$, esc, eur, hhmm, roomLabel, dayKey } from './data.js';
+import { $, $$, esc, eur, hhmm, roomLabel, dayKey, coverAmt } from './data.js';
 import { t } from './i18n.js';
 
 // ---------- toast (with optional action like Undo) ----------
@@ -63,6 +63,7 @@ export function ticketText(o) {
     out += `${l.qty}x ${l.it}${l.note ? ` — ${l.note}` : ''}\n`;
   }
   if (o.roomService) out += `\nServizio in camera ${eur(o.roomFee ?? 10)}\n`;
+  if (coverAmt(o)) out += `${o.roomService ? '' : '\n'}Servizio al tavolo ${o.covers} × ${eur(o.coverFee)} = ${eur(coverAmt(o))}\n`;
   if (o.note) out += `\nNOTE: ${o.note}\n`;
   return out + `\nTOTALE ${eur(o.total)}`;
 }
@@ -76,7 +77,8 @@ export function receptionView(o) {
     ${o.client ? `<div class="who">${esc(o.client)}</div>` : ''}
     ${roomLabel(o) ? `<div class="room">Camera ${esc(roomLabel(o))}</div>` : ''}${o.covers ? `<div class="covers">👥 ${o.covers} ${o.covers === 1 ? 'coperto' : 'coperti'}</div>` : ''}
     <ul>${o.items.map(l => `<li><b>${l.qty}×</b><span>${esc(l.it)}${l.note ? `<i>${esc(l.note)}</i>` : ''}</span><span class="num">${eur(l.qty * l.p)}</span></li>`).join('')}
-    ${o.roomService ? `<li><b>+</b><span>Servizio in camera · Room service</span><span class="num">${eur(o.roomFee ?? 10)}</span></li>` : ''}</ul>
+    ${o.roomService ? `<li><b>+</b><span>Servizio in camera · Room service</span><span class="num">${eur(o.roomFee ?? 10)}</span></li>` : ''}
+    ${coverAmt(o) ? `<li><b>+</b><span>Servizio al tavolo · Table service ${o.covers} × ${eur(o.coverFee)}</span><span class="num">${eur(coverAmt(o))}</span></li>` : ''}</ul>
     ${o.note ? `<div class="note">Note: ${esc(o.note)}</div>` : ''}
     <div class="grand"><span>Totale</span><b class="num">${eur(o.total)}</b></div>
     <div class="pay">Da pagare alla reception · To pay at reception</div>
