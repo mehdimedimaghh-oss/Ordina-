@@ -58,7 +58,11 @@
 - Charge it to the room, then tap **Charged ✓**. You can do it in the pop-up or later in the list.
 - **Reopened** orders are crossed out with "do not charge": wait for the new order. If the owner deletes an order, you get a message too.
 - At the top: today's total and how many orders are still **to charge**.
-- **History:** at the top tap **Yesterday**, or tap the date and choose any day of the last 60 days (or **‹ ›** to go one day back/forward). You see that day's orders, total and which ones were charged. Past days are only to look — **Back to today** returns to the live list (new orders still pop up meanwhile).
+- **3 tabs at the top:**
+  - **Today · live** — today's orders, pop-up + sound for each new one.
+  - **To charge** — every order **not charged yet, of every day**, grouped by **room**. The red number = how many. At check-out: type the room (e.g. *202*) in the search box → you see everything that room ate, all days, and the total → **Print** (a clean summary for the guest) → **Charge all ✓**. Orders without a room are at the bottom. On top: a small table **Charged / To charge** for today, yesterday, 7 days, 60 days.
+  - **History** — any day of the last 60 days (‹ › or tap the date). You can tick **Charged ✓** there too.
+- Ticked by mistake? **Undo charged** under the order.
 - **Download Excel** = all the orders of the day you are looking at.
 - **Sound: On/Off** and **IT/EN** are at the top.
 - **Log out** at the top right closes the reception screen on this PC.

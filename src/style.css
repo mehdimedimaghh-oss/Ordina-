@@ -603,3 +603,26 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 .rcp-pick{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-weight:800;cursor:pointer}
 .rcp-pick input{border:0;background:transparent;font:inherit;font-weight:600;color:inherit;min-height:40px}
 .rcp-ro{margin:0 0 10px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px dashed var(--line);font-size:14px;color:var(--muted)}
+
+/* reception: tabs, "to charge" groups, stats */
+.rcp-tabs{margin-bottom:14px}
+.rcp-tabs button{font-size:15px}
+.rcp-cnt{display:inline-block;min-width:22px;padding:1px 7px;margin-left:4px;border-radius:999px;background:var(--warn);color:#fff;font-size:12.5px;font-weight:800}
+.rcp-statbox{margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.rcp-statbox summary{cursor:pointer;font-weight:800;min-height:32px;display:flex;align-items:center}
+.rcp-stats{width:100%;border-collapse:collapse;margin-top:6px;font-size:14px}
+.rcp-stats th,.rcp-stats td{padding:8px 6px;border-top:1px solid var(--line);text-align:left;vertical-align:baseline}
+.rcp-stats thead th{border-top:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rcp-stats td small{color:var(--muted);margin-left:4px}
+.rcp-stats td.ok b{color:var(--ok)}
+.rcp-stats td.todo b{color:var(--warn)}
+.rcp-search{margin:0 0 12px}
+.rcp-search input{width:100%;min-height:48px;padding:0 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px}
+.rgroup{margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:18px;background:var(--bg)}
+.rgroup>header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 4px 10px}
+.rgroup>header h3{margin:0;font-size:20px}
+.rgroup>header small{color:var(--muted)}
+.rgroup .rg-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rgroup .rg-r>b{font-size:22px;margin-right:4px}
+.rgroup .rcard{margin-bottom:8px}
+@media (max-width:560px){.rcp-stats{font-size:13px}.rcp-stats td small{display:block;margin:0}.rgroup .rg-r{width:100%}.rgroup .rg-r .btn{flex:1}}

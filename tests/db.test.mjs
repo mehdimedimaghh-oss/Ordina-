@@ -115,12 +115,12 @@ ok(t11b.data.covers === 4, 'reopen brings the guests back');
 await staff.rpc('table_op', { p_table: 11, p_op: { t: 'clear' }, p_token: token });
 
 console.log('Reception login');
-const rToday = await recep.from('orders').select('day');
+const rToday = await recep.from('orders').select('day,status,charged_at');
 {
   // reception history (20261108): today + the last 60 days, read only; without that file: only today
   const hist = sql(`select count(*) from pg_proc where proname = 'reception_history_days'`) === '1';
   const from = sql(`select (public.rome_today() - ${hist ? 60 : 0})::text`), to = sql(`select public.rome_today()::text`);
-  ok(rToday.data.length > 0 && rToday.data.every(o => o.day >= from && o.day <= to), `reception sees only ${hist ? 'the last 60 days' : 'today'}`);
+  ok(rToday.data.length > 0 && rToday.data.every(o => (o.day >= from && o.day <= to) || (hist && o.status === 'closed' && !o.charged_at)), `reception sees only ${hist ? 'the last 60 days + orders not charged yet' : 'today'}`);
 }
 ok(!(await recep.from('menu_items').select('*')).data?.length && !(await recep.from('open_tables').select('*')).data?.length, 'reception cannot read menu or open tables');
 ok(!!(await recep.rpc('table_op', { p_table: 3, p_op: { t: 'item', id: 'espresso', d: 1 } })).error, 'reception cannot take orders');

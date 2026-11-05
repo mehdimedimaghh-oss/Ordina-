@@ -359,6 +359,10 @@ export const moveChairs = (from, to, n) => must(sb.rpc('chairs_move', { p_from: 
 export const ownerSetChairs = counts => must(sb.rpc('owner_set_chairs', { p_counts: counts })).then(r => { S.roof = { ...S.roof, chairs: r }; persist(); emit(); return r; });
 export const ownerSetRoofTable = (id, app, active) => must(sb.rpc('owner_set_rooftop_table', { p_id: id, p_app: app, p_active: active })).then(() => loaders.roof());
 export const markCharged = (id, on, by) => must(sb.rpc('mark_charged', { p_id: id, p_charged: on, p_by: by || 'Reception' })).then(r => { loaders.today(); return r; });
+export const markChargedMany = (ids, by) => must(sb.rpc('mark_charged_many', { p_ids: ids, p_by: by || 'Reception' })).then(r => { loaders.today(); return r; });
+// reception: the days from..to + every order not charged yet, of any age (a room bill is paid at check-out)
+export const fetchReception = (from, to) => must(sb.from('orders').select('*, order_lines(*)')
+  .or(`and(day.gte.${from},day.lte.${to}),and(day.lt.${from},charged_at.is.null,status.eq.closed)`).order('closed_at', { ascending: true }).limit(10000));
 export const setSheetUrl = url => must(sb.rpc('owner_set_sheet_url', { p_url: url }));
 export const sheetStatus = () => must(sb.rpc('owner_sheet_status'));
 export const sheetTest = () => must(sb.rpc('owner_sheet_test'));
