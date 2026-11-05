@@ -182,7 +182,7 @@ main{position:relative;z-index:2}
 <div class="stage" id="stage" aria-hidden="true">
   <img class="poster kb" data-m="day" src="media/day-photo.jpg" alt="">
   <img class="poster kb" data-m="sunset" src="media/sunset-photo.jpg" alt="">
-  <img class="poster kb" data-m="night" src="media/night-photo.jpg" alt="">
+  <img class="poster kb" data-m="night" src="media/night-2.jpg" alt="">
   <canvas id="fx"></canvas>
 </div>
 
@@ -328,7 +328,7 @@ function render() {
   for (const s of MENU) {
     if (s.id === 'interlude') {
       html += `<section class="interlude" id="interlude"><div class="frame">
-        ${['day', 'sunset', 'night'].map(m => `<img data-tl="${m}" src="media/${m}-photo.jpg" alt="" style="opacity:${m === 'day' ? 1 : 0}">`).join('')}
+        ${['day', 'sunset', 'night'].map(m => `<img data-tl="${m}" src="media/${m === 'night' ? 'night-2' : m + '-photo'}.jpg" alt="" style="opacity:${m === 'day' ? 1 : 0}">`).join('')}
         <div class="when">${['day', 'sunset', 'night'].map(m => `<span data-tl="${m}">${t[m]}</span>`).join('')}</div>
         <div class="words"><h2>${t.interH}</h2><p>${t.interP}</p></div></div></section>`;
       continue;
