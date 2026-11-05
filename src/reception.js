@@ -28,13 +28,22 @@ export function mountReception(app) {
   draw();
   checkHistory();
   clearInterval(timer);
+  // Light on the internet (free plan): new orders arrive live; this is only a safety net.
+  //  · today's orders: every minute when the window is minimized (when visible, the app already does it every minute)
+  //  · "To charge" / History (many days of orders): every 5 minutes, only while the window is visible
+  let tick = 0;
   timer = setInterval(() => {
     if (!navigator.onLine) return;
-    reload('today');                                               // safety net if a live message is lost
-    if (tab === 'todo') loadPool(); else if (tab === 'hist') loadDay(true);   // other PCs may have charged something
-  }, 20000);
+    tick++;
+    if (document.hidden) { reload('today'); return; }
+    if (tick % 5 === 0) { if (tab === 'todo') loadPool(); else if (tab === 'hist') loadDay(true); }   // another PC may have charged something
+  }, 60000);
   reload('today');
 }
+document.addEventListener('visibilitychange', () => {
+  if (!root || document.hidden || !navigator.onLine) return;
+  if (tab === 'todo' && Date.now() - poolAt > 60000) loadPool();
+});
 export const leaveReception = () => { clearInterval(timer); root = null; started = false; popupQueue = []; };
 
 function orders() {
