@@ -33,8 +33,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
-        globIgnores: ['**/rooftop-*.js'],   // waiters' devices don't download the 3D part
+        globIgnores: ['**/rooftop-*.js', 'rooftop/**'],   // waiters' devices don't download the 3D part or the guests' rooftop menu
         navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/rooftop/],   // /rooftop/ is the guests' QR menu, not the staff app
         // never cache the database: orders must always be live
         runtimeCaching: [
           { urlPattern: ({ url }) => /\/assets\/rooftop-.*\.js$/.test(url.pathname), handler: 'CacheFirst', options: { cacheName: 'rooftop-3d' } },
