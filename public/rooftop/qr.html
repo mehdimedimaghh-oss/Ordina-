@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QR camere · La Terrazza</title>
+<title>QR camere · Rooftop</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;600&display=swap">
 <script src="qrcode.js"></script>
 <style>
@@ -54,7 +54,7 @@ function make() {
   const list = rooms.length ? rooms : [''];
   $('#sheet').innerHTML = list.map(r => {
     const link = r ? `${base}?room=${encodeURIComponent(r)}` : base;
-    return `<div class="card"><img class="logo" src="/logo.png" alt=""><div class="k">ROOFTOP · ROMA</div><h2>La Terrazza</h2>
+    return `<div class="card"><img class="logo" src="/logo.png" alt=""><div class="k">ROOFTOP COCKTAIL BAR</div><h2>Hotel Concordia</h2>
       <div class="qr"><img src="${qrImg(link)}" alt="QR"></div>
       <div class="l">Inquadra e scopri il menu<span>Scan to see the menu</span></div>
       ${r ? `<div class="room">CAMERA ${r}</div>` : ''}</div>`;
