@@ -241,7 +241,7 @@ const MENU = [
     ['Stracciatella, Mortadella, Pistacchio', 'Stracciatella, mortadella, pistachio'],
     ['Fesa di Tacchino, Rucola e Scamorza affumicata', 'Turkey breast, rocket, smoked scamorza'],
   ]},
-  { id: 'primi', it: 'Primi piatti', en: 'First courses', items: [
+  { id: 'primi', it: 'Primi piatti', en: 'First courses', note: { it: 'Cucina aperta dalle 12:00 all’01:00', en: 'Kitchen open 12 pm – 1 am' }, items: [
     ['Spaghetto al pomodoro', 'Spaghetti with tomato sauce', 12],
     ['Pasta fatta in casa al pomodoro con speck e funghi', 'Homemade pasta with tomato sauce, speck and mushrooms', 13],
     ['Zuppa di cereali e legumi', 'Cereal and legume soup', 14],
@@ -374,7 +374,7 @@ function render() {
         <div class="pair"><span>${t.glass}<b>€ ${price(p)}</b></span><span>${t.bottle}<b>€ ${price(bottle)}</b></span></div></div>`;
       return `<div class="item"><h3>${esc(name)}</h3><div class="price">€ ${price(p)}</div>${sub}</div>`;
     }).join('');
-    html += `<section class="sec" id="${s.id}">${head()}<div class="card rv">${rows}</div></section>`;
+    html += `<section class="sec" id="${s.id}">${head(s.note ? `${esc(other)} · ${esc(s.note[lang])}` : '')}<div class="card rv">${rows}</div></section>`;
   }
   $('#chips').innerHTML = chips;
   $('#menu').innerHTML = html;
