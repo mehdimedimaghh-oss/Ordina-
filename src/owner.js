@@ -34,7 +34,7 @@ export function mountOwner(app) {
 }
 export function ownerRender() {
   const sn = document.getElementById('staffNow'); if (sn) sn.innerHTML = staffNowHtml();   // live: who is logged in / on shift
-  if (root && tab === 'menu' && !root.contains(document.activeElement)) show();
+  if (root && tab === 'menu' && !root.contains(document.activeElement) && !menuDirty.size && menuSig() !== menuDrawn) show();
 }
 setInterval(() => { const sn = document.getElementById('staffNow'); if (sn && !document.hidden) sn.innerHTML = staffNowHtml(); }, 60000);
 function show() {
@@ -208,19 +208,29 @@ function coverPanel() {
   const on = S.settings.cover_fee != null;
   return `<div class="panel" style="margin-bottom:14px"><h3>${L('Table service (coperto)', 'Servizio al tavolo (coperto)')}</h3>
     ${on ? `<p class="hint">${L('Added by itself to every order: guests × this price (e.g. 2 guests × € 2,00 = € 4,00). The waiter can untick it for one table. Old orders keep the price they had.', 'Aggiunto da solo a ogni ordine: ospiti × questo prezzo (es. 2 ospiti × € 2,00 = € 4,00). Il cameriere può toglierlo per un tavolo. Gli ordini vecchi tengono il prezzo che avevano.')}</p>
-    <div class="tools"><label class="field" style="margin:0;max-width:220px">${L('Price per person €', 'Prezzo a persona €')}<input type="number" id="cfee" min="0" max="50" step="0.5" inputmode="decimal" value="${Number(S.settings.cover_fee)}"></label><button class="btn primary" id="cfeeSave">${L('Save', 'Salva')}</button></div>`
+    <div class="tools"><label class="field" style="margin:0;max-width:220px">${L('Price per person €', 'Prezzo a persona €')}${priceIn('id="cfee"', S.settings.cover_fee)}</label><button class="btn primary" id="cfeeSave">${L('Save', 'Salva')}</button></div>`
     : `<p class="hint">${L('Not installed yet: run supabase/migrations/20261110000000_new_menu_table_service.sql in Supabase (SETUP.md, step 13).', 'Non ancora installato: esegui supabase/migrations/20261110000000_new_menu_table_service.sql in Supabase (SETUP.md, passo 13).')}</p>`}</div>`;
 }
 function bindCover(body) {
   const b = $('#cfeeSave', body); if (!b) return;
   b.onclick = async () => {
-    const v = Number($('#cfee', body).value);
+    const v = priceOf($('#cfee', body).value);
     if (!(v >= 0 && v <= 50)) { toast(L('Write a price between 0 and 50', 'Scrivi un prezzo tra 0 e 50')); return; }
-    try { await setCoverFee(v); toast(L('Table service saved: ', 'Servizio al tavolo salvato: ') + eur(v) + L(' per person', ' a persona')); } catch (e) { toast(e.message, null, null, 6000); }
+    try { await setCoverFee(v); menuDirty.delete('cover'); toast(L('Table service saved: ', 'Servizio al tavolo salvato: ') + eur(v) + L(' per person', ' a persona')); } catch (e) { toast(e.message, null, null, 6000); }
   };
 }
 
+// Unsaved edits in Menu & prices: rows the owner is changing. While there are any, live updates never redraw the page
+// (before, a waiter's order or the 1-minute refresh redrew it and the typed name/price was lost).
+const menuDirty = new Set();
+let menuDrawn = '';
+const menuSig = () => JSON.stringify([S.menu, S.settings.cover_fee, S.roof]);
+// prices: "12,50" (Italian keyboard) and "12.50" are both fine
+const priceOf = v => { const s = String(v ?? '').trim().replace(',', '.'); return /^\d+(\.\d{1,2})?$/.test(s) ? Number(s) : NaN; };
+const priceIn = (attrs, val) => `<input type="text" ${attrs} inputmode="decimal" autocomplete="off" ${val == null ? '' : `value="${String(Number(val).toFixed(2)).replace('.', ',')}"`}>`;
+
 function menuEditor(body) {
+  menuDirty.clear(); menuDrawn = menuSig();
   if (!S.roof.tables.length) reload('roof').then(() => { if (tab === 'menu' && !body.querySelector('#rtSave')) menuEditor(body); }).catch(() => {});
   let h = coverPanel() + roofPanel() + `<p class="hint">${L('Change a name or a price and tap Save. “Hide” removes a dish from the menu without losing it in old orders. Changes appear on every device at once and are written in the audit log.',
     'Cambia un nome o un prezzo e tocca Salva. “Nascondi” toglie un piatto dal menu senza perderlo negli ordini vecchi. Le modifiche appaiono subito su tutti i dispositivi e vengono scritte nel registro.')}</p>`;
@@ -228,27 +238,29 @@ function menuEditor(body) {
     const items = S.menu.filter(m => m.section === s.id).sort((a, b) => a.sort - b.sort);
     h += `<div class="panel" style="margin-bottom:14px"><h3>${esc(s.it)} · ${esc(s.en)}</h3>
       ${items.map(m => `<div class="mrow${m.hidden ? ' hid' : ''}" data-id="${esc(m.id)}"><input type="text" data-f="name_it" value="${esc(m.name_it)}" aria-label="${L('Italian name', 'Nome italiano')}"><input type="text" data-f="name_en" value="${esc(m.name_en)}" aria-label="${L('English subtitle', 'Sottotitolo inglese')}">
-        <input type="number" data-f="price" step="0.5" min="0" inputmode="decimal" value="${Number(m.price)}" aria-label="${L('Price', 'Prezzo')}"><label class="tog"><input type="checkbox" data-f="hidden" ${m.hidden ? 'checked' : ''}>${L('Hide', 'Nascondi')}</label><button class="btn" data-save disabled>${L('Save', 'Salva')}</button></div>`).join('')}
-      <div class="mrow" data-new="${s.id}"><input type="text" data-f="name_it" placeholder="${L('New dish (Italian)', 'Nuovo piatto (italiano)')}"><input type="text" data-f="name_en" placeholder="${L('English subtitle', 'Sottotitolo inglese')}"><input type="number" data-f="price" step="0.5" min="0" inputmode="decimal" placeholder="€"><span></span><button class="btn primary" data-add>${L('Add', 'Aggiungi')}</button></div></div>`;
+        ${priceIn(`data-f="price" aria-label="${L('Price', 'Prezzo')}"`, m.price)}<label class="tog"><input type="checkbox" data-f="hidden" ${m.hidden ? 'checked' : ''}>${L('Hide', 'Nascondi')}</label><button class="btn" data-save disabled>${L('Save', 'Salva')}</button></div>`).join('')}
+      <div class="mrow" data-new="${s.id}"><input type="text" data-f="name_it" placeholder="${L('New dish (Italian)', 'Nuovo piatto (italiano)')}"><input type="text" data-f="name_en" placeholder="${L('English subtitle', 'Sottotitolo inglese')}"><input type="text" data-f="price" inputmode="decimal" autocomplete="off" placeholder="€"><span></span><button class="btn primary" data-add>${L('Add', 'Aggiungi')}</button></div></div>`;
   }
   body.innerHTML = h;
   bindRoof(body); bindCover(body);
+  body.removeEventListener('input', body._menuInput || (() => {}));
+  body.addEventListener('input', body._menuInput = e => { if (tab !== 'menu') return; const r = e.target.closest('.mrow'); menuDirty.add(r ? (r.dataset.id || 'new:' + r.dataset.new) : (e.target.id === 'cfee' ? 'cover' : 'roof')); });
   $$('.mrow[data-id]', body).forEach(r => {
     const btn = $('[data-save]', r);
     r.addEventListener('input', () => { btn.disabled = false; btn.classList.add('primary'); });
     btn.onclick = async () => {
       const v = f => $(`[data-f="${f}"]`, r);
-      const price = Number(v('price').value);
-      if (!v('name_it').value.trim() || !(price >= 0)) { toast(L('Name and price are needed', 'Servono nome e prezzo')); return; }
+      const price = priceOf(v('price').value);
+      if (!v('name_it').value.trim() || !(price >= 0)) { toast(L('Write the name and a price like 12,50', 'Scrivi il nome e un prezzo come 12,50')); return; }
       btn.disabled = true;
-      try { await saveMenuItem(r.dataset.id, { name_it: v('name_it').value.trim(), name_en: v('name_en').value.trim(), price, hidden: v('hidden').checked }); toast(L('Saved', 'Salvato')); btn.classList.remove('primary'); r.classList.toggle('hid', v('hidden').checked); }
+      try { await saveMenuItem(r.dataset.id, { name_it: v('name_it').value.trim(), name_en: v('name_en').value.trim(), price, hidden: v('hidden').checked }); menuDirty.delete(r.dataset.id); menuDrawn = menuSig(); toast(L('Saved', 'Salvato')); btn.classList.remove('primary'); r.classList.toggle('hid', v('hidden').checked); }
       catch (e) { toast(e.message); btn.disabled = false; }
     };
   });
   $$('.mrow[data-new]', body).forEach(r => {
     $('[data-add]', r).onclick = async () => {
-      const v = f => $(`[data-f="${f}"]`, r).value.trim(), price = Number(v('price'));
-      if (!v('name_it') || v('price') === '' || !(price >= 0)) { toast(L('Write the name and the price', 'Scrivi il nome e il prezzo')); return; }
+      const v = f => $(`[data-f="${f}"]`, r).value.trim(), price = priceOf(v('price'));
+      if (!v('name_it') || !(price >= 0)) { toast(L('Write the name and a price like 12,50', 'Scrivi il nome e un prezzo come 12,50')); return; }
       const sec = r.dataset.new, base = v('name_it').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'dish';
       const id = S.menu.some(m => m.id === base) ? base + '-' + Math.random().toString(36).slice(2, 5) : base;
       const sort = Math.max(0, ...S.menu.filter(m => m.section === sec).map(m => m.sort)) + 1;
