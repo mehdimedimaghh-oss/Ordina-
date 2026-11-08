@@ -38,7 +38,9 @@ on conflict do nothing;
 alter table public.rooftop_tables enable row level security;
 alter table public.rooftop_chairs enable row level security;
 revoke all on public.rooftop_tables, public.rooftop_chairs from anon;
+drop policy if exists "staff reads rooftop tables" on public.rooftop_tables;
 create policy "staff reads rooftop tables" on public.rooftop_tables for select to authenticated using (public.is_staff());
+drop policy if exists "staff reads chairs" on public.rooftop_chairs;
 create policy "staff reads chairs"         on public.rooftop_chairs for select to authenticated using (public.is_staff());
 
 -- Waiters (and the owner) move chairs: from a table or storage, to a table or storage.
@@ -97,6 +99,9 @@ grant execute on function public.chairs_move(text, text, int, uuid), public.owne
 
 do $$ begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
-    alter publication supabase_realtime add table public.rooftop_tables, public.rooftop_chairs;
+    begin
+      alter publication supabase_realtime add table public.rooftop_tables, public.rooftop_chairs;
+    exception when duplicate_object then null;   -- already live (the file was run before)
+    end;
   end if;
 end $$;
