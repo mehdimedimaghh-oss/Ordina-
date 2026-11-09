@@ -138,3 +138,10 @@ On each device, open the website link once:
 - **Privacy (GDPR):** client names and room numbers are personal data. They are only visible after login, the data is in the EU, nothing is public, search engines are blocked. History is never deleted automatically: decide how long you want to keep it and write it in your hotel privacy notice. Only the owner can delete an order, and every delete is saved in the **Audit log**.
 - **Lost phone/tablet:** change the staff password in Supabase (**Authentication → Users → ⋯ → Reset/Update password**), then log in again on the other devices.
 - **For a developer:** see README.md.
+
+## Step 14 — Final menu (one time)
+1. Supabase → **SQL Editor** → **New query**.
+2. Copy all of `supabase/migrations/20261111000000_final_menu.sql`, paste, **Run** → "Success".
+3. Every tablet and phone shows the new menu by itself: new cocktails, the 6 pinse with their prices, final names.
+   Dishes not on the new menu are only hidden (old orders keep them). Custom drinks ("… su misura") are not touched.
+   Safe to run again.
