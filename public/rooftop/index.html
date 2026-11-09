@@ -159,15 +159,6 @@ main{position:relative;z-index:2}
 .kb{animation:kb 40s ease-in-out infinite alternate;transform-origin:60% 40%}
 @keyframes kb{from{transform:scale(1.04) translate(0,0)}to{transform:scale(1.16) translate(-2%,1.5%)}}
 .foot .tagf{font-family:"Great Vibes",cursive;font-size:30px;color:var(--ink-2);margin-top:8px}
-
-.al{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px}
-.al span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-right:2px}
-.al b{font-weight:500;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2)}
-.alleg{max-width:440px;margin:0 auto 22px;text-align:left;padding:16px 18px;border-radius:16px;border:1px solid var(--line);background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-.alleg h3{font-family:Marcellus,serif;font-weight:400;font-size:18px;color:var(--ink);margin-bottom:8px;text-align:center}
-.alleg ol{columns:2;column-gap:18px;padding-left:22px;font-size:13.5px;line-height:1.7}
-.alleg li::marker{color:var(--accent)}
-.alleg p{margin-top:10px;font-size:12.5px;text-align:center}
 /* footer */
 .foot{text-align:center;padding:30px 20px calc(env(safe-area-inset-bottom) + 50px);color:var(--ink-2);font-size:14px;font-weight:300}
 .foot img{width:64px;height:64px;border-radius:50%;margin-bottom:16px}
@@ -234,48 +225,47 @@ const SETTINGS = {
   hours: { it: 'Dalle 12:00 all’01:00', en: '12:00 pm – 1:00 am' },   // e.g. { it: 'Tutti i giorni 17:00 – 24:00', en: 'Every day 5 pm – midnight' }
 };
 // list items: [Italian name, English line under it, price, bottle price (wines only)]
-// list items: [Italian name, English line under it, price, bottle price (wines only), allergens (numbers, see ALLERGENS)]
 const MENU = [
   { id: 'cocktail', type: 'cocktails', it: 'Cocktails', en: 'Cocktails', price: 15,
-    names: ['Manhattan Cocktail', 'Aperol Spritz', 'Campari Spritz', 'Limoncello Spritz', 'Mojito', 'Cuba Libre', 'Gin Tonic', 'Vodka Tonic', 'Americano', 'Negroni'] },
-  { id: 'aperitivo', type: 'feature', it: 'Aperitif Experience', en: 'Aperitif Experience', price: 25,
+    names: ['Negroni Sbagliato', 'Americano Bianco', 'Moscow Mule', 'Gin Lemon', 'Mojito alla Frutta', 'Spritz alla Pesca',
+            'Spritz al Bergamotto', 'Parisienne', 'Margarita', 'Espresso Martini'],
+    custom: { it: { q: 'La parola d’ordine?', h: 'Un cocktail su misura!', p: 'Ogni sera il nostro barman è in grado di creare un cocktail personalizzato: basta chiedere direttamente a lui!' },
+              en: { q: 'The secret?', h: 'A tailor-made cocktail!', p: 'Every evening, our barman can create a personalized cocktail – just ask him!' } } },
+  { id: 'aperitivo', type: 'feature', it: 'Formula Aperitivo', en: 'Aperitif Formula', price: 25,
     per: { it: 'a persona', en: 'per person' },
-    sub: { it: 'Il nostro aperitivo', en: 'Our aperitif' },
+    sub: { it: 'Aperitivo con stuzzichini', en: 'Aperitif, with a snack' },
     q: { it: 'Più di un aperitivo, meno di una cena…', en: 'More than an aperitif, less than a dinner…' },
-    d: { it: 'Accompagneremo il tuo drink con prodotti tipici fatti in casa!', en: 'We will accompany your drink with typical homemade products!' } },
-  { id: 'pinsa', it: 'Le nostre pinse', en: 'Our pinse', note: { it: 'Lievitazione di 72 ore', en: '72-hour leavening' }, items: [
-    ['Pinsa con olio, sale e rosmarino', 'Pinsa with olive oil, salt and rosemary', 9],
-    ['Pinsa con mortadella, stracciatella e granella di pistacchio', 'Pinsa with mortadella, stracciatella cheese and chopped pistachios', 13],
-    ['Pinsa con prosciutto cotto e formaggio', 'Pinsa with cooked ham and cheese', 14],
-    ['Pinsa con speck e scamorza affumicata', 'Pinsa with speck and smoked scamorza cheese', 14],
-    ['Pinsa con bresaola, rucola e grana', 'Pinsa with bresaola, rocket and Grana cheese', 16],
-    ['Pinsa tricolore con ovoline di mozzarella, pomodorini e crema di pesto genovese', 'Tricolore pinsa with mini mozzarella, cherry tomatoes and Genovese pesto cream', 12],
+    d: { it: 'Accompagneremo il tuo drink con prodotti tipici fatti in casa.', en: 'We will accompany your drink with homemade local specialties.' } },
+  { id: 'pinsa', type: 'pinsa', it: 'Pinsa Romana farcita', en: 'Roman pinsa with toppings', price: 16, items: [
+    ['Bufala e Pachino', 'Buffalo mozzarella, Pachino tomatoes'],
+    ['Stracciatella, Mortadella, Pistacchio', 'Stracciatella, mortadella, pistachio'],
+    ['Fesa di Tacchino, Rucola e Scamorza affumicata', 'Turkey breast, rocket, smoked scamorza'],
   ]},
   { id: 'primi', it: 'Primi piatti', en: 'First courses', note: { it: 'Cucina aperta dalle 12:00 all’01:00', en: 'Kitchen open 12 pm – 1 am' }, items: [
-    ['Spaghetto al pomodoro', 'Spaghetti with tomato sauce', 12, null, [9, 12, 14, 7, 11]],
-    ['Pasta fatta in casa al pomodoro con speck e funghi', 'Homemade pasta with tomato sauce, speck and mushrooms', 13, null, [9, 14, 3]],
-    ['Zuppa di cereali e legumi', 'Cereal and legume soup', 14, null, [9, 3]],
-    ['Spaghetti alla carbonara', 'Spaghetti alla carbonara', 13, null, [9, 3, 14, 7, 11]],
-    ['Risotto ai funghi porcini', 'Risotto with porcini mushrooms', 13, null, [9, 3]],
-    ['Ravioli ripieni di ricotta e spinaci con datterino e basilico', 'Ravioli filled with ricotta and spinach with cherry tomato and basil', 13, null, [9, 3, 14, 7]],
+    ['Spaghetto al pomodoro', 'Spaghetti with tomato sauce', 12],
+    ['Pasta fatta in casa al pomodoro con speck e funghi', 'Homemade pasta with tomato sauce, speck and mushrooms', 13],
+    ['Zuppa di cereali e legumi', 'Cereal and legume soup', 14],
+    ['Spaghetti alla carbonara', 'Spaghetti alla carbonara', 13],
+    ['Risotto ai funghi porcini', 'Risotto with porcini mushrooms', 13],
+    ['Ravioli ripieni di ricotta e spinaci con datterino e basilico', 'Ravioli filled with ricotta and spinach with cherry tomato and basil', 13],
   ]},
   { id: 'secondi', it: 'Secondi piatti', en: 'Main courses', items: [
-    ['Polpette al sugo con pomodori e piselli', 'Meatballs in tomato sauce with tomatoes and peas', 17, null, [9, 3, 7]],
-    ['Filetto di pollo con funghi e patate', 'Chicken fillet with mushrooms and potatoes', 15, null, [9, 3, 7, 14]],
-    ['Cotoletta di pollo con patate a spicchi', 'Breaded chicken cutlet with potato wedges', 13, null, [9, 3, 1, 14]],
+    ['Polpette al sugo con pomodori e piselli', 'Meatballs in tomato sauce with tomatoes and peas', 17],
+    ['Filetto di pollo con funghi e patate', 'Chicken fillet with mushrooms and potatoes', 15],
+    ['Cotoletta di pollo con patate a spicchi', 'Breaded chicken cutlet with potato wedges', 13],
   ]},
   { id: 'interlude' },
   { id: 'vini', it: 'Vini', en: 'Wines', items: [
-    ['Vino spumante', 'Sparkling wine', 9, 29],
-    ['Chardonnay Lazio', 'Vino bianco · White wine', 8, 32],
+    ['Vino Spumante', 'Sparkling wine', 9, 29],
+    ['Vino Bianco · Chardonnay Lazio', 'White wine', 8, 32],
     ['Gewürztraminer d’Isera', '', 10, 40],
-    ['Montepulciano d’Abruzzo', 'Vino rosso · Red wine', 8, 32],
+    ['Vino Rosso · Montepulciano Abruzzo', 'Red wine', 8, 32],
     ['Syrah Divina', '', 10, 40],
   ]},
-  { id: 'bollicine', it: 'Bollicine', en: 'Sparkling wine', items: [
+  { id: 'bollicine', it: 'Bollicine', en: 'Bubbles', items: [
     ['Prosecco Gemin', 'DOC Treviso Extra Dry', 9, 29],
   ]},
-  { id: 'birra', it: 'Birre e distillati', en: 'Beer & spirits', items: [
+  { id: 'birra', it: 'Birra e Amari', en: 'Beer & spirits', items: [
     ['Birra 0,33 cl', 'Beer', 6.5],
     ['Limoncello di Capri', '', 8.5],
     ['Amaro Jägermeister', '', 8.5],
@@ -283,21 +273,16 @@ const MENU = [
     ['Whisky Jack Daniel’s', '', 11],
   ]},
   { id: 'dolci', it: 'Dolci', en: 'Desserts', items: [
-    ['Soufflé dal cuore caldo al cioccolato o al pistacchio', 'Chocolate or pistachio lava soufflé', 8, null, [14, 3, 7, 2]],
-    ['Tiramisù', 'Tiramisu', 8.5, null, [9, 3, 7]],
+    ['Soufflé dal cuore caldo al cioccolato o al pistacchio', 'Chocolate or pistachio lava soufflé', 8],
+    ['Tiramisù', 'Tiramisu', 8.5],
   ]},
-  { id: 'caffe', it: 'Caffetteria e soft drinks', en: 'Coffee, tea & soft drinks', items: [
-    ['Caffè espresso', 'Espresso', 3], ['Caffè decaffeinato', 'Decaffeinated coffee', 3.5], ['Orzo / Ginseng', 'Barley / Ginseng', 4],
-    ['Caffè americano', 'American coffee', 5], ['Cappuccino', '', 5],
-    ['Tè (verde, nero, Earl Grey)', 'Tea (green, black, Earl Grey)', 5], ['Cioccolata calda', 'Hot chocolate', 5],
-    ['Spremuta d’arancia', 'Orange juice', 6.5], ['Red Bull 0,25 l', '', 6.5], ['Acqua minerale 0,50 l', 'Mineral water', 3.5],
-    ['Coca-Cola / Coca-Cola Zero / Fanta', '', 5], ['Schweppes tonica', 'Tonic water', 5],
+  { id: 'caffe', it: 'Caffetteria', en: 'Coffee & drinks', items: [
+    ['Caffè Espresso', 'Espresso', 3], ['Caffè decaffeinato', 'Decaf', 3.5], ['Orzo / Ginseng', 'Barley / ginseng coffee', 4],
+    ['Caffè Americano', 'American coffee', 5], ['Cappuccino', '', 5], ['Tè (nero / verde / Earl Grey)', 'Tea (black / green / Earl Grey)', 5],
+    ['Cioccolata Calda', 'Hot chocolate', 5], ['Spremuta d’arancia', 'Fresh orange juice', 6.5],
+    ['Coca Cola / Coca Cola Zero / Fanta', '', 5], ['Red Bull', '', 6.5], ['Schweppes Tonica', 'Tonic water', 5], ['Acqua Minerale', 'Mineral water', 3.5],
   ]},
 ];
-// the 14 allergens (EU Reg. 1169/2011), numbered as on the hotel's allergen sheet
-const ALLERGENS = { 1: ['Arachidi', 'Peanuts'], 2: ['Frutta a guscio', 'Tree nuts'], 3: ['Latte', 'Milk'], 4: ['Molluschi', 'Molluscs'], 5: ['Pesce', 'Fish'],
-  6: ['Sesamo', 'Sesame'], 7: ['Soia', 'Soy'], 8: ['Crostacei', 'Crustaceans'], 9: ['Glutine', 'Gluten'], 10: ['Lupini', 'Lupin'],
-  11: ['Senape', 'Mustard'], 12: ['Sedano', 'Celery'], 13: ['Solfiti', 'Sulphites'], 14: ['Uova', 'Eggs'] };
 
 const TXT = {
   it: { tag: 'Un’esperienza di gusto nel cuore di Roma', day: 'Giorno', sunset: 'Tramonto', night: 'Notte',
@@ -305,13 +290,13 @@ const TXT = {
         interH: 'Un giorno sulla terrazza', interP: 'Continua a scorrere: dal sole di mezzogiorno alle stelle.', salute: 'Salute!',
         cover: 'Servizio al tavolo', perPerson: 'a persona', roomSvc: 'Supplemento servizio in camera',
         room: 'Puoi addebitare tutto <b>sulla tua camera</b>: pensa a tutto la reception al check-out.',
-        allergens: 'Allergie o intolleranze? <b>Chiedi al nostro personale</b> prima di ordinare.', allergens1: 'Allergeni', alTitle: 'Elenco dei 14 allergeni', alNote: 'Per ulteriori informazioni sugli ingredienti e sugli allergeni, rivolgersi al personale.', hello: 'Benvenuti · Camera', hours: 'Orari', open: 'Rooftop aperto' },
+        allergens: 'Allergie o intolleranze? <b>Chiedi al nostro personale</b> prima di ordinare.', hello: 'Benvenuti · Camera', hours: 'Orari', open: 'Rooftop aperto' },
   en: { tag: 'A taste experience in the heart of Rome', day: 'Day', sunset: 'Sunset', night: 'Night',
         scroll: 'Scroll the menu', now: 'Rome time', sunsetAt: 'sunset at', glass: 'Glass', bottle: 'Bottle', all: 'All at',
         interH: 'A day on the terrace', interP: 'Keep scrolling: from the midday sun to the stars.', salute: 'Cheers!',
         cover: 'Table service', perPerson: 'per person', roomSvc: 'Room service supplement',
         room: 'You can <b>charge everything to your room</b>: reception settles it at check-out.',
-        allergens: 'Allergies or intolerances? <b>Please ask our staff</b> before ordering.', allergens1: 'Allergens', alTitle: 'The 14 allergens', alNote: 'For more information about ingredients and allergens, please ask our staff.', hello: 'Welcome · Room', hours: 'Opening hours', open: 'Rooftop open' },
+        allergens: 'Allergies or intolerances? <b>Please ask our staff</b> before ordering.', hello: 'Welcome · Room', hours: 'Opening hours', open: 'Rooftop open' },
 };
 
 /* ============================ helpers ============================ */
@@ -366,11 +351,11 @@ function render() {
     const other = lang === 'it' ? s.en : s.it;
     const head = (note) => `<div class="sec-head rv"><h2>${esc(s[lang])}</h2><p>${note || esc(other)}</p><span class="rule"></span></div>`;
     if (s.type === 'cocktails') {
-      const c = s.custom ? s.custom[lang] : null;
+      const c = s.custom[lang];
       html += `<section class="sec" id="${s.id}">${head(`${t.all} <b class="gold">€ ${price(s.price)}</b>`)}
         <div class="card names rv">${s.names.map(n => `<div class="item"><h3>${esc(n)}</h3></div>`).join('')}</div>
-        ${c ? `<div class="card custom rv"><div class="q">${esc(c.q)}</div><div class="script">${esc(c.h)}</div><p>${esc(c.p)}</p>
-        <div class="script small">${t.salute}</div></div>` : ''}</section>`;
+        <div class="card custom rv"><div class="q">${esc(c.q)}</div><div class="script">${esc(c.h)}</div><p>${esc(c.p)}</p>
+        <div class="script small">${t.salute}</div></div></section>`;
       continue;
     }
     if (s.type === 'feature') {
@@ -383,8 +368,8 @@ function render() {
         ${s.items.map(([n, en]) => `<div class="item"><h3>${esc(n)}</h3>${lang === 'en' && en ? `<div class="sub">${esc(en)}</div>` : ''}</div>`).join('')}</div></section>`;
       continue;
     }
-    const rows = s.items.map(([name, en, p, bottle, al]) => {
-      const sub = (en ? `<div class="sub">${esc(en)}</div>` : '') + (al && al.length ? `<div class="al"><span>${t.allergens1}</span>${al.map(n => `<b title="${n}">${esc(ALLERGENS[n][lang === 'it' ? 0 : 1])}</b>`).join('')}</div>` : '');
+    const rows = s.items.map(([name, en, p, bottle]) => {
+      const sub = en ? `<div class="sub">${esc(en)}</div>` : '';
       if (bottle) return `<div class="item"><h3>${esc(name)}</h3>${sub}
         <div class="pair"><span>${t.glass}<b>€ ${price(p)}</b></span><span>${t.bottle}<b>€ ${price(bottle)}</b></span></div></div>`;
       return `<div class="item"><h3>${esc(name)}</h3><div class="price">€ ${price(p)}</div>${sub}</div>`;
@@ -398,7 +383,6 @@ function render() {
     ${hours ? `<div><b>${t.hours}</b> · ${esc(hours)}</div>` : ''}
     <div>${t.cover} <b>€ ${price(SETTINGS.coverFee)}</b> ${t.perPerson}<br>${t.roomSvc} <b>€ ${price(SETTINGS.roomService)}</b></div>
     <div>${t.room}</div><div>${t.allergens}</div></div>
-    <div class="alleg"><h3>${t.alTitle}</h3><ol>${Object.entries(ALLERGENS).map(([n, v]) => `<li value="${n}">${esc(v[lang === 'it' ? 0 : 1])}</li>`).join('')}</ol><p>${t.alNote}</p></div>
     <div class="sign">HOTEL CONCORDIA · ROMA</div><div class="tagf">${t.tag}</div>`;
   observe();
   setMode(mode, true);
