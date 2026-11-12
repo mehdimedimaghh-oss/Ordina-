@@ -58,13 +58,19 @@ insert into public.menu_items(id, section, name_it, name_en, price, sort, hidden
   ('bianco-b', 'vino', 'Chardonnay Lazio · bottiglia', 'White wine · bottle', 32, 4, false),
   ('gewurz-c', 'vino', 'Gewürztraminer d''Isera · calice', 'White wine · glass', 10, 5, false),
   ('gewurz-b', 'vino', 'Gewürztraminer d''Isera · bottiglia', 'White wine · bottle', 40, 6, false),
-  ('rosso-c', 'vino', 'Montepulciano d''Abruzzo · calice', 'Red wine · glass', 8, 7, false),
-  ('rosso-b', 'vino', 'Montepulciano d''Abruzzo · bottiglia', 'Red wine · bottle', 32, 8, false),
-  ('syrah-c', 'vino', 'Syrah Divina · calice', 'Red wine · glass', 10, 9, false),
-  ('syrah-b', 'vino', 'Syrah Divina · bottiglia', 'Red wine · bottle', 40, 10, false),
-  ('prosecco-c', 'vino', 'Prosecco Gemin DOC Treviso Extra Dry · calice', 'Sparkling wine · glass', 9, 11, false),
-  ('prosecco-b', 'vino', 'Prosecco Gemin DOC Treviso Extra Dry · bottiglia', 'Sparkling wine · bottle', 29, 12, false),
-  ('birra', 'vino', 'Birra 0,33 cl', 'Beer', 6.5, 13, false),
+  ('ribolla-c', 'vino', 'Ribolla Gialla · calice', 'White wine · glass', 9, 7, false),
+  ('ribolla-b', 'vino', 'Ribolla Gialla · bottiglia', 'White wine · bottle', 35, 8, false),
+  ('malvasia-c', 'vino', 'Malvasia · calice', 'White wine · glass', 9, 9, false),
+  ('malvasia-b', 'vino', 'Malvasia · bottiglia', 'White wine · bottle', 35, 10, false),
+  ('rosso-c', 'vino', 'Montepulciano d''Abruzzo · calice', 'Red wine · glass', 8, 11, false),
+  ('rosso-b', 'vino', 'Montepulciano d''Abruzzo · bottiglia', 'Red wine · bottle', 32, 12, false),
+  ('syrah-c', 'vino', 'Syrah Divina · calice', 'Red wine · glass', 10, 13, false),
+  ('syrah-b', 'vino', 'Syrah Divina · bottiglia', 'Red wine · bottle', 40, 14, false),
+  ('merlot-c', 'vino', 'Merlot Villa Dugo FVG 2024 · calice', 'Red wine, Friuli Venezia Giulia 2024 · glass', 9, 15, false),
+  ('merlot-b', 'vino', 'Merlot Villa Dugo FVG 2024 · bottiglia', 'Red wine, Friuli Venezia Giulia 2024 · bottle', 38, 16, false),
+  ('prosecco-c', 'vino', 'Prosecco Gemin DOC Treviso Extra Dry · calice', 'Sparkling wine · glass', 9, 17, false),
+  ('prosecco-b', 'vino', 'Prosecco Gemin DOC Treviso Extra Dry · bottiglia', 'Sparkling wine · bottle', 29, 18, false),
+  ('birra', 'vino', 'Birra 0,33 cl', 'Beer', 6.5, 19, false),
   ('limoncello', 'liquori', 'Limoncello di Capri', 'Lemon liqueur', 8.5, 1, false),
   ('jager', 'liquori', 'Amaro Jägermeister', 'Herbal liqueur', 8.5, 2, false),
   ('jefferson', 'liquori', 'Amaro Jefferson', 'Herbal liqueur', 11, 3, false),
@@ -75,7 +81,7 @@ on conflict (id) do update set
 
 -- everything else: hidden (not deleted). Custom drinks keep their place at the end of their section.
 update public.menu_items set hidden = true, updated_at = now()
-where id not in ('spag-pom', 'pasta-speck', 'zuppa', 'carbonara', 'risotto', 'ravioli', 'polpette', 'filetto', 'cotoletta', 'souffle-cioc', 'souffle-pist', 'tiramisu', 'pinsa-rosmarino', 'pinsa-mortadella', 'pinsa-cotto', 'pinsa-speck', 'pinsa-bresaola', 'pinsa-tricolore', 'aperitif', 'espresso', 'decaf', 'orzo', 'ginseng', 'americano', 'cappuccino', 'te-verde', 'te-nero', 'te-earl', 'cioccolata', 'spremuta', 'redbull', 'acqua', 'coca', 'coca-zero', 'fanta', 'schweppes', 'manhattan', 'aperol', 'campari', 'limoncello-spritz', 'mojito', 'cuba', 'gin-tonic', 'vodka-tonic', 'americano-ck', 'negroni', 'spum-c', 'spum-b', 'bianco-c', 'bianco-b', 'gewurz-c', 'gewurz-b', 'rosso-c', 'rosso-b', 'syrah-c', 'syrah-b', 'prosecco-c', 'prosecco-b', 'birra', 'limoncello', 'jager', 'jefferson', 'jack')
+where id not in ('spag-pom', 'pasta-speck', 'zuppa', 'carbonara', 'risotto', 'ravioli', 'polpette', 'filetto', 'cotoletta', 'souffle-cioc', 'souffle-pist', 'tiramisu', 'pinsa-rosmarino', 'pinsa-mortadella', 'pinsa-cotto', 'pinsa-speck', 'pinsa-bresaola', 'pinsa-tricolore', 'aperitif', 'espresso', 'decaf', 'orzo', 'ginseng', 'americano', 'cappuccino', 'te-verde', 'te-nero', 'te-earl', 'cioccolata', 'spremuta', 'redbull', 'acqua', 'coca', 'coca-zero', 'fanta', 'schweppes', 'manhattan', 'aperol', 'campari', 'limoncello-spritz', 'mojito', 'cuba', 'gin-tonic', 'vodka-tonic', 'americano-ck', 'negroni', 'spum-c', 'spum-b', 'bianco-c', 'bianco-b', 'gewurz-c', 'gewurz-b', 'rosso-c', 'rosso-b', 'syrah-c', 'syrah-b', 'ribolla-c', 'ribolla-b', 'malvasia-c', 'malvasia-b', 'merlot-c', 'merlot-b', 'prosecco-c', 'prosecco-b', 'birra', 'limoncello', 'jager', 'jefferson', 'jack')
   and name_it not ilike '%su misura%' and id not like '%misura%'
   and hidden = false;
 
