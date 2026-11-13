@@ -110,13 +110,20 @@ function stats(el, orders, rg, body) {
   const rs = ok.filter(o => o.roomService).length;
   const cv = ok.reduce((a, o) => a + (o.covers || 0), 0), cvSum = ok.filter(o => o.covers).reduce((a, o) => a + o.total, 0);
   const byW = {}, byD = {}, byI = {};
+  const dishNames = Object.fromEntries(S.menu.map(m => [m.id, m.name_it]));
   for (const o of ok) {
     const w = o.waiter || '—'; byW[w] = byW[w] || { t: 0, n: 0 }; byW[w].t += o.total; byW[w].n++;
     byD[o.day] = (byD[o.day] || 0) + o.total;
-    for (const l of o.items) { const k = l.it; byI[k] = byI[k] || { q: 0, r: 0 }; byI[k].q += l.qty; byI[k].r += l.qty * l.p; }
+    for (const l of o.items) {
+      // group by the dish (its menu id), not by the name written in the order: a dish renamed in the menu stays ONE dish,
+      // shown with today's name. Custom drinks (id "cocktail-misura~…") count as their menu dish.
+      const base = String(l.id || '').split('~')[0], m = base && dishNames[base];
+      const k = m ? 'id:' + base : 'name:' + l.it;
+      byI[k] = byI[k] || { q: 0, r: 0, n: m || l.it }; byI[k].q += l.qty; byI[k].r += l.qty * l.p;
+    }
   }
   const wl = Object.entries(byW).sort((a, b) => b[1].t - a[1].t), maxW = Math.max(1, ...wl.map(x => x[1].t));
-  const il = Object.entries(byI).sort((a, b) => b[1].q - a[1].q || b[1].r - a[1].r).slice(0, 10), maxI = Math.max(1, ...il.map(x => x[1].q));
+  const il = Object.values(byI).sort((a, b) => b.q - a.q || b.r - a.r).slice(0, 10).map(v => [v.n, v]), maxI = Math.max(1, ...il.map(x => x[1].q));
   const none = `<p class="hint">${L('No orders.', 'Nessun ordine.')}</p>`;
   let cols = '';
   if (mode !== 'day') {
