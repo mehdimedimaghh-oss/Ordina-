@@ -70,9 +70,13 @@ insert into public.menu_items(id, section, name_it, name_en, price, sort, hidden
   ('merlot-b', 'vino', 'Merlot Villa Dugo FVG 2024 · bottiglia', 'Red wine, Friuli Venezia Giulia 2024 · bottle', 38, 16, false),
   ('prosecco-c', 'vino', 'Prosecco Gemin DOC Treviso Extra Dry · calice', 'Sparkling wine · glass', 9, 17, false),
   ('prosecco-b', 'vino', 'Prosecco Gemin DOC Treviso Extra Dry · bottiglia', 'Sparkling wine · bottle', 29, 18, false),
-  ('birra', 'vino', 'Birra 0,33 cl', 'Beer', 6.5, 19, false),
-  ('limoncello', 'liquori', 'Limoncello di Capri', 'Lemon liqueur', 8.5, 1, false),
-  ('jager', 'liquori', 'Amaro Jägermeister', 'Herbal liqueur', 8.5, 2, false),
+  ('champ-mumm', 'vino', 'Champagne Grand Cordon Mumm · bottiglia', 'Champagne · bottle', 95, 19, false),
+  ('franciacorta-magnum', 'vino', 'Franciacorta Magnum 1,5 L Tenuta Martinelli Brut DOCG · bottiglia', 'Franciacorta Magnum 1.5 L · bottle', 140, 20, false),
+  ('champ-moet-rosso', 'vino', 'Moët & Chandon Impérial Rosso · bottiglia', 'Champagne · bottle', 180, 21, false),
+  ('birra-peroni', 'vino', 'Birra Peroni', 'Peroni beer', 8, 22, false),
+  ('birra-ichnusa', 'vino', 'Birra Ichnusa 0,5 L', 'Ichnusa beer 0.5 L', 9.5, 23, false),
+  ('limoncello', 'liquori', 'Limoncello di Capri', 'Lemon liqueur', 10, 1, false),
+  ('jager', 'liquori', 'Amaro Jägermeister', 'Herbal liqueur', 10, 2, false),
   ('jefferson', 'liquori', 'Amaro Jefferson', 'Herbal liqueur', 11, 3, false),
   ('jack', 'liquori', 'Whisky Jack Daniel''s', 'Whiskey', 11, 4, false)
 on conflict (id) do update set
@@ -81,7 +85,7 @@ on conflict (id) do update set
 
 -- everything else: hidden (not deleted). Custom drinks keep their place at the end of their section.
 update public.menu_items set hidden = true, updated_at = now()
-where id not in ('spag-pom', 'pasta-speck', 'zuppa', 'carbonara', 'risotto', 'ravioli', 'polpette', 'filetto', 'cotoletta', 'souffle-cioc', 'souffle-pist', 'tiramisu', 'pinsa-rosmarino', 'pinsa-mortadella', 'pinsa-cotto', 'pinsa-speck', 'pinsa-bresaola', 'pinsa-tricolore', 'aperitif', 'espresso', 'decaf', 'orzo', 'ginseng', 'americano', 'cappuccino', 'te-verde', 'te-nero', 'te-earl', 'cioccolata', 'spremuta', 'redbull', 'acqua', 'coca', 'coca-zero', 'fanta', 'schweppes', 'manhattan', 'aperol', 'campari', 'limoncello-spritz', 'mojito', 'cuba', 'gin-tonic', 'vodka-tonic', 'americano-ck', 'negroni', 'spum-c', 'spum-b', 'bianco-c', 'bianco-b', 'gewurz-c', 'gewurz-b', 'rosso-c', 'rosso-b', 'syrah-c', 'syrah-b', 'ribolla-c', 'ribolla-b', 'malvasia-c', 'malvasia-b', 'merlot-c', 'merlot-b', 'prosecco-c', 'prosecco-b', 'birra', 'limoncello', 'jager', 'jefferson', 'jack')
+where id not in ('spag-pom', 'pasta-speck', 'zuppa', 'carbonara', 'risotto', 'ravioli', 'polpette', 'filetto', 'cotoletta', 'souffle-cioc', 'souffle-pist', 'tiramisu', 'pinsa-rosmarino', 'pinsa-mortadella', 'pinsa-cotto', 'pinsa-speck', 'pinsa-bresaola', 'pinsa-tricolore', 'aperitif', 'espresso', 'decaf', 'orzo', 'ginseng', 'americano', 'cappuccino', 'te-verde', 'te-nero', 'te-earl', 'cioccolata', 'spremuta', 'redbull', 'acqua', 'coca', 'coca-zero', 'fanta', 'schweppes', 'manhattan', 'aperol', 'campari', 'limoncello-spritz', 'mojito', 'cuba', 'gin-tonic', 'vodka-tonic', 'americano-ck', 'negroni', 'spum-c', 'spum-b', 'bianco-c', 'bianco-b', 'gewurz-c', 'gewurz-b', 'rosso-c', 'rosso-b', 'syrah-c', 'syrah-b', 'ribolla-c', 'ribolla-b', 'malvasia-c', 'malvasia-b', 'merlot-c', 'merlot-b', 'prosecco-c', 'prosecco-b', 'champ-mumm', 'franciacorta-magnum', 'champ-moet-rosso', 'birra-peroni', 'birra-ichnusa', 'limoncello', 'jager', 'jefferson', 'jack')
   and name_it not ilike '%su misura%' and id not like '%misura%'
   and hidden = false;
 
