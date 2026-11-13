@@ -57,6 +57,9 @@ begin
   v_id := public.insert_order(v_o, w.id, v_name, 'app');
   delete from public.open_tables where table_no = (p_order->>'table')::int
     and (opened_at is null or opened_at <= v_closed + interval '2 seconds');
-  perform public.sheet_notify(v_id, 'sent');
+  -- Google Sheet copy: only if that optional part (RECEPTION-SHEET.md) is installed
+  if to_regprocedure('public.sheet_notify(bigint,text)') is not null then
+    execute 'select public.sheet_notify($1, $2)' using v_id, 'sent';
+  end if;
   return jsonb_build_object('ok', true, 'id', v_id, 'day', coalesce(v_day, public.rome_today()));
 end $$;
