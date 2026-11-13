@@ -1,6 +1,7 @@
 // Menu sections (fixed). Dishes and prices live in the database (owner can edit them).
 export const SECTIONS = [
-  { id: 'primi', tab: 'Primi', it: 'Primi piatti', en: 'First courses', icon: 'pasta', h: 28, start: 'Ristorante Hotel Concordia', food: true },
+  { id: 'giorno', tab: 'Del giorno', it: 'Piatto del giorno', en: 'Dish of the day', icon: 'star', h: 18, start: 'Ristorante Hotel Concordia', food: true },
+  { id: 'primi', tab: 'Primi', it: 'Primi piatti', en: 'First courses', icon: 'pasta', h: 28, food: true },
   { id: 'secondi', tab: 'Secondi', it: 'Secondi piatti', en: 'Main courses', icon: 'plate', h: 5, food: true },
   { id: 'dolci', tab: 'Dolci', it: 'Dolci', en: 'Desserts', icon: 'cake', h: 330, food: true },
   { id: 'pinsa', tab: 'Pinsa', it: 'Pinsa Romana 72h', en: 'Roman pinsa', icon: 'pinsa', h: 42, start: 'Fugari Bistrot', food: true },
