@@ -645,3 +645,6 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 .cdchips button{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:13px}
 .cdcount{font-size:12px;color:var(--muted);text-align:right;margin:-6px 0 0}
 .cdcount.over{color:var(--danger);font-weight:700}
+
+/* reopened order of an earlier day */
+.reday{margin:0 0 10px;padding:9px 12px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-size:13.5px;font-weight:700}

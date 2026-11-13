@@ -94,6 +94,9 @@ function todayOrders() {
   return [...pend.reverse(), ...srv];
 }
 
+// a reopened order of an earlier day is saved on that day (the database decides; this only shows it)
+const origDay = n => { const k = tableRow(n)?.orig_day; return k && k < today() ? String(k).slice(0, 10) : ''; };
+
 function snapshot(n) {
   const d = tableData(n), lines = [], seen = new Set();
   for (const s of SECTIONS) for (const m of itemsOf(s.id, true)) for (const id of idsOf(d, m.id)) {
@@ -103,7 +106,7 @@ function snapshot(n) {
   const now = Date.now();
   return {
     uid: uid(), table: String(n), client: d.client.trim(), roomNo: d.roomNo.trim(), building: d.building, waiter: S.waiter?.name || '', covers: d.covers || 0, coverFee: d.coverOff ? 0 : coverFee(),
-    items: lines, roomService: !!d.room, roomFee: d.room ? fee() : 0, note: d.note.trim(), total: total(d), closedAt: now, day: today(),
+    items: lines, roomService: !!d.room, roomFee: d.room ? fee() : 0, note: d.note.trim(), total: total(d), closedAt: now, day: origDay(n) || today(),
   };
 }
 
@@ -277,7 +280,8 @@ function renderOrder(body, force) {
   const n = cur, row = tableRow(n), d = tableData(n), k = count(d);
   const os = document.getElementById('orderSheet'); if (os) os.querySelector('h3').textContent = 'Tavolo ' + n;
   const ws = k ? toServe(d) : 0;
-  let h = (k ? `<p class="ostat"><span class="osWait">${orderedLabel(row)}</span>${row?.waiter_name ? ' · ' + esc(row.waiter_name) : ''} · ${ws ? `<b>${t('toServe', { n: ws })}</b>` : `<b class="done">${t('allServed')}</b>`}</p>` : '') +
+  const od = origDay(n);
+  let h = (od ? `<p class="reday">${t('reopenedDay', { d: dayLabel(od, true) })}</p>` : '') + (k ? `<p class="ostat"><span class="osWait">${orderedLabel(row)}</span>${row?.waiter_name ? ' · ' + esc(row.waiter_name) : ''} · ${ws ? `<b>${t('toServe', { n: ws })}</b>` : `<b class="done">${t('allServed')}</b>`}</p>` : '') +
     `<div class="fields"><label>${t('clientName')}<input id="cname" type="text" autocomplete="off" placeholder="${t('egClient')}" value="${esc(d.client)}"></label>
     <label>${t('room')}<input id="croom" type="text" inputmode="numeric" autocomplete="off" placeholder="${t('egRoom')}" value="${esc(d.roomNo)}"></label></div>
     <div class="bld" id="bld" role="group" aria-label="${t('building')}"><span>${t('building')}</span><button data-b="HCO" class="${d.building === 'HCO' ? 'on' : ''}"><b>HCO</b> Concordia</button><button data-b="DEP" class="${d.building === 'DEP' ? 'on' : ''}"><b>DEP</b> Dépendance</button></div>

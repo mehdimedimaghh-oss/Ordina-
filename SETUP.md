@@ -145,3 +145,8 @@ On each device, open the website link once:
 3. Every tablet and phone shows the new menu by itself: new cocktails, the 6 pinse with their prices, final names.
    Dishes not on the new menu are only hidden (old orders keep them). Custom drinks ("… su misura") are not touched.
    Safe to run again.
+
+## Step 15 — A reopened order keeps its day (one time)
+1. Supabase → **SQL Editor** → **New query**.
+2. Copy all of `supabase/migrations/20261113000000_reopen_keeps_day.sql`, paste, **Run** → "Success".
+3. From now on, an order of an earlier day that the owner reopens and sends again is saved on its own day, not today. The waiter sees "Reopened order: it will be saved on …". Safe to run again.
