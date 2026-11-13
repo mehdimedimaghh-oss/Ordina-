@@ -5,6 +5,11 @@
 --  After running it, every tablet and phone shows the new menu by itself.
 -- =====================================================================
 
+-- the dishes can be in a new section: Champagne (its own tab for the waiters)
+alter table public.menu_items drop constraint if exists menu_items_section_check;
+alter table public.menu_items add constraint menu_items_section_check
+  check (section in ('primi','secondi','dolci','pinsa','aperitivo','caffe','bibite','cocktail','vino','champagne','liquori'));
+
 insert into public.menu_items(id, section, name_it, name_en, price, sort, hidden) values
   ('spag-pom', 'primi', 'Spaghetto al pomodoro', 'Spaghetti with tomato sauce', 12, 1, false),
   ('pasta-speck', 'primi', 'Pasta fatta in casa al pomodoro con speck e funghi', 'Homemade pasta with tomato sauce, speck and mushrooms', 13, 2, false),
@@ -70,11 +75,11 @@ insert into public.menu_items(id, section, name_it, name_en, price, sort, hidden
   ('merlot-b', 'vino', 'Merlot Villa Dugo FVG 2024 · bottiglia', 'Red wine, Friuli Venezia Giulia 2024 · bottle', 38, 16, false),
   ('prosecco-c', 'vino', 'Prosecco Gemin DOC Treviso Extra Dry · calice', 'Sparkling wine · glass', 9, 17, false),
   ('prosecco-b', 'vino', 'Prosecco Gemin DOC Treviso Extra Dry · bottiglia', 'Sparkling wine · bottle', 29, 18, false),
-  ('champ-mumm', 'vino', 'Champagne Grand Cordon Mumm · bottiglia', 'Champagne · bottle', 95, 19, false),
-  ('franciacorta-magnum', 'vino', 'Franciacorta Magnum 1,5 L Tenuta Martinelli Brut DOCG · bottiglia', 'Franciacorta Magnum 1.5 L · bottle', 140, 20, false),
-  ('champ-moet-rosso', 'vino', 'Moët & Chandon Impérial Rosso · bottiglia', 'Champagne · bottle', 180, 21, false),
-  ('birra-peroni', 'vino', 'Birra Peroni', 'Peroni beer', 8, 22, false),
-  ('birra-ichnusa', 'vino', 'Birra Ichnusa 0,5 L', 'Ichnusa beer 0.5 L', 9.5, 23, false),
+  ('champ-mumm', 'champagne', 'Grand Cordon Mumm', 'Champagne · bottle', 95, 1, false),
+  ('franciacorta-magnum', 'champagne', 'Franciacorta Magnum 1,5 L · Tenuta Martinelli Brut DOCG', 'Franciacorta Magnum 1.5 L · bottle', 140, 2, false),
+  ('champ-moet-rosso', 'champagne', 'Moët & Chandon Impérial Rosso', 'Champagne · bottle', 180, 3, false),
+  ('birra-peroni', 'vino', 'Birra Peroni', 'Peroni beer', 8, 19, false),
+  ('birra-ichnusa', 'vino', 'Birra Ichnusa 0,5 L', 'Ichnusa beer 0.5 L', 9.5, 20, false),
   ('limoncello', 'liquori', 'Limoncello di Capri', 'Lemon liqueur', 10, 1, false),
   ('jager', 'liquori', 'Amaro Jägermeister', 'Herbal liqueur', 10, 2, false),
   ('jefferson', 'liquori', 'Amaro Jefferson', 'Herbal liqueur', 11, 3, false),
