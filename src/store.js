@@ -1,6 +1,6 @@
 // Data layer: Supabase + offline copy + offline queue + live updates.
 import { createClient } from '@supabase/supabase-js';
-import { today, ms, uid as newUid } from './data.js';
+import { today, ms, uid as newUid, SECTIONS } from './data.js';
 import { t } from './i18n.js';
 
 const URL = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '');
@@ -30,6 +30,10 @@ const subs = new Set();
 export const onChange = f => subs.add(f);
 let emitT = null;
 export function emit() { cache = null; clearTimeout(emitT); emitT = setTimeout(() => subs.forEach(f => f()), 0); }
+
+// stock that the daily "new count" resets: dishes only (bottles are an inventory and stay)
+const FOOD = new Set(SECTIONS.filter(s => s.food).map(s => s.id));
+export const isFoodId = id => FOOD.has(S.menu.find(m => m.id === String(id).split('~')[0])?.section);
 
 // ---------- pure logic, same rules as the SQL function table_op ----------
 export const emptyData = () => ({ items: {}, notes: {}, served: {}, client: '', roomNo: '', building: '', room: false, note: '', covers: 0, coverOff: false });
@@ -88,7 +92,7 @@ export function views() {
     } else if (q.kind === 'stock_set') {
       if (q.n == null) delete stock[q.id]; else stock[q.id] = Math.max(0, q.n);
     } else if (q.kind === 'stock_new_day') {
-      for (const k of Object.keys(stock)) delete stock[k];
+      for (const k of Object.keys(stock)) if (isFoodId(k)) delete stock[k];
     }
   }
   return (cache = { tables, stock, pendingOrders });
@@ -147,7 +151,7 @@ export async function flush() {
       } else if (q.kind === 'stock_set') {
         if (q.n == null) delete S.stock[q.id]; else S.stock[q.id] = Math.max(0, q.n);
         dirty.add('stock');
-      } else if (q.kind === 'stock_new_day') { S.stock = {}; dirty.add('stock'); }
+      } else if (q.kind === 'stock_new_day') { for (const k of Object.keys(S.stock)) if (isFoodId(k)) delete S.stock[k]; dirty.add('stock'); }
       if (q.kind === 'op') dirty.add('stock');
       S.queue.shift(); saveQueue(); inflight = null; saved++;
       persist(); emit();

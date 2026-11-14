@@ -576,9 +576,11 @@ function renderStock() {
   <div class="legend"><span class="stk ok">${t('inStock')}</span><span class="stk warn">${t('almostFinished')}</span><span class="stk out">${t('finished')}</span></div>
   <div class="srow"><div class="t">${t('orangeWhen')}<small>${t('almostWarn')}</small></div>
     <div class="step"><button data-alert="-1" aria-label="${t('lower')}">−</button><span class="n num">${alertN()}</span><button data-alert="1" aria-label="${t('higher')}">+</button></div></div>`;
-  for (const sec of SECTIONS.filter(x => x.food)) {
-    h += `<div class="grp">${sec.it}</div>`;
-    for (const m of itemsOf(sec.id)) {
+  const stockSecs = [...SECTIONS.filter(x => x.food), ...SECTIONS.filter(x => x.bottles)];
+  for (const sec of stockSecs) {
+    if (sec === SECTIONS.find(x => x.bottles)) h += `<p class="hint bottlehint">${t('bottlesHint')}</p>`;
+    h += `<div class="grp">${sec.bottles ? t('bottlesOf', { s: sec.it }) : sec.it}</div>`;
+    for (const m of itemsOf(sec.id).filter(m => !sec.bottles || !/calice/i.test(m.name_it))) {
       const n = stockLeft(m.id), lv = level(n), id = esc(m.id);
       h += `<div class="srow"><div class="t">${esc(m.name_it)}<small>${lv ? `<span class="stk ${lv}">${stockLabel(n)}</span> <button class="stop" data-stop="${id}">${t('stopCounting')}</button>` : t('notCounted')}</small></div>
         <div class="step"><button data-s="${id}" data-d="-1" aria-label="${t('oneLess')}">−</button><span class="${lv ? 'n num' : 'off'}">${lv ? Math.max(0, n) : '—'}</span><button data-s="${id}" data-d="1" aria-label="${t('oneMore')}">+</button></div></div>`;

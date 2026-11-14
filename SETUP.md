@@ -150,3 +150,9 @@ On each device, open the website link once:
 1. Supabase → **SQL Editor** → **New query**.
 2. Copy all of `supabase/migrations/20261113000000_reopen_keeps_day.sql`, paste, **Run** → "Success".
 3. From now on, an order of an earlier day that the owner reopens and sends again is saved on its own day, not today. The waiter sees "Reopened order: it will be saved on …". Safe to run again.
+
+## Step 16 — Bottle stock (one time)
+1. First run Step 14 (`20261111000000_final_menu.sql`) if you haven't yet.
+2. Supabase → **SQL Editor** → paste `supabase/migrations/20261114000000_bottle_stock.sql` → **Run**.
+3. In the waiters' app, **Stock** now has a **Bottles** part (wines, champagne, beers). Every bottle sold takes one away by itself; a glass does not.
+   "Nuovo conteggio del giorno" now resets only the dishes: the bottles stay.

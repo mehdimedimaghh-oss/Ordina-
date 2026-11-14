@@ -9,8 +9,8 @@ export const SECTIONS = [
   { id: 'caffe', tab: 'Caffè', it: 'Caffetteria', en: 'Coffee & hot drinks', icon: 'cup', h: 24 },
   { id: 'bibite', tab: 'Bibite', it: 'Soft drinks', en: 'Cold drinks', icon: 'soda', h: 200 },
   { id: 'cocktail', tab: 'Cocktail', it: 'Cocktails', en: 'All € 15', icon: 'cocktail', h: 14 },
-  { id: 'vino', tab: 'Vino', it: 'Vino e birra', en: 'Wine & beer', icon: 'wine', h: 345 },
-  { id: 'champagne', tab: 'Champagne', it: 'Champagne', en: 'Champagne & Franciacorta · bottle', icon: 'flute', h: 45 },
+  { id: 'vino', tab: 'Vino', it: 'Vino e birra', en: 'Wine & beer', icon: 'wine', h: 345, bottles: true },
+  { id: 'champagne', tab: 'Champagne', it: 'Champagne', en: 'Champagne & Franciacorta · bottle', icon: 'flute', h: 45, bottles: true },
   { id: 'liquori', tab: 'Liquori', it: 'Amari e distillati', en: 'Spirits', icon: 'shot', h: 262 },
 ];
 export const SECTION = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
