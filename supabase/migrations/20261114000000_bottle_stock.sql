@@ -28,8 +28,8 @@ select v.id, v.n from (values
   ('syrah-b', 6),               -- Syrah
   ('ribolla-b', 9),             -- Ribolla Gialla: 3 + 3 (fridge) + 3 (store room)
   ('malvasia-b', 11),           -- Malvasia puntinata Lazio: 3 (fridge) + 8 (store room)
-  ('gewurz-b', 6),              -- Gewürztraminer d'Isera (Trentino): 3 (fridge) + 3 (store room)
-  ('prosecco-b', 6),            -- Prosecco Gemin: 3 (fridge) + 3 (store room)
+  ('gewurz-b', 7),              -- Gewürztraminer: 3 + 3 d'Isera (Trentino) + 1 Lazio
+  ('prosecco-b', 7),            -- Prosecco: 3 + 3 Gemin + 1 Lenynae
   ('bianco-b', 5)               -- Chardonnay Lazio
 ) as v(id, n)
 where exists (select 1 from public.menu_items m where m.id = v.id)
