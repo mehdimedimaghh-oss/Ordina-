@@ -215,16 +215,19 @@ let channel = null, todayT = null;
 // Only the first name is shared; it disappears when the waiter locks the app, logs out or closes it.
 const deviceId = LS.get('device') || (() => { const id = newUid(); LS.set('device', id); return id; })();
 S.presence = [];
+// Waiters who are never shown as "logged in now" (their PIN login stays private).
+const INVISIBLE = new Set(['mehdi']);
+const invisible = name => INVISIBLE.has(String(name || '').trim().toLowerCase());
 export function trackMe() {
   if (!channel || channel.state !== 'joined') return;
-  if (S.waiter && (S.role === 'staff' || S.role === 'owner')) channel.track({ waiter_id: S.waiter.id, name: S.waiter.name, since: Date.now() }).catch(() => {});
+  if (S.waiter && !invisible(S.waiter.name) && (S.role === 'staff' || S.role === 'owner')) channel.track({ waiter_id: S.waiter.id, name: S.waiter.name, since: Date.now() }).catch(() => {});
   else channel.untrack().catch(() => {});
 }
 function readPresence() {
   if (!channel) return;
   const seen = new Map();
   for (const metas of Object.values(channel.presenceState())) for (const m of metas) {
-    if (!m.waiter_id) continue;
+    if (!m.waiter_id || invisible(m.name)) continue;
     const old = seen.get(m.waiter_id); if (!old || m.since < old.since) seen.set(m.waiter_id, { id: m.waiter_id, name: m.name, since: m.since });
   }
   S.presence = [...seen.values()].sort((a, b) => a.name.localeCompare(b.name)); emit();
