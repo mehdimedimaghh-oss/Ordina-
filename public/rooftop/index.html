@@ -40,7 +40,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .stage .on{opacity:1}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .stage::after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(180deg,var(--shade-top) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,calc(.10 + var(--scroll)*.45)) 55%,var(--shade-bot) 100%);transition:background 1.2s}
+  background:linear-gradient(180deg,var(--shade-top) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,.10) 55%,var(--shade-bot) 100%);transition:background 1.2s}
 
 /* ============ intro curtain ============ */
 .curtain{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#0b1230;transition:opacity 1.1s ease .2s,visibility 0s 1.4s}
@@ -198,6 +198,27 @@ body.fading main{opacity:0}
 .alleg li::marker{color:var(--accent)}
 .alleg p{margin-top:10px;font-size:12.5px;text-align:center}
 .item .price small{font-family:Figtree,sans-serif;font-size:11px;color:var(--ink-3);letter-spacing:.06em;margin-right:4px}
+
+/* ---------- smooth scrolling on every phone ---------- */
+.shade{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:var(--scroll,0);
+  background:linear-gradient(180deg,rgba(0,0,0,0) 25%,rgba(0,0,0,.45) 55%,rgba(0,0,0,.2) 100%)}
+.stage canvas{z-index:1}
+.chips{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.sec,.foot{contain:layout paint}
+/* lighter look for slower phones (chosen automatically): same design, no live blur behind cards */
+.lite .card,.lite .welcome,.lite .info,.lite .alleg,.lite .foot .notes div,.lite .chips a,.lite .moments,.lite .lang,.lite .interlude .when span{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.lite .card,.lite .welcome,.lite .info,.lite .alleg,.lite .foot .notes div{background:rgba(10,14,36,.78)}
+.lite body[data-mode="sunset"] .card,.lite body[data-mode="sunset"] .welcome,.lite body[data-mode="sunset"] .info,.lite body[data-mode="sunset"] .alleg,.lite body[data-mode="sunset"] .foot .notes div{background:rgba(40,18,36,.78)}
+.lite .chips a{background:rgba(6,10,28,.82)}
+.lite .chips a.on{background:var(--accent);color:#1b1530;border-color:transparent}
+.lite .bar.solid,.lite .chipbar.solid{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:rgba(6,10,28,.92)}
+.lite .rv{filter:none!important;transform:translateY(16px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1)}
+.lite .rv.in{transform:none}
+.lite .sec-head.rv:not(.in) h2{letter-spacing:inherit}
+.lite .kb{animation:none}
+.lite .interlude .frame{clip-path:none;border-radius:28px}
+.lite .stage .poster{transform:scale(1.06)!important;will-change:auto}
 /* footer */
 .foot{text-align:center;padding:30px 20px calc(env(safe-area-inset-bottom) + 50px);color:var(--ink-2);font-size:14px;font-weight:300}
 .foot img{width:64px;height:64px;border-radius:50%;margin-bottom:16px}
@@ -223,6 +244,7 @@ body.fading main{opacity:0}
   <img class="poster kb" data-m="sunset" src="media/sunset-photo.jpg" alt="">
   <img class="poster kb" data-m="night" src="media/night-2.jpg" alt="">
   <canvas id="fx"></canvas>
+  <div class="shade" aria-hidden="true"></div>
 </div>
 
 <header class="bar" id="bar">
@@ -389,7 +411,25 @@ const price = n => Number(n).toFixed(2).replace('.', ',');
 const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let lang = store.get('tz-lang') || ((navigator.language || 'it').toLowerCase().startsWith('it') ? 'it' : 'en');
-let mode = 'sunset', userPicked = false;
+let mode = 'sunset', userPicked = false, scrollV = 0;
+// lighter effects on phones that cannot keep up (old or low-power): decided at start, and again if scrolling stutters
+const conn = navigator.connection || {};
+let lite = /[?&]lite\b/.test(location.search) || conn.saveData === true || (navigator.hardwareConcurrency || 8) <= 4
+  || (navigator.deviceMemory || 8) <= 3 || /OS (1[0-4]|[5-9])_\d.*like Mac OS X/.test(navigator.userAgent);
+if (/[?&]full\b/.test(location.search)) lite = false;
+document.documentElement.classList.toggle('lite', lite);
+(function watchFps() {
+  if (lite) return;
+  let n = 0, slow = 0, last = 0, scrolling = false, t = 0;
+  addEventListener('scroll', () => { scrolling = true; clearTimeout(t); t = setTimeout(() => { scrolling = false; }, 150); }, { passive: true });
+  const tick = now => {
+    if (scrolling && last) { n++; if (now - last > 34) slow++; }
+    last = now;
+    if (n >= 90) { if (slow / n > .35) { lite = true; document.documentElement.classList.add('lite'); fx.resize(); return; } n = slow = 0; }
+    if (!lite) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+})();
 
 /* ===== real sunrise / sunset in Rome (simple NOAA formula) ===== */
 function sunTimes(date) {
@@ -481,6 +521,7 @@ function render() {
     <div class="alleg rv"><h3>${t.alTitle}</h3><ol>${Object.entries(ALLERGENS).map(([n, v]) => `<li value="${n}">${esc(v[lang === 'it' ? 0 : 1])}</li>`).join('')}</ol><p>${t.alNote}</p></div>
     <div class="sign">HOTEL CONCORDIA · ROMA</div><div class="tagf">${t.tag}</div>`;
   observe();
+  requestAnimationFrame(measure);
   setMode(mode, true);
   tickClock();
 }
@@ -512,15 +553,22 @@ function observe() {
   $$('.rv').forEach(el => io.observe(el));
   $$('.card').forEach(c => c.querySelectorAll('.item').forEach((it, k) => it.style.transitionDelay = Math.min(k * 70, 700) + 'ms'));
 }
-let ticking = false;
+let ticking = false, secTops = [], lastScrollV = -1, lastCur = '', vh = innerHeight;
+// section positions are measured once (and after a resize / new language), not at every frame
+function measure() { vh = innerHeight; secTops = $$('.sec').map(x => [x.id, x.getBoundingClientRect().top + scrollY]); }
+const STAGE = $('#stage'), HERO = $('.hero');
 function onScroll() {
   if (ticking) return; ticking = true;
   requestAnimationFrame(() => {
     ticking = false;
-    const y = scrollY, h = innerHeight;
-    document.documentElement.style.setProperty('--scroll', Math.min(y / h, 1).toFixed(3));
+    const y = scrollY, h = vh;
+    const sv = Math.round(Math.min(y / h, 1) * 100) / 100;
+    if (sv !== lastScrollV) {             // only the background and the opening are affected, and only when it changes
+      lastScrollV = sv; scrollV = sv;
+      STAGE.style.setProperty('--scroll', sv); HERO.style.setProperty('--scroll', sv);
+    }
     $('#bar').classList.toggle('solid', y > h * .55);
-    $('#chipbar').classList.toggle('solid', $('#chipbar').getBoundingClientRect().top <= $('#bar').offsetHeight + 1);
+    $('#chipbar').classList.toggle('solid', y > (secTops[0]?.[1] ?? 1e9) + 40);
     const inter = $('#interlude');
     if (inter) {
       const r = inter.getBoundingClientRect(), cl = v => Math.max(0, Math.min(1, v));
@@ -533,21 +581,32 @@ function onScroll() {
       inter.querySelectorAll('.when span').forEach(sp => sp.classList.toggle('on', sp.dataset.tl === top));
     }
     // highlight the chip of the section on screen
-    let cur = null; for (const s of $$('.sec')) if (s.getBoundingClientRect().top < h * .4) cur = s.id;
-    $$('#chips a').forEach(a => { const on = a.getAttribute('href') === '#' + cur; if (on && !a.classList.contains('on')) a.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); a.classList.toggle('on', on); });
+    let cur = ''; for (const [id, top] of secTops) if (top - y < h * .4) cur = id;
+    if (cur !== lastCur) {                // move the chip bar only when the section changes, without touching the page scroll
+      lastCur = cur;
+      const bar = $('#chips');
+      $$('#chips a').forEach(a => { const on = a.getAttribute('href') === '#' + cur; a.classList.toggle('on', on);
+        if (on) bar.scrollTo({ left: a.offsetLeft - (bar.clientWidth - a.offsetWidth) / 2, behavior: lite ? 'auto' : 'smooth' }); });
+    }
   });
 }
 addEventListener('scroll', onScroll, { passive: true });
+// phones resize the window when the address bar slides: only a real width change counts
+let lastW = innerWidth;
+addEventListener('resize', () => { if (innerWidth !== lastW) { lastW = innerWidth; fx.resize(); } measure(); onScroll(); });
+addEventListener('load', () => { measure(); onScroll(); });
+if (document.fonts) document.fonts.ready.then(() => { measure(); onScroll(); });
 
 /* ============ living sky: stars, city lights, sun glow, light dust ============ */
 const fx = (() => {
   const cv = $('#fx'), ctx = cv.getContext('2d');
-  let W, H, dpr, stars = [], lights = [], motes = [], shoot = null, t0 = performance.now(), mix = { day: 0, sunset: 1, night: 0 };
+  let lastDraw = 0, W, H, dpr, stars = [], lights = [], motes = [], shoot = null, t0 = performance.now(), mix = { day: 0, sunset: 1, night: 0 };
   const api = { mode: 'sunset' };
   function size() {
-    dpr = Math.min(devicePixelRatio || 1, 2); W = cv.clientWidth; H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
+    dpr = Math.min(devicePixelRatio || 1, lite ? 1 : 1.5); W = cv.clientWidth; H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
+    const few = lite ? .45 : 1;
     const r = (a, b) => a + Math.random() * (b - a);
-    stars = Array.from({ length: Math.round(W * H / 6500) }, () => ({ x: r(0, W), y: Math.pow(Math.random(), 1.8) * H * .34, s: r(.3, 1.4), p: r(0, 6.3), v: r(.6, 2.2) }));
+    stars = Array.from({ length: Math.round(W * H / 6500 * few) }, () => ({ x: r(0, W), y: Math.pow(Math.random(), 1.8) * H * .34, s: r(.3, 1.4), p: r(0, 6.3), v: r(.6, 2.2) }));
     lights = Array.from({ length: 0 }, () => ({ x: r(0, W), y: r(H * .47, H * .62), s: r(.8, 2.4), p: r(0, 6.3), v: r(.4, 1.6), c: Math.random() < .8 ? [255, 196, 120] : [255, 236, 200] }));
     motes = Array.from({ length: 26 }, () => ({ x: r(0, W), y: r(0, H), s: r(.6, 2), vx: r(-.08, .08), vy: r(-.18, -.04), p: r(0, 6.3) }));
   }
@@ -555,7 +614,9 @@ const fx = (() => {
     const t = (now - t0) / 1000;
     for (const k in mix) mix[k] += ((api.mode === k ? 1 : 0) - mix[k]) * 0.04;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-    const fade = 1 - parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scroll') || 0) * .5;
+    if (lite && now - lastDraw < 33) { if (!document.hidden) requestAnimationFrame(frame); return; }   // 30 fps on slow phones
+    lastDraw = now;
+    const fade = 1 - scrollV * .5;
     // night: stars + shooting star + warm city lights near the horizon
     if (mix.night > .01) {
       const a = mix.night * fade;
@@ -588,7 +649,8 @@ const fx = (() => {
     ctx.globalAlpha = 1;
     if (!document.hidden) requestAnimationFrame(frame);
   }
-  if (!reduce) { size(); addEventListener('resize', size); requestAnimationFrame(frame);
+  api.resize = () => { if (!reduce) size(); };
+  if (!reduce) { size(); requestAnimationFrame(frame);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) requestAnimationFrame(frame); }); }
   return api;
 })();
