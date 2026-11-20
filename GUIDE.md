@@ -27,6 +27,10 @@
 - **Servizio al tavolo / Table service:** added by itself = guests × € 2,00 (e.g. 2 guests = € 4,00). You see it above the total. Untick it only if this table must not pay it.
 - **Served 0/2**: tap each time you bring one portion. When everything is served it becomes green **✓ Served**.
 
+**Preconto (pre-bill)**
+- On any open table tap **🖨 Preconto** → the print window opens with the bill of the table (dishes, table service, total, "Documento non fiscale"). Choose the printer (or "Save as PDF") → Print.
+- It does NOT close the table: you can still add dishes and send it to reception later.
+
 **Colors on the map and on dishes**
 - Table **gold** = open order. **Orange border** = the table is waiting for **20 minutes or more**.
 - Dish **green** = in stock · **orange** = almost finished · **red** = finished (ask the kitchen).
@@ -39,7 +43,8 @@
 
 **Stock (Stock button)**
 - In the morning: **Start new day count** (tap two times), then set the portions with **+ / −**.
-- Every dish you add to an order takes one portion away by itself. "Stop counting" = this dish has no limit.
+- Every dish you add to an order takes one portion away by itself.
+- **Water (Acqua · bottiglie)** is at the bottom of Stock, like the wine bottles: set it once (tap the number to type it, e.g. 48), every water sold takes one away, and the new day count does not reset it. "Stop counting" = this dish has no limit.
 
 **No internet?** Keep working. The top shows **Offline · 3 waiting**. Do not log out. When the internet comes back, everything is sent by itself.
 

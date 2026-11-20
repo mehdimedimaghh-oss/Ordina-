@@ -156,7 +156,8 @@ ok(await until(async () => (await own.p.textContent('.kpi.main b')).includes('77
 ok((await own.p.textContent('#olist')).includes('Room DEP 101'), 'orders list shows HCO/DEP rooms');
 await shot(own.p, 'owner-day');
 await own.p.click('[data-mode="week"]');
-ok(await until(async () => (await own.p.textContent('.kpi.main b')).includes('121,50')), 'week view Mon 2 – Sun 8 Nov: € 121,50 (77,00 + 44,50)');
+{ const td = sql(`select public.rome_today()::text`), inWeek = td >= '2026-11-02' && td <= '2026-11-08', exp = inWeek ? '121,50' : '77,00';
+  ok(await until(async () => (await own.p.textContent('.kpi.main b')).includes(exp)), `week view Mon 2 – Sun 8 Nov: € ${exp} (77,00${inWeek ? ' + today 44,50' : ''})`); }
 await own.p.click('[data-mode="month"]');
 ok(await until(async () => (await own.p.textContent('.kpi.main b')).includes('274,00')), 'month November: € 274,00 (old 229,50 + today 44,50)');
 ok((await own.p.textContent('.kpis')).includes('Guests (coperti)') && (await own.p.locator('.kpi:has-text("Guests") b').textContent()) === '2', 'owner sees guests (coperti): 2');
@@ -273,7 +274,7 @@ await shot(rec.p, 'reception-list');
 // a waiter sends an order on the tablet
 if (!(await tab.p.isVisible('#mapView .tile'))) await tab.p.click('#tableBtn');
 await tab.p.click('.tile[data-t="15"]');
-await tab.p.click('.cell[data-id="pinsa-bufala"] .card'); await tab.p.click('.cell[data-id="coca"] .card');
+await tab.p.click('.cell[data-id="pinsa-mortadella"] .card'); await tab.p.click('.cell[data-id="coca"] .card');
 await tab.p.fill('#cname', 'Bianchi'); await tab.p.fill('#croom', '305'); await tab.p.click('#bld [data-b="DEP"]');
 for (let i = 0; i < 3; i++) await tab.p.click('#orderPanel [data-cov="1"]');
 await tab.p.waitForTimeout(800);
@@ -281,7 +282,7 @@ await tab.p.click('#closeBtn');
 ok(await until(() => rec.p.isVisible('.recv-pop'), 12000), 'reception: pop-up appears for the new order');
 const pop = await rec.p.textContent('.recv-pop');
 ok(pop.includes('3 guests'), 'pop-up shows 3 guests');
-ok(pop.includes('15') && pop.includes('Bianchi') && pop.includes('DEP 305') && pop.includes('27,00') && pop.includes('Pinsa Bufala') && pop.includes('Table service 3 × € 2,00'), 'pop-up shows table, client, room DEP 305, dishes, table service 3 × € 2, total € 27,00');
+ok(pop.includes('15') && pop.includes('Bianchi') && pop.includes('DEP 305') && pop.includes('24,00') && pop.includes('Pinsa mortadella') && pop.includes('Table service 3 × € 2,00'), 'pop-up shows table, client, room DEP 305, dishes, table service 3 × € 2, total € 24,00 (13 + 5 + 3 × 2)');
 const notes = await rec.p.evaluate(() => window.__notes);
 ok(notes.some(n => n.includes('Tavolo 15') && n.includes('Bianchi')), 'PC notification sent: ' + (notes[notes.length - 1] || 'none'));
 await shot(rec.p, 'reception-popup');

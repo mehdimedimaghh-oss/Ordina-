@@ -4,7 +4,7 @@ import {
   S, LS, tableRow, tableData, stockLeft, views, tableOp, submitOrder, stockSet, stockNewDay, setAlert, count,
   reopenOrder, deleteOrder, waiterLogin, waiterLogout, logout, openedMs, flush, reload, roofOfApp, chairsAt, moveChairs,
 } from './store.js';
-import { toast, sheet, sheetBody, openSheet, closeSheet, armed, copyText, ticketText, receptionView, buzz } from './ui.js';
+import { toast, sheet, sheetBody, openSheet, closeSheet, armed, copyText, ticketText, receptionView, buzz, printPreconto } from './ui.js';
 import { t, tServer, getLang, chooseLang, langForWaiter } from './i18n.js';
 import { turnLine, myTurnHtml } from './staffnow.js';
 
@@ -316,7 +316,7 @@ function renderOrder(body, force) {
   <textarea id="note" placeholder="${t('kitchenNote')}">${esc(d.note)}</textarea>
   <div class="total"><span>Totale</span><b class="num">${eur(total(d))}</b></div>
   <div class="actions"><button class="btn" id="copyBtn">${t('copyOrder')}</button><button class="btn primary" id="closeBtn">${t('sendReception')}</button>
-  <button class="btn wide" id="recvBtn">${t('receptionBig')}</button></div>
+  <button class="btn" id="precontoBtn">🖨 ${t('preconto')}</button><button class="btn" id="recvBtn">${t('receptionBig')}</button></div>
   <p class="status">${t('sendHint')}</p>
   <button class="linkbtn" id="clearBtn">${t('deleteNoSave')}</button>
   <div id="copyFallback"></div>`;
@@ -332,6 +332,7 @@ function renderOrder(body, force) {
   const note = $('#note', body); note.oninput = () => { const v = note.value; draft('note' + n, () => tableOp(n, { t: 'set', fields: { note: v } })); }; note.onblur = flushDrafts;
   $('#closeBtn', body).onclick = () => closeTable(n);
   $('#recvBtn', body).onclick = () => { flushDrafts(); receptionView({ ...snapshot(n), closedAt: 0 }); };
+  $('#precontoBtn', body).onclick = () => { flushDrafts(); printPreconto(snapshot(n)); };
   armed($('#clearBtn', body), t('tapAgainDelete'), () => { flushDrafts(); tableOp(n, { t: 'clear' }); toast(t('tableDeleted', { n })); if (isTablet()) screen = 'map'; else closeSheet(sheet('orderSheet')); render(); });
   $('#copyBtn', body).onclick = async () => { flushDrafts(); if (await copyText(ticketText(snapshot(n)), $('#copyFallback', body))) toast(t('orderCopied')); };
 }
@@ -580,11 +581,19 @@ function renderStock() {
   for (const sec of stockSecs) {
     if (sec === SECTIONS.find(x => x.bottles)) h += `<p class="hint bottlehint">${t('bottlesHint')}</p>`;
     h += `<div class="grp">${sec.bottles ? t('bottlesOf', { s: sec.it }) : sec.it}</div>`;
-    for (const m of itemsOf(sec.id).filter(m => !sec.bottles || !/calice/i.test(m.name_it))) {
+    h += stockRows(itemsOf(sec.id).filter(m => !sec.bottles || !/calice/i.test(m.name_it)));
+  }
+  // water: an inventory like the bottles (the new day count does not reset it)
+  const water = itemsOf('bibite').filter(m => /acqua/i.test(m.name_it));
+  if (water.length) h += `<div class="grp">${t('waterStock')}</div>` + stockRows(water);
+  function stockRows(list) {
+    let r = '';
+    for (const m of list) {
       const n = stockLeft(m.id), lv = level(n), id = esc(m.id);
-      h += `<div class="srow"><div class="t">${esc(m.name_it)}<small>${lv ? `<span class="stk ${lv}">${stockLabel(n)}</span> <button class="stop" data-stop="${id}">${t('stopCounting')}</button>` : t('notCounted')}</small></div>
-        <div class="step"><button data-s="${id}" data-d="-1" aria-label="${t('oneLess')}">−</button><span class="${lv ? 'n num' : 'off'}">${lv ? Math.max(0, n) : '—'}</span><button data-s="${id}" data-d="1" aria-label="${t('oneMore')}">+</button></div></div>`;
+      r += `<div class="srow"><div class="t">${esc(m.name_it)}<small>${lv ? `<span class="stk ${lv}">${stockLabel(n)}</span> <button class="stop" data-stop="${id}">${t('stopCounting')}</button>` : t('notCounted')}</small></div>
+        <div class="step"><button data-s="${id}" data-d="-1" aria-label="${t('oneLess')}">−</button><button class="${lv ? 'n num' : 'off'} stype" data-type="${id}" aria-label="${t('typeCount')}">${lv ? Math.max(0, n) : '—'}</button><button data-s="${id}" data-d="1" aria-label="${t('oneMore')}">+</button></div></div>`;
     }
+    return r;
   }
   h += `<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="newCount">${t('newDayCount')}</button></div>
   <p class="status">${t('newDayHint')}</p>`;
@@ -596,6 +605,13 @@ function renderStock() {
     stockSet(id, Math.max(0, Math.max(0, n) + d));
   }; });
   body.querySelectorAll('[data-stop]').forEach(b => { b.onclick = () => stockSet(b.dataset.stop, null); });
+  body.querySelectorAll('[data-type]').forEach(b => { b.onclick = () => {   // tap the number: type it (e.g. 48 bottles of water)
+    const id = b.dataset.type, m = S.menu.find(x => x.id === id), cur = stockLeft(id);
+    const v = prompt(`${m ? m.name_it : id}\n${t('typeCount')}`, cur == null ? '' : String(Math.max(0, cur)));
+    if (v == null || v.trim() === '') return;
+    const n = parseInt(v, 10); if (!(n >= 0 && n <= 9999)) { toast(t('typeCountBad')); return; }
+    stockSet(id, n); buzz();
+  }; });
   const nb = $('#newCount', body); nb.classList.add('warn');
   armed(nb, t('tapAgainCount'), () => { stockNewDay(); toast(t('countStarted')); });
 }

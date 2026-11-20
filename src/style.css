@@ -651,3 +651,30 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 
 /* stock: bottles part */
 .bottlehint{margin:18px 0 4px;padding-top:14px;border-top:2px solid var(--line)}
+
+/* stock: tap the number to type it */
+.step .stype{border:0;background:none;font:inherit;color:inherit;min-width:44px;min-height:44px;cursor:pointer;text-decoration:underline dotted;text-underline-offset:4px}
+
+/* PRECONTO (pre-bill): printed from the app itself */
+#printArea{display:none}
+@media print{
+  @page{margin:8mm}
+  body.printing>*:not(#printArea){display:none!important}
+  body.printing{background:#fff!important;overflow:visible!important}
+  body.printing #printArea{display:block}
+}
+.pc{max-width:80mm;margin:0 auto;font:13px/1.35 'Figtree',system-ui,sans-serif;color:#000}
+.pc-h{text-align:center;border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px}
+.pc-h b{display:block;font-family:'Marcellus',Georgia,serif;font-size:16px;font-weight:400;letter-spacing:.04em}
+.pc-h span{font-size:11px}
+.pc-t{text-align:center;font-weight:800;font-size:17px;letter-spacing:.12em;margin:6px 0}
+.pc-t small,.pc small{font-weight:400;letter-spacing:0;font-size:10.5px;display:block;color:#333}
+.pc-m{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+.pc-sep{border-top:1px dashed #000;margin-top:8px}
+.pc table{width:100%;border-collapse:collapse;margin:4px 0 8px}
+.pc td{padding:4px 0;vertical-align:top}
+.pc td.q{width:28px;font-weight:700}
+.pc td.a{text-align:right;white-space:nowrap;padding-left:6px}
+.pc-tot{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid #000;padding-top:6px;font-weight:800;font-size:16px}
+.pc-tot b{font-size:20px}
+.pc-f{text-align:center;font-size:11px;margin-top:10px;border-top:1px dashed #000;padding-top:6px}

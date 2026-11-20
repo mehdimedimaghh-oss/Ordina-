@@ -88,4 +88,28 @@ export function receptionView(o) {
   document.body.appendChild(el);
 }
 
+// PRECONTO: the bill of an open table, printed before the guest pays (not a fiscal receipt).
+// Printed from this same page (works in the installed app, on iPad/Android/PC, A4 or 80 mm receipt printers).
+export function printPreconto(o) {
+  $('#printArea')?.remove();
+  const now = new Date(), when = now.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Rome' }) + ' ' + hhmm(now.getTime());
+  const row = (q, name, amt, sub) => `<tr><td class="q">${q}</td><td>${name}${sub ? `<small>${sub}</small>` : ''}</td><td class="a">${amt}</td></tr>`;
+  const el = document.createElement('div'); el.id = 'printArea';
+  el.innerHTML = `<div class="pc">
+    <div class="pc-h"><b>Ristorante Hotel Concordia</b><span>Fugari Bistrot · Rooftop</span></div>
+    <div class="pc-t">PRECONTO <small>Pre-bill</small></div>
+    <div class="pc-m"><span>Tavolo <b>${esc(o.table)}</b></span><span>${when}</span></div>
+    ${o.client || roomLabel(o) ? `<div class="pc-m"><span>${esc(o.client || '')}</span><span>${roomLabel(o) ? 'Camera ' + esc(roomLabel(o)) : ''}</span></div>` : ''}
+    ${o.covers || o.waiter ? `<div class="pc-m"><span>${o.covers ? `Coperti ${o.covers}` : ''}</span><span>${o.waiter ? 'Cameriere ' + esc(o.waiter) : ''}</span></div>` : ''}
+    <div class="pc-sep"></div><table>${o.items.map(l => row(l.qty + '×', esc(l.it), eur(l.qty * l.p), l.qty > 1 ? `${l.qty} × ${eur(l.p)}` : '')).join('')}
+      ${o.roomService ? row('+', 'Servizio in camera <small>Room service</small>', eur(o.roomFee ?? 10)) : ''}
+      ${coverAmt(o) ? row('+', 'Servizio al tavolo <small>Table service</small>', eur(coverAmt(o)), `${o.covers} × ${eur(o.coverFee)}`) : ''}</table>
+    <div class="pc-tot"><span>TOTALE <small>Total</small></span><b>${eur(o.total)}</b></div>
+    <p class="pc-f">Documento non fiscale · Not a fiscal receipt<br>Grazie! · Thank you!</p></div>`;
+  document.body.appendChild(el); document.body.classList.add('printing');
+  const done = () => { document.body.classList.remove('printing'); el.remove(); removeEventListener('afterprint', done); };
+  addEventListener('afterprint', done);
+  setTimeout(() => { try { window.print(); } catch { /* ignore */ } setTimeout(() => { if (document.getElementById('printArea') === el) done(); }, 60000); }, 50);
+}
+
 export function buzz() { try { navigator.vibrate && navigator.vibrate(12); } catch { /* ignore */ } }
