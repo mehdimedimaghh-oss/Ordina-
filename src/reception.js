@@ -5,9 +5,11 @@
 import { esc, eur, $, $$, today, addDays, dayLabel, hhmm, roomLabel, ms, coverAmt } from './data.js';
 import { S, LS, sb, reload, markCharged, markChargedMany, logout, fetchOrders, fetchReception } from './store.js';
 import { fromServer, coversLabel } from './waiter.js';
-import { toast, printPreconto } from './ui.js';
+import { toast, printPreconto, sheet, sheetBody, openSheet } from './ui.js';
 import { t, getLang, chooseLang } from './i18n.js';
 import { buildXlsx, download } from './xlsx.js';
+import { turnInfo, shiftsOn, SHIFTS } from './schedule.js';
+import { rotaViewHtml, thisAndNextMonth, legendHtml } from './rota.js';
 
 let root = null, started = false, seen = null, known = null, popupQueue = [], timer = null, audio = null, mountAt = 0, baseline = true;
 const soundOn = () => LS.get('recvSound', true);
@@ -56,6 +58,7 @@ export function receptionRender() {
   const list = orders();
   detectChanges(list);           // pop-ups for new orders work in every tab
   const live = $('#rcpLive'); if (live) { const on = navigator.onLine; live.textContent = on ? '● ' + t('live') : '● ' + t('reconnecting'); live.classList.toggle('off', !on); }
+  drawStaff();
   drawTabs();
   if (tab === 'today') drawToday(list); else if (tab === 'todo') drawTodo(); else drawPast();
 }
@@ -308,6 +311,7 @@ function draw() {
     </div>
     ${started ? '' : `<button class="rcp-start" id="recvStart"><b>${t('startRecv')}</b><span>${t('startHint')}</span></button>`}
     ${notif === 'denied' ? `<p class="rcp-warn">${t('notifBlocked')}</p>` : ''}
+    <div class="panel rcp-staff" id="rcpStaff"></div>
     <nav class="seg seg3 rcp-tabs" id="rcpTabs"></nav>
     <div class="rcp-sum" id="recvSum"></div>
     <div id="recvList"></div></div>`;
@@ -322,6 +326,27 @@ function draw() {
   };
   receptionRender();
 }
+
+// ---------- who works today (staff schedule, read only) ----------
+function drawStaff() {
+  const el = $('#rcpStaff'); if (!el) return;
+  const d = today(), s = shiftsOn(d), r = turnInfo();
+  const names = a => (a.length ? a.map(esc).join(' + ') : '—');
+  const row = (c, label, time) => `<div class="rs-row"><b class="sc s-${c}">${c}</b><span class="rs-l">${label}${time ? ` <small>${time}</small>` : ''}</span><span class="rs-n">${names(s[c])}</span></div>`;
+  const tm = id => { const x = SHIFTS.find(y => y.id === id); return x ? `${x.from}–${x.to}` : ''; };
+  el.innerHTML = r.known ? `<div class="rs-head"><h3>${t('whoWorksToday')}</h3><button class="btn" id="rcpRota">📅 ${t('teamRota')}</button></div>
+    <p class="rs-now">🕒 ${t('onShiftNow')}: <b>${r.active.length ? r.active.map(x => esc(x.name)).join(' + ') : t('noShift')}</b>${r.next ? ` · ${t('nextTurn')}: <b>${esc(r.next.name)}</b> ${r.next.from}${r.next.when === 'tomorrow' ? ' (' + t('tomorrowW') + ')' : ''}` : ''}</p>
+    <div class="rs-grid">${row('M', t('shiftM'), tm('m'))}${row('C', t('shiftC'), tm('d'))}${row('P', t('shiftP'), tm('e'))}${row('R', t('offToday'), '')}</div>`
+    : `<div class="rs-head"><h3>${t('whoWorksToday')}</h3><button class="btn" id="rcpRota">📅 ${t('teamRota')}</button></div><p class="hint">${t('noRota')}</p>`;
+  $('#rcpRota', el).onclick = openRota;
+  const sh = document.getElementById('rcpRotaSheet'); if (sh && !sh.hidden) fillRota();   // live update while the month is open
+}
+function fillRota() {
+  const s = sheet('rcpRotaSheet', t('teamRota')), body = sheetBody(s), keep = body.scrollTop;
+  body.innerHTML = `<p class="hint">${t('recvRotaHint')}</p>${legendHtml()}${thisAndNextMonth().map(ym => rotaViewHtml(ym)).join('')}`;
+  body.scrollTop = keep; s.querySelector('.sheet')?.classList.add('wide');
+}
+function openRota() { openSheet(sheet('rcpRotaSheet', t('teamRota'))); fillRota(); }
 
 // The browser allows sound + notifications only after a click
 async function start() {

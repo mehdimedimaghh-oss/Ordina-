@@ -61,6 +61,8 @@
 
 ## For the reception
 
+**Chi lavora oggi:** at the top of the reception screen you see who is on Morning (M), Middle (C), Afternoon/evening (P) and on rest (R) today, who is on shift right now and who comes next. **📅 Turni del personale** opens the whole team, this month and next month. Read only: only the owner changes the schedule (Owner → Turni); the reception screen updates by itself.
+
 **Set up the reception PC (one time)**
 1. Open the website link on the reception computer (Chrome or Edge is best).
 2. Tap **Reception** → the reception email + password → **Log in**. The reception has its **own login**, like the owner.

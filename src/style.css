@@ -823,3 +823,15 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 .mg-h,.mg-l{display:grid;grid-template-columns:minmax(130px,2fr) repeat(3,minmax(80px,1fr)) 64px;gap:8px;padding:7px 0;border-top:1px solid var(--line);align-items:center;min-width:480px}
 .mg-h{border-top:0;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--muted)}
 .mg-h span:nth-child(n+2):nth-child(-n+4),.mg-l .num{text-align:right}
+
+/* ---------- reception: who works today (staff schedule, read only) ---------- */
+.rcp-staff{margin-bottom:14px}
+.rcp-staff .rs-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.rcp-staff .rs-head h3{margin:0}
+.rcp-staff .rs-head .btn{min-height:44px;padding:0 16px}
+.rcp-staff .rs-now{margin:10px 0 8px;font-size:14.5px}
+.rcp-staff .rs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 18px}
+.rcp-staff .rs-row{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding:7px 0;font-size:14.5px;min-width:0}
+.rcp-staff .rs-l{color:var(--muted);font-weight:600;white-space:nowrap}
+.rcp-staff .rs-l small{font-weight:500}
+.rcp-staff .rs-n{font-weight:700;margin-left:auto;text-align:right;min-width:0;overflow-wrap:anywhere}

@@ -57,6 +57,8 @@ function peopleOn(day, shiftId) {
   if (shiftId === 'off') return ['off1', 'off2'].flatMap(k => codesOn(day, k)).map(nameOf);
   return codesOn(day, shiftId).map(nameOf);
 }
+// everybody's shift on one day: { M: [names], C: [...], P: [...], R: [...] } (reception "Chi lavora oggi")
+export const shiftsOn = day => ({ M: peopleOn(day, 'm'), C: peopleOn(day, 'd'), P: peopleOn(day, 'e'), R: peopleOn(day, 'off') });
 // one month as a grid (rows = people, like the paper sheet), from the months written in this file
 export function gridFromCode(ym) {
   const m = ROTA[ym]; if (!m) return null;
