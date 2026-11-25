@@ -156,3 +156,8 @@ On each device, open the website link once:
 2. Supabase → **SQL Editor** → paste `supabase/migrations/20261114000000_bottle_stock.sql` → **Run**.
 3. In the waiters' app, **Stock** now has a **Bottles** part (wines, champagne, beers). Every bottle sold takes one away by itself; a glass does not.
    "Nuovo conteggio del giorno" now resets only the dishes: the bottles stay.
+
+## Step 17 — Dishes of the day, one pinsa counter (one time)
+1. Supabase → **SQL Editor** → paste `supabase/migrations/20261125000000_daily_dishes_pinsa_stock.sql` → **Run**.
+2. Adds Spaghetti cacio e pepe and Melanzane alla parmigiana (Piatto del giorno, € 13), makes every pinsa use ONE stock counter
+   ("Pinsa (basi)": set it in Stock), and sets the portions of 25/11.

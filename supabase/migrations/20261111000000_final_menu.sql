@@ -12,6 +12,8 @@ alter table public.menu_items add constraint menu_items_section_check
 
 insert into public.menu_items(id, section, name_it, name_en, price, sort, hidden) values
   ('lasagne', 'giorno', 'Lasagne alla bolognese', 'Lasagne with Bolognese meat sauce', 13, 1, false),
+  ('cacio-pepe', 'giorno', 'Spaghetti cacio e pepe', 'Spaghetti with pecorino and black pepper', 13, 2, false),
+  ('parmigiana', 'giorno', 'Melanzane alla parmigiana', 'Aubergine parmigiana', 13, 3, false),
   ('spag-pom', 'primi', 'Spaghetto al pomodoro', 'Spaghetti with tomato sauce', 12, 1, false),
   ('pasta-speck', 'primi', 'Pasta fatta in casa al pomodoro con speck e funghi', 'Homemade pasta with tomato sauce, speck and mushrooms', 13, 2, false),
   ('zuppa', 'primi', 'Zuppa di cereali e legumi', 'Cereal and legume soup', 14, 3, false),
@@ -91,7 +93,7 @@ on conflict (id) do update set
 
 -- everything else: hidden (not deleted). Custom drinks keep their place at the end of their section.
 update public.menu_items set hidden = true, updated_at = now()
-where id not in ('lasagne', 'spag-pom', 'pasta-speck', 'zuppa', 'carbonara', 'risotto', 'ravioli', 'polpette', 'filetto', 'cotoletta', 'souffle-cioc', 'souffle-pist', 'tiramisu', 'pinsa-rosmarino', 'pinsa-mortadella', 'pinsa-cotto', 'pinsa-speck', 'pinsa-bresaola', 'pinsa-tricolore', 'aperitif', 'espresso', 'decaf', 'orzo', 'ginseng', 'americano', 'cappuccino', 'te-verde', 'te-nero', 'te-earl', 'cioccolata', 'spremuta', 'redbull', 'acqua', 'coca', 'coca-zero', 'fanta', 'schweppes', 'manhattan', 'aperol', 'campari', 'limoncello-spritz', 'mojito', 'cuba', 'gin-tonic', 'vodka-tonic', 'americano-ck', 'negroni', 'spum-c', 'spum-b', 'bianco-c', 'bianco-b', 'gewurz-c', 'gewurz-b', 'rosso-c', 'rosso-b', 'syrah-c', 'syrah-b', 'ribolla-c', 'ribolla-b', 'malvasia-c', 'malvasia-b', 'merlot-c', 'merlot-b', 'prosecco-c', 'prosecco-b', 'champ-mumm', 'franciacorta-magnum', 'champ-moet-rosso', 'birra-peroni', 'birra-ichnusa', 'limoncello', 'jager', 'jefferson', 'jack')
+where id not in ('lasagne', 'cacio-pepe', 'parmigiana', 'pinsa-base', 'spag-pom', 'pasta-speck', 'zuppa', 'carbonara', 'risotto', 'ravioli', 'polpette', 'filetto', 'cotoletta', 'souffle-cioc', 'souffle-pist', 'tiramisu', 'pinsa-rosmarino', 'pinsa-mortadella', 'pinsa-cotto', 'pinsa-speck', 'pinsa-bresaola', 'pinsa-tricolore', 'aperitif', 'espresso', 'decaf', 'orzo', 'ginseng', 'americano', 'cappuccino', 'te-verde', 'te-nero', 'te-earl', 'cioccolata', 'spremuta', 'redbull', 'acqua', 'coca', 'coca-zero', 'fanta', 'schweppes', 'manhattan', 'aperol', 'campari', 'limoncello-spritz', 'mojito', 'cuba', 'gin-tonic', 'vodka-tonic', 'americano-ck', 'negroni', 'spum-c', 'spum-b', 'bianco-c', 'bianco-b', 'gewurz-c', 'gewurz-b', 'rosso-c', 'rosso-b', 'syrah-c', 'syrah-b', 'ribolla-c', 'ribolla-b', 'malvasia-c', 'malvasia-b', 'merlot-c', 'merlot-b', 'prosecco-c', 'prosecco-b', 'champ-mumm', 'franciacorta-magnum', 'champ-moet-rosso', 'birra-peroni', 'birra-ichnusa', 'limoncello', 'jager', 'jefferson', 'jack')
   and name_it not ilike '%su misura%' and id not like '%misura%'
   and hidden = false;
 

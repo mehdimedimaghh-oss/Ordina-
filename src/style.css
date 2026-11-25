@@ -678,3 +678,6 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 .pc-tot{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid #000;padding-top:6px;font-weight:800;font-size:16px}
 .pc-tot b{font-size:20px}
 .pc-f{text-align:center;font-size:11px;margin-top:10px;border-top:1px dashed #000;padding-top:6px}
+
+/* reception: preconto button on each order */
+.rc-r .rc-pc{min-height:40px;padding:0 14px;font-size:13.5px}

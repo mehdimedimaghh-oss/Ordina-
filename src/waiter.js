@@ -581,10 +581,13 @@ function renderStock() {
   for (const sec of stockSecs) {
     if (sec === SECTIONS.find(x => x.bottles)) h += `<p class="hint bottlehint">${t('bottlesHint')}</p>`;
     h += `<div class="grp">${sec.bottles ? t('bottlesOf', { s: sec.it }) : sec.it}</div>`;
-    h += stockRows(itemsOf(sec.id).filter(m => !sec.bottles || !/calice/i.test(m.name_it)));
+    // a dish with a shared counter (stock_id) is counted on that counter: show the counter once, not each dish
+    const shared = new Set(S.menu.filter(m => m.section === sec.id && m.stock_id).map(m => m.stock_id));
+    const list = [...S.menu.filter(m => shared.has(m.id)), ...itemsOf(sec.id).filter(m => !m.stock_id && !shared.has(m.id))];
+    h += stockRows(list.filter(m => !sec.bottles || !/calice/i.test(m.name_it)));
   }
   // water: an inventory like the bottles (the new day count does not reset it)
-  const water = itemsOf('bibite').filter(m => /acqua/i.test(m.name_it));
+  const water = itemsOf('bibite').filter(m => /acqua|coca|fanta|red ?bull/i.test(m.name_it));
   if (water.length) h += `<div class="grp">${t('waterStock')}</div>` + stockRows(water);
   function stockRows(list) {
     let r = '';

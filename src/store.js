@@ -33,7 +33,9 @@ export function emit() { cache = null; clearTimeout(emitT); emitT = setTimeout((
 
 // stock that the daily "new count" resets: dishes only (bottles are an inventory and stay)
 const FOOD = new Set(SECTIONS.filter(s => s.food).map(s => s.id));
-export const isFoodId = id => FOOD.has(S.menu.find(m => m.id === String(id).split('~')[0])?.section);
+export const isFoodId = id => id !== 'pinsa-base' && FOOD.has(S.menu.find(m => m.id === String(id).split('~')[0])?.section);
+// the stock counter a dish uses: its own, or a shared one (menu_items.stock_id, e.g. every pinsa -> 'pinsa-base')
+export const stockKey = id => { const b = String(id).split('~')[0]; return S.menu.find(m => m.id === b)?.stock_id || b; };
 
 // ---------- pure logic, same rules as the SQL function table_op ----------
 export const emptyData = () => ({ items: {}, notes: {}, served: {}, client: '', roomNo: '', building: '', room: false, note: '', covers: 0, coverOff: false });
@@ -86,7 +88,7 @@ export function views() {
     if (q.kind === 'op') {
       const [row, sd] = applyOp(tables[q.table], q.op, q.at, q.waiterName);
       if (row) { row.table_no = q.table; tables[q.table] = row; } else delete tables[q.table];
-      for (const [id, n] of Object.entries(sd)) if (stock[id] != null) stock[id] += n;
+      for (const [id, n] of Object.entries(sd)) { const k = stockKey(id); if (stock[k] != null) stock[k] += n; }
     } else if (q.kind === 'submit') {
       delete tables[q.table]; pendingOrders.push(q.order);
     } else if (q.kind === 'stock_set') {
@@ -99,7 +101,7 @@ export function views() {
 }
 export const tableRow = n => views().tables[n] || null;
 export const tableData = n => norm(tableRow(n)?.data);
-export const stockLeft = id => { const v = views().stock[id]; return v == null ? null : v; };
+export const stockLeft = id => { const v = views().stock[stockKey(id)]; return v == null ? null : v; };
 
 // ---------- queue ----------
 const saveQueue = () => LS.set('queue', S.queue);
@@ -143,7 +145,7 @@ export async function flush() {
       } else if (q.kind === 'op') {
         // keep the stock number right at once (no jump back while waiting for the next refresh)
         const [, sd] = applyOp(S.server[q.table], q.op, q.at, q.waiterName);
-        for (const [id, n] of Object.entries(sd)) if (S.stock[id] != null) S.stock[id] += n;
+        for (const [id, n] of Object.entries(sd)) { const k = stockKey(id); if (S.stock[k] != null) S.stock[k] += n; }
         const row = res.data;
         if (row && row.data && Object.keys(row.data).length) S.server[q.table] = row; else delete S.server[q.table];
       } else if (q.kind === 'submit') {

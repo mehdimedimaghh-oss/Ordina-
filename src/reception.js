@@ -5,7 +5,7 @@
 import { esc, eur, $, $$, today, addDays, dayLabel, hhmm, roomLabel, ms, coverAmt } from './data.js';
 import { S, LS, sb, reload, markCharged, markChargedMany, logout, fetchOrders, fetchReception } from './store.js';
 import { fromServer, coversLabel } from './waiter.js';
-import { toast } from './ui.js';
+import { toast, printPreconto } from './ui.js';
 import { t, getLang, chooseLang } from './i18n.js';
 import { buildXlsx, download } from './xlsx.js';
 
@@ -247,12 +247,14 @@ function card(o, opt = {}) {
       <div class="rc-w">${t('waiterShort')}: ${esc(o.waiter || '—')}</div>
     </div>
     <div class="rc-r"><div class="rc-tot num">${eur(o.total)}</div>
+      ${reopened ? '' : `<button class="btn rc-pc" data-preconto="${o.id}">🖨 ${t('preconto')}</button>`}
       ${reopened ? `<span class="waitbadge">${t('reopenedBadge')}</span>`
         : o.chargedAt ? `<span class="rc-ok">${t('chargedBadge', { time: (o.chargedAt && dayKeyOf(o.chargedAt) !== today() ? new Date(o.chargedAt).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Rome' }) + ' ' : '') + hhmm(o.chargedAt) })}</span>${opt.noCharge ? '' : `<button class="linkbtn" data-charge="${o.id}" data-on="0">${t('notCharged')}</button>`}`
           : opt.noCharge ? `<span class="waitbadge">${t('notChargedBadge')}</span>` : `<button class="btn primary" data-charge="${o.id}" data-on="1">${t('markCharged')}</button>`}</div></div>`;
 }
 const dayKeyOf = v => new Date(v).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
 function bindCharge(el, list) {
+  $$('[data-preconto]', el).forEach(b => { b.onclick = () => { const o = list.find(x => String(x.id) === b.dataset.preconto); if (o) printPreconto(o); }; });
   $$('[data-charge]', el).forEach(b => { b.onclick = () => charge(list.find(o => String(o.id) === b.dataset.charge), b.dataset.on === '1', b); });
 }
 
@@ -342,10 +344,11 @@ function nextPopup() {
     ${o.note ? `<div class="note">${esc(o.note)}</div>` : ''}
     <div class="grand"><span>Totale</span><b class="num">${eur(o.total)}</b></div>
     <div class="meta">${t('waiterShort')}: ${esc(o.waiter || '—')}</div>
-    <div class="actions" style="margin-top:18px"><button class="btn" data-pop="ok">${t('ok')}</button><button class="btn primary" data-pop="charge">${t('markCharged')}</button></div></div>`;
+    <div class="actions" style="margin-top:18px"><button class="btn" data-pop="pc">🖨 ${t('preconto')}</button><button class="btn" data-pop="ok">${t('ok')}</button><button class="btn primary" data-pop="charge">${t('markCharged')}</button></div></div>`;
   document.body.appendChild(el);
   const close = () => { el.remove(); nextPopup(); };
   el.querySelector('[data-pop="ok"]').onclick = close;
+  el.querySelector('[data-pop="pc"]').onclick = () => printPreconto(o);
   el.querySelector('[data-pop="charge"]').onclick = async e => { await charge(o, true, e.currentTarget); close(); };
 }
 
