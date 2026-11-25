@@ -28,7 +28,7 @@ do $$ begin perform public.owner_save_month('2026-12-01', '[]', '[]', 1);
   insert into r values ('staff owner_save_month', 'ALLOWED (BAD)'); exception when others then insert into r values ('staff owner_save_month', 'refused: ' || sqlerrm); end $$;
 reset role;
 
--- 4) reception cannot read anything
+-- 4) reception reads the schedule (read only, since 20261128000000_reception_reads_schedule.sql) but cannot save it
 select pg_temp.as_user('00000000-0000-0000-0000-00000000aa02');
 insert into r select 'reception reads shifts', count(*)::text from public.staff_shifts;
 insert into r select 'reception reads months', count(*)::text from public.staff_months;

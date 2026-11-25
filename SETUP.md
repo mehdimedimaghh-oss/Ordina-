@@ -177,3 +177,9 @@ On each device, open the website link once:
 3. No VAT rate and no cost are filled in: the owner writes them in **Owner → Costs & margins**.
    Until the rates are marked "confirmed by the commercialista", every margin is shown as **PROVISIONAL**.
 4. Waiters and reception cannot read any cost (tested). Before this step the tab says "not installed" and the rest of the app works as before.
+
+## Step 20 — Reception sees the staff schedule (one time, read only)
+1. Supabase → **SQL Editor** → paste all of `supabase/migrations/20261128000000_reception_reads_schedule.sql` → **Run** → "Success".
+2. It only adds two READ rules: the reception login can see the schedule. Only the owner can change it (unchanged). Safe to run again.
+3. The reception screen shows **Chi lavora oggi** and the button **📅 Turni del personale** (whole team, this month and next).
+   Before this step the box says "No schedule for this month yet" on the reception PC; nothing else changes.

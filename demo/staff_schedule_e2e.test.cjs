@@ -116,14 +116,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await o1.p.click('#rSave'); await sleep(1500);
   ok(sql("select shift from staff_shifts where day='2026-11-30' and person='Mehdi'") === before, 'November put back as it was (' + before + ')');
 
-  console.log('RECEPTION (no schedule)');
+  console.log('RECEPTION (reads the schedule, read only — since 20261128000000_reception_reads_schedule.sql)');
   const r = await mk(); const calls = [];
   r.p.on('request', q => { const d = q.postData() || ''; if (/staff_/.test(d)) calls.push(d.slice(0, 80)); });
   await r.p.goto(A); await r.p.click('[data-k="reception"]'); await r.p.fill('#le', 'reception@demo.app'); await r.p.fill('#lp', 'demo'); await r.p.click('button[type=submit]'); await sleep(3000);
-  ok(calls.length === 0, 'reception never asks for the schedule (' + calls.length + ' requests)');
-  ok(!/Turni|Schedule|Nuova risorsa/.test(await r.p.evaluate(() => document.body.innerText)), 'reception screen shows nothing about the schedule');
+  ok(calls.length > 0, 'reception loads the schedule (' + calls.length + ' requests)');
+  ok(!!(await r.p.$('#rcpStaff .rs-grid')) && (await r.p.$$('.cb, #rSave')).length === 0, 'reception shows "who works today", with no edit buttons');
   const rRead = await r.p.evaluate(async () => { const s = JSON.parse(sessionStorage.getItem('demo-session')); const q = await fetch('/demo-api/query', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ uid: s.user.id, q: { table: 'staff_shifts', kind: 'select', columns: '*', filters: [], order: [] } }) }); return q.json(); });
-  ok(Array.isArray(rRead.data) && rRead.data.length === 0, 'reception login reading the table directly gets 0 rows');
+  ok(Array.isArray(rRead.data) && rRead.data.length > 0, 'reception login can read the shifts (read only; writing is tested in reception_schedule.test.sql)');
 
   console.log('ACTIVE / NEXT WAITER (unchanged)');
   const sn = await o1.p.evaluate(async () => { const m = await import('/src/schedule.js'); const f = t => { const r = m.turnInfo(Date.parse(t)); return r.active.map(x => x.name).join('+') + '|' + (r.next ? r.next.name : '-') + '|' + r.off.join('+'); }; return [f('2026-12-22T12:00:00+01:00'), f('2026-12-31T23:30:00+01:00')]; });

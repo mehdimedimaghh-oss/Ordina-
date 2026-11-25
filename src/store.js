@@ -217,9 +217,9 @@ const loaders = {
     if (t.error || c.error) return;   // (the SQL for chairs may not be installed yet)
     S.roof = { tables: t.data, chairs: Object.fromEntries(c.data.map(r => [r.location, r.chairs])) }; persist(); emit();
   },
-  // the staff schedule of last, this and next month (waiters' devices and owner; never reception)
+  // the staff schedule of last, this and next month (waiters' devices, owner and reception: read only)
   async rota() {
-    if (S.role !== 'staff' && S.role !== 'owner') return;
+    if (S.role !== 'staff' && S.role !== 'owner' && S.role !== 'reception') return;
     const [from, to] = rotaRange();
     try {
       const [m, rows] = await Promise.all([
