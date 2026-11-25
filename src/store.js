@@ -387,6 +387,19 @@ export async function fetchAllOrders() {
 }
 export const fetchOrders = (from, to) => must(sb.from('orders').select('*, order_lines(*)').gte('day', from).lte('day', to).order('closed_at', { ascending: true }).limit(10000));
 export const fetchDayTotals = (from, to) => must(sb.from('orders').select('day,total,status').gte('day', from).lte('day', to).limit(20000));
+// ---------- purchase costs & margins (owner only; waiters and reception cannot read these tables) ----------
+export async function fetchFinance() {
+  const [costs, finance, settings] = await Promise.all([
+    allRows(() => sb.from('item_costs').select('*').order('item_id').order('valid_from', { ascending: false }).order('id', { ascending: false })),
+    must(sb.from('item_finance').select('*')),
+    must(sb.from('finance_settings').select('key,value,updated_at,updated_by')),
+  ]);
+  return { costs, finance: Object.fromEntries(finance.map(f => [f.item_id, f])), settings: Object.fromEntries(settings.map(r => [r.key, r.value])) };
+}
+export const saveCost = p => must(sb.rpc('owner_save_cost', { p }));
+export const voidCost = (id, reason) => must(sb.rpc('owner_void_cost', { p_id: id, p_reason: reason }));
+export const setVat = p => must(sb.rpc('owner_set_vat', { p }));
+export const fetchProfit = (from, to) => must(sb.rpc('owner_profit', { p_from: from, p_to: to }));
 export const fetchAudit = () => must(sb.from('audit_log').select('*').order('at', { ascending: false }).limit(300));
 export const fetchAllWaiters = () => must(sb.from('waiters').select('id,name,active,sort').order('sort'));
 export const saveWaiter = (id, name, pin, active) => must(sb.rpc('owner_save_waiter', { p_id: id, p_name: name, p_pin: pin || null, p_active: active })).then(r => { loaders.waiters(); return r; });

@@ -169,3 +169,11 @@ On each device, open the website link once:
 3. Close and reopen the app. **Owner → Turni / Schedule** now shows the months; the waiters see the whole team in **☰ → Turni del personale**.
    Nothing changes for the reception.
 4. Before this step the app keeps using the months written in `src/schedule.js` (as before), so the order does not matter.
+
+## Step 19 — Purchase costs & margins (one time)
+1. Supabase → **SQL Editor** → paste all of `supabase/migrations/20261127000000_purchase_costs.sql` → **Run** → "Success".
+2. It only ADDS three owner-only tables (`item_costs`, `item_finance`, `finance_settings`) and four owner-only functions.
+   Menu prices, orders, order lines, the staff schedule and the QR menu are not touched. Safe to run again.
+3. No VAT rate and no cost are filled in: the owner writes them in **Owner → Costs & margins**.
+   Until the rates are marked "confirmed by the commercialista", every margin is shown as **PROVISIONAL**.
+4. Waiters and reception cannot read any cost (tested). Before this step the tab says "not installed" and the rest of the app works as before.
