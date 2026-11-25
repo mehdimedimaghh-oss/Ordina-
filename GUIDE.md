@@ -129,3 +129,15 @@ name **Analcolico su misura**, English **Tailor-made soft drink**, your price �
 - **Save** writes the month for every device at once and in the Audit log. If another owner saved the same month in the meantime, your save is refused and you are asked to reload (nobody's work is overwritten).
 - **Print / PDF**: the month on one landscape A4 page, like the paper sheet (choose "Save as PDF" in the print window).
 - Waiters: **☰ → Turni del personale** shows the whole team, this month and next month, read only. It also works without internet (last copy).
+
+### Purchase costs & margins (Owner → Costs & margins)
+- **One cost per serving, VAT excluded.** Tap a dish → write the supplier invoice date (the cost is valid from that day; you can change the date) → supplier, invoice number → the cost → **Save the cost**.
+- **Only the price with VAT?** Open "I only have the price with VAT", write the price and the purchase VAT %, tap **Calculate** and check the number before saving.
+- **Wine by the glass:** every glass is its own dish. Choose **Bottle ÷ glasses**, write the bottle cost and how many glasses YOU pour from that bottle. The number is remembered for that bottle only; nothing is assumed.
+- **New price from the supplier:** add a new cost with the new date. Old sales keep the old cost; sales from the new date use the new one.
+- **Mistake?** In the dish's history tap **Correct** (write why) or **Cancel** (write why). The old cost stays in the history, crossed out, and everything is in the audit log.
+- **VAT rates:** open "VAT rates" and write the rates given by your commercialista (default, per section, or per dish). Tick "confirmed" and write who confirmed them and when. Until then all margins say **PROVISIONAL**: they are estimates, not accounting profit.
+- **Dashboard → Margins:** revenue without VAT, purchase cost, gross margin, food cost %, best and worst dishes, margin per section, and a warning for dishes sold without a cost (they are never counted as €0).
+- **Supplier price history:** Costs & margins → "Supplier price history" shows every price per supplier with the change in %.
+- **Excel:** the Dashboard Excel now has a third sheet, **Margini**. The full backup also contains all costs and VAT rates.
+- Waiters and reception never see costs or margins.

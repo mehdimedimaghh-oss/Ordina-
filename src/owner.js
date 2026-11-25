@@ -6,10 +6,13 @@ import { fromServer, orderCard, bindOrderCards, setTheme } from './waiter.js';
 import { toast } from './ui.js';
 import { staffNowHtml } from './staffnow.js';
 import { rotaEditor, rotaDirty } from './rota.js';
+import { costsTab, marginPanel, marginSheet, financeBackup, closeCostSheet } from './costs.js';
+import { fetchProfit } from './store.js';
 import { buildXlsx, download } from './xlsx.js';
 import { getLang, chooseLang } from './i18n.js';
 
 const L = (en, it) => (getLang() === 'it' ? it : en);
+const fmtDay = d => (d ? String(d).slice(0, 10).split('-').reverse().join('/') : '');
 const loc = () => (getLang() === 'it' ? 'it-IT' : 'en-GB');
 
 let tab = 'dash', mode = 'day', sel = today(), calMonth = today().slice(0, 7);
@@ -18,7 +21,7 @@ let root = null;
 export function mountOwner(app) {
   root = app;
   try { if (sessionStorage.getItem('ordina:open3d')) { sessionStorage.removeItem('ordina:open3d'); tab = 'rooftop'; } } catch { /* ignore */ }
-  const tabs = [['dash', L('Dashboard', 'Dashboard')], ['menu', L('Menu & prices', 'Menu e prezzi')], ['waiters', L('Waiters', 'Camerieri')], ['rota', L('Schedule', 'Turni')],
+  const tabs = [['dash', L('Dashboard', 'Dashboard')], ['menu', L('Menu & prices', 'Menu e prezzi')], ['costs', L('Costs & margins', 'Costi e margini')], ['waiters', L('Waiters', 'Camerieri')], ['rota', L('Schedule', 'Turni')],
     ['rooftop', '<svg class="oti" aria-hidden="true"><use href="#i-stock"/></svg>' + L('3D Live Rooftop', 'Rooftop 3D live')], ['recv', '🔔 ' + L('Reception screen', 'Schermo reception')],
     ['sheet', L('Google Sheet (optional)', 'Google Sheet (facoltativo)')], ['import', L('Backup & import', 'Backup e importa')], ['log', L('Audit log', 'Registro modifiche')]];
   app.innerHTML = `<div class="own">
@@ -30,7 +33,7 @@ export function mountOwner(app) {
   $('#backTables').onclick = () => { location.hash = ''; };
   $('#ownLang').onclick = () => chooseLang(getLang() === 'it' ? 'en' : 'it', null);   // the page is drawn again in the new language
   $('#ownTheme').onclick = () => { const th = { auto: 'light', light: 'dark', dark: 'auto' }[localStorage.getItem('ordina:theme')?.replace(/"/g, '') || 'auto']; setTheme(th); toast(L('Theme: ', 'Tema: ') + ({ auto: 'Auto', light: L('Light', 'Chiaro'), dark: L('Dark', 'Scuro') }[th])); };
-  $$('.otabs button').forEach(b => { b.onclick = () => { if (tab === 'rota' && b.dataset.tab !== 'rota' && rotaDirty() && !confirm(L('You have unsaved changes in the schedule. Leave without saving?', 'Ci sono modifiche non salvate nei turni. Uscire senza salvare?'))) return; tab = b.dataset.tab; $$('.otabs button').forEach(x => x.classList.toggle('on', x === b)); show(); }; });
+  $$('.otabs button').forEach(b => { b.onclick = () => { if (tab === 'rota' && b.dataset.tab !== 'rota' && rotaDirty() && !confirm(L('You have unsaved changes in the schedule. Leave without saving?', 'Ci sono modifiche non salvate nei turni. Uscire senza salvare?'))) return; tab = b.dataset.tab; $$('.otabs button').forEach(x => x.classList.toggle('on', x === b)); closeCostSheet(); show(); }; });
   show();
 }
 export function ownerRender() {
@@ -42,7 +45,7 @@ function show() {
   const body = $('#ownBody');
   if (tab === 'rooftop') { openRooftopPage(); return; }
   if (tab === 'recv') { tab = 'dash'; location.hash = '#reception'; return; }   // the owner opens the live reception screen
-  ({ dash: dashboard, menu: menuEditor, waiters, rota: b => rotaEditor(b), sheet: receptionSheet, import: importer, log: auditLog })[tab](body);
+  ({ dash: dashboard, menu: menuEditor, costs: costsTab, waiters, rota: b => rotaEditor(b), sheet: receptionSheet, import: importer, log: auditLog })[tab](body);
 }
 
 // ================= Dashboard =================
@@ -140,13 +143,20 @@ function stats(el, orders, rg, body) {
     <div style="height:14px"></div>${cols}${cols ? '<div style="height:14px"></div>' : ''}
     <div class="two"><div class="panel"><h3>${L('Total per waiter', 'Totale per cameriere')}</h3><div class="hbars">${wl.map(([w, v]) => `<div class="hb" title="${esc(w)}: ${eur(v.t)}, ${tablesN(v.n)}"><span class="nm2">${esc(w)}</span><span class="track"><span class="fill" style="display:block;width:${(v.t / maxW * 100).toFixed(1)}%"></span></span><span class="v num">${eur(v.t)}<small>${tablesN(v.n)}</small></span></div>`).join('') || none}</div></div>
       <div class="panel"><h3>${L('Best-selling dishes', 'Piatti più venduti')}</h3><div class="hbars">${il.map(([n, v]) => `<div class="hb" title="${esc(n)}: ${v.q} ${L('sold', 'venduti')}, ${eur(v.r)}"><span class="nm2">${esc(n)}</span><span class="track"><span class="fill" style="display:block;width:${(v.q / maxI * 100).toFixed(1)}%"></span></span><span class="v num">${v.q}×<small>${eur(v.r)}</small></span></div>`).join('') || none}</div></div></div>
-    <div style="height:14px"></div>
+    <div style="height:14px"></div><div id="marginP"></div>
     <div class="panel"><div class="tools" style="justify-content:space-between"><h3 style="margin:0">${L('Orders', 'Ordini')} (${orders.length})</h3><div class="tools"><button class="btn primary" id="xlsx">${L('Export Excel', 'Esporta Excel')}</button><button class="btn" id="csv">${L('Export CSV', 'Esporta CSV')}</button></div></div>
       <div id="olist">${orders.length ? orders.slice().reverse().map(o => orderCard(o, { withDay: mode !== 'day' })).join('') : `<p class="empty-order">${L('No orders on this day.', 'Nessun ordine in questo giorno.')}</p>`}</div></div>`;
   $$('.col', el).forEach(c => { c.onclick = () => { sel = c.dataset.day; mode = 'day'; calMonth = sel.slice(0, 7); dashboard(body); }; });
   bindOrderCards($('#olist', el), orders, () => dashboard(body));
   const name = `comande_${rg[0]}${rg[0] !== rg[1] ? '_' + rg[1] : ''}`;
-  $('#xlsx', el).onclick = () => { download(buildXlsx(exportSheets(orders)), name + '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); toast(L('Excel file downloaded', 'File Excel scaricato')); };
+  marginPanel($('#marginP', el), rg, () => { tab = 'costs'; $$('.otabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'costs')); show(); })
+    .then(() => { const m = $('#marginP', el); if (m && m.innerHTML) m.insertAdjacentHTML('beforeend', '<div style="height:14px"></div>'); });
+  // Excel: Orders + Dishes + Margini (margins of the same period; without them if costs are not installed or offline)
+  $('#xlsx', el).onclick = async () => {
+    const sheets = exportSheets(orders);
+    try { sheets.push(marginSheet(await fetchProfit(rg[0], rg[1]))); } catch { /* costs not installed / offline: export without the Margini sheet */ }
+    download(buildXlsx(sheets), name + '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); toast(L('Excel file downloaded', 'File Excel scaricato'));
+  };
   $('#csv', el).onclick = () => { download(toCsv(exportSheets(orders)[0].rows), name + '.csv', 'text/csv;charset=utf-8'); toast(L('CSV downloaded', 'CSV scaricato')); };
 }
 
@@ -312,10 +322,13 @@ async function downloadBackup(btn, info) {
     });
     const sent = rows.filter(o => o.status === 'closed'), reopened = rows.filter(o => o.status !== 'closed');
     const stamp = today();
-    const data = { app: 'Comande Pranzo', backupOf: 'all orders', exportedAt: new Date().toISOString(), count: sent.length, total: sent.reduce((a, o) => a + Number(o.total), 0), orders: sent.map(toImport), reopened: reopened.map(toImport), menu: S.menu };
+    const finance = await financeBackup();   // purchase costs (full history), VAT rates, glasses per bottle
+    const data = { app: 'Comande Pranzo', backupOf: 'all orders', exportedAt: new Date().toISOString(), count: sent.length, total: sent.reduce((a, o) => a + Number(o.total), 0), orders: sent.map(toImport), reopened: reopened.map(toImport), menu: S.menu, ...(finance ? { finance } : {}) };
     download(JSON.stringify(data, null, 1), `comande_BACKUP_${stamp}.json`, 'application/json');
     const ord = sent.map(fromServer);
-    download(buildXlsx(exportSheets(ord)), `comande_ALL_ORDERS_${stamp}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    const sheets = exportSheets(ord), days = sent.map(o => o.day).sort();
+    if (finance && days.length && (parseDay(days[days.length - 1]) - parseDay(days[0])) / 864e5 <= 800) { try { sheets.push(marginSheet(await fetchProfit(days[0], days[days.length - 1]))); } catch { /* without margins */ } }
+    download(buildXlsx(sheets), `comande_ALL_ORDERS_${stamp}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     try { localStorage.setItem('ordina:lastBackup', String(Date.now())); } catch { /* ignore */ }
     info.innerHTML = `<p class="hint" style="color:var(--ok);font-weight:700">${L(`Done: ${sent.length} orders · ${eur(data.total)}. Two files were downloaded: the BACKUP (.json, to restore) and ALL_ORDERS (.xlsx, to read). Keep them in a safe place (e.g. Google Drive + a USB stick).`,
       `Fatto: ${sent.length} ordini · ${eur(data.total)}. Sono stati scaricati due file: il BACKUP (.json, per ripristinare) e ALL_ORDERS (.xlsx, da leggere). Tienili in un posto sicuro (es. Google Drive + una chiavetta USB).`)}</p>`;
@@ -352,6 +365,11 @@ function importer(body) {
 
 // ================= Audit log =================
 const ACT = {
+  cost_save: d => L(`Purchase cost · ${d.name}: € ${Number(d.cost).toFixed(2)} from ${fmtDay(d.valid_from)}${d.cost_before != null ? ` (before € ${Number(d.cost_before).toFixed(2)})` : ''}${d.supplier ? ' · ' + d.supplier : ''}${d.sold_affected ? ` · ${d.sold_affected} already sold` : ''}`,
+    `Costo di acquisto · ${d.name}: € ${Number(d.cost).toFixed(2)} dal ${fmtDay(d.valid_from)}${d.cost_before != null ? ` (prima € ${Number(d.cost_before).toFixed(2)})` : ''}${d.supplier ? ' · ' + d.supplier : ''}${d.sold_affected ? ` · ${d.sold_affected} già venduti` : ''}`),
+  cost_correct: d => L(`Cost corrected · ${d.name}: € ${Number(d.old_cost).toFixed(2)} → € ${Number(d.cost).toFixed(2)} from ${fmtDay(d.valid_from)} · reason: ${d.reason}`, `Costo corretto · ${d.name}: € ${Number(d.old_cost).toFixed(2)} → € ${Number(d.cost).toFixed(2)} dal ${fmtDay(d.valid_from)} · motivo: ${d.reason}`),
+  cost_void: d => L(`Cost cancelled · ${d.name}: € ${Number(d.cost).toFixed(2)} from ${fmtDay(d.valid_from)} · reason: ${d.reason}`, `Costo annullato · ${d.name}: € ${Number(d.cost).toFixed(2)} dal ${fmtDay(d.valid_from)} · motivo: ${d.reason}`),
+  vat_save: d => L(`VAT rates changed${d.after?.settings?.vat_status?.confirmed ? ' · confirmed: ' + d.after.settings.vat_status.note : ' · provisional'}`, `Aliquote IVA modificate${d.after?.settings?.vat_status?.confirmed ? ' · confermate: ' + d.after.settings.vat_status.note : ' · provvisorie'}`),
   schedule_save: d => L(`Schedule saved · ${(d.people || []).length} people · ${d.shifts_after} shifts (before ${d.shifts_before})`, `Turni salvati · ${(d.people || []).length} persone · ${d.shifts_after} turni (prima ${d.shifts_before})`),
   order_delete: d => L(`Deleted order · Tavolo ${d.table_no} · ${eur(d.total)} · ${d.day}${d.reason ? ' · reason: ' + d.reason : ''}`, `Ordine eliminato · Tavolo ${d.table_no} · ${eur(d.total)} · ${d.day}${d.reason ? ' · motivo: ' + d.reason : ''}`),
   order_reopen: d => L(`Reopened order · Tavolo ${d.table} · ${eur(d.total)}`, `Ordine riaperto · Tavolo ${d.table} · ${eur(d.total)}`),

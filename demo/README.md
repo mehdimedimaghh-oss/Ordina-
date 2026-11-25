@@ -23,3 +23,11 @@ Staff schedule tests (demo database, after `supabase/migrations/20261126000000_s
 psql -h /var/tmp/demopg -p 55432 -U postgres -d demo -f demo/staff_schedule_security.test.sql   # security, rolled back
 node demo/staff_schedule_e2e.test.cjs /tmp                                                          # owner, waiter, reception, offline
 ```
+
+Purchase costs tests (demo database, after `supabase/migrations/20261127000000_purchase_costs.sql`):
+```bash
+psql -h /var/tmp/demopg -p 55432 -U postgres -d demo -f demo/seed_costs.sql                    # invented demo costs + provisional demo VAT
+psql -h /var/tmp/demopg -p 55432 -U postgres -d demo -f demo/purchase_costs.test.sql           # security + calculations, rolled back (66 checks)
+node demo/purchase_costs_e2e.test.cjs /tmp                                                       # owner screens, Excel, backup, waiter, reception (57 checks)
+node demo/order_flow_with_costs.test.cjs /tmp                                                    # normal service still works, margins include it (8 checks)
+```

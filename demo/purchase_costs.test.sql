@@ -7,6 +7,9 @@ begin;
 create temp table r(n serial, test text, pass boolean, info text);
 grant all on r to authenticated, anon; grant usage on sequence r_n_seq to authenticated, anon;
 create temp table snap(k text primary key, v text);
+-- start from empty cost tables (inside this transaction only: the demo data comes back at the rollback)
+truncate public.item_costs, public.item_finance restart identity;
+update public.finance_settings set value = case key when 'sales_vat_sections' then '{}'::jsonb when 'vat_status' then '{"confirmed": false, "note": ""}'::jsonb else 'null'::jsonb end;
 
 create function pg_temp.as_user(uid text) returns void language plpgsql as $$
 begin
