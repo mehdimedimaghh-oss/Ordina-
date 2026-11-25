@@ -1,6 +1,7 @@
 // Staff schedule (turni). Each month: one code per day for each shift, from the owner's planning sheet.
 // To add a new month: copy the block, change the key ('2026-12') and the 4 lines. Codes → names below.
 import { addDays, dayKey } from './data.js';
+import { S } from './store.js';
 
 export const STAFF = { MED: 'Mehdi', ZAI: 'Zai', GAB: 'Gabri', NIK: 'Nikola', CRI: 'Cristian', NUO: 'Nuova risorsa' };
 
@@ -43,29 +44,76 @@ const romeNowMin = (now = Date.now()) => {
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(now)).map(x => [x.type, x.value]));
   return +p.hour * 60 + +p.minute;
 };
+// The schedule is managed by the owner in the app (Owner → Turni) and saved in the database (staff_shifts).
+// A month that is not in the database (or before the database part is installed) comes from ROTA above.
+export const LETTER = { m: 'M', d: 'C', e: 'P' };
+const dbMonth = ym => (S.rota && S.rota.months ? S.rota.months[ym] : null);
+// names on a shift ('m' | 'd' | 'e') or resting ('off') that day
+function peopleOn(day, shiftId) {
+  if (dbMonth(day.slice(0, 7))) {
+    const L = shiftId === 'off' ? 'R' : LETTER[shiftId];
+    return ((S.rota.cells || {})[day] || []).filter(c => c.shift === L).sort((a, b) => a.sort - b.sort).map(c => c.person);
+  }
+  if (shiftId === 'off') return ['off1', 'off2'].flatMap(k => codesOn(day, k)).map(nameOf);
+  return codesOn(day, shiftId).map(nameOf);
+}
+// one month as a grid (rows = people, like the paper sheet), from the months written in this file
+export function gridFromCode(ym) {
+  const m = ROTA[ym]; if (!m) return null;
+  const people = [], cells = {};
+  const put = (name, d, s) => { if (!people.includes(name)) people.push(name); (cells[name] ||= {})[d] = s; };
+  for (const [k, s] of [['m', 'M'], ['d', 'C'], ['e', 'P'], ['off1', 'R'], ['off2', 'R']]) {
+    if (!m[k]) continue;
+    m[k].trim().split(/\s+/).forEach((c, i) => { if (c && c !== '---') c.split('+').forEach(code => put(nameOf(code), i + 1, s)); });
+  }
+  const PAPER = ['GAB', 'MED', 'CRI', 'NIK', 'NUO', 'ZAI'].map(nameOf);
+  people.sort((a, b) => (PAPER.indexOf(a) + 1 || 99) - (PAPER.indexOf(b) + 1 || 99));
+  return { people: people.map(name => ({ name })), cells, source: 'code', version: 0 };
+}
+// one month as a grid from database rows
+export function gridFromDb(month, rows) {
+  const people = (month && month.people ? month.people : []).map(p => ({ name: p.name, waiter_id: p.waiter_id || null }));
+  const cells = {};
+  for (const r of rows) {
+    if (!people.some(p => p.name === r.person)) people.push({ name: r.person, waiter_id: r.waiter_id || null });
+    (cells[r.person] ||= {})[+String(r.day).slice(8, 10)] = r.shift;
+  }
+  return { people, cells, source: 'db', version: month ? month.version : 0, updatedAt: month?.updated_at, updatedBy: month?.updated_by };
+}
+// the grid of a month the device already has (last, this and next month): database copy, else this file
+export function gridFor(ym) {
+  const m = dbMonth(ym);
+  if (m) {
+    const rows = [];
+    for (const [day, list] of Object.entries(S.rota.cells || {})) if (day.startsWith(ym)) for (const c of list) rows.push({ day, ...c });
+    rows.sort((a, b) => a.sort - b.sort);
+    return gridFromDb({ people: m.people, version: m.version, updated_at: m.updatedAt, updated_by: m.updatedBy }, rows);
+  }
+  return gridFromCode(ym);
+}
 function codesOn(day, shiftId) {
   const m = ROTA[day.slice(0, 7)]; if (!m || !m[shiftId]) return [];
   const c = m[shiftId].trim().split(/\s+/)[+day.slice(8) - 1];
   return c && c !== '---' ? c.split('+') : [];
 }
 export const nameOf = code => STAFF[code] || code;
-export const hasRota = day => !!ROTA[day.slice(0, 7)];
+export const hasRota = day => !!dbMonth(day.slice(0, 7)) || !!ROTA[day.slice(0, 7)];
 
 // Who is on shift now and who is next. Works across midnight (evening shift until 01:00).
 export function turnInfo(now = Date.now()) {
   const d0 = dayKey(now), t = romeNowMin(now), list = [];
   for (const [off, day] of [[-1440, addDays(d0, -1)], [0, d0], [1440, addDays(d0, 1)], [2880, addDays(d0, 2)]]) {
     for (const s of SHIFTS) {
-      for (const code of codesOn(day, s.id)) {
+      for (const name of peopleOn(day, s.id)) {
         const start = off + mins(s.from); let end = off + mins(s.to); if (end <= start) end += 1440;
-        list.push({ code, name: nameOf(code), from: s.from, to: s.to, start, end, day });
+        list.push({ code: name, name, from: s.from, to: s.to, start, end, day });
       }
     }
   }
   const active = list.filter(x => x.start <= t && t < x.end);
   const next = list.filter(x => x.start > t).sort((a, b) => a.start - b.start)[0] || null;
   if (next) next.when = next.start >= 1440 ? 'tomorrow' : 'today';
-  const offToday = ['off1', 'off2'].flatMap(k => codesOn(d0, k)).map(nameOf);
+  const offToday = peopleOn(d0, 'off');
   return { known: hasRota(d0), active, next, off: offToday };
 }
 

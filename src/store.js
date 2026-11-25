@@ -22,7 +22,8 @@ export const S = {
   menu: LS.get('menu', []), waiters: LS.get('waiters', []), settings: LS.get('settings', { stock_alert: 2, room_fee: 10 }),
   server: LS.get('tables', {}), stock: LS.get('stock', {}), today: LS.get('today', []),
   queue: LS.get('queue', []), waiter: LS.get('waiter', null),
-  roof: LS.get('roof', { tables: [], chairs: {} }),   // physical rooftop tables + where the chairs are
+  roof: LS.get('roof', { tables: [], chairs: {} }),
+  rota: LS.get('rota', { months: {}, cells: {} }),   // monthly staff schedule from the database (copy kept for offline)   // physical rooftop tables + where the chairs are
   online: navigator.onLine, sync: 'idle', lastError: '',
 };
 
@@ -173,8 +174,22 @@ const notify = m => notifyFn(m);
 // ---------- loading from the server ----------
 function persist() {
   LS.set('tables', S.server); LS.set('stock', S.stock); LS.set('today', S.today); LS.set('roof', S.roof);
-  LS.set('menu', S.menu); LS.set('waiters', S.waiters); LS.set('settings', S.settings);
+  LS.set('menu', S.menu); LS.set('waiters', S.waiters); LS.set('settings', S.settings); LS.set('rota', S.rota);
 }
+// ---------- staff schedule (Turni) ----------
+export const monthAdd = (ym, n) => { const [y, m] = ym.split('-').map(Number), d = new Date(Date.UTC(y, m - 1 + n, 1)); return d.toISOString().slice(0, 7); };
+// Supabase gives max 1000 rows per answer: read page by page
+async function allRows(make) { const out = []; for (let i = 0; ; i += 1000) { const { data, error } = await make().range(i, i + 999); if (error) throw error; out.push(...data); if (data.length < 1000) return out; } }
+const rotaRange = () => { const ym = today().slice(0, 7); return [monthAdd(ym, -1) + '-01', monthAdd(ym, 2) + '-01']; };   // last, this and next month
+// one month, for the owner's editor (any month, past or future)
+export async function fetchRotaMonth(ym) {
+  const from = ym + '-01', to = monthAdd(ym, 1) + '-01';
+  const m = await must(sb.from('staff_months').select('month,people,version,updated_at,updated_by').eq('month', from).maybeSingle());
+  const rows = await allRows(() => sb.from('staff_shifts').select('day,person,waiter_id,shift,sort').gte('day', from).lt('day', to).order('sort').order('day'));
+  return { month: m, rows };
+}
+export const saveRotaMonth = (ym, people, cells, version) => must(sb.rpc('owner_save_month', { p_month: ym + '-01', p_people: people, p_cells: cells, p_version: version }))
+  .then(r => { loaders.rota(); return r; });
 const loaders = {
   async menu() { const { data, error } = await sb.from('menu_items').select('*').order('sort'); if (!error) { S.menu = data; persist(); emit(); } },
   async waiters() { const { data, error } = await sb.from('waiters').select('id,name,active,sort').order('sort'); if (!error) { S.waiters = data; persist(); emit(); } },
@@ -201,6 +216,20 @@ const loaders = {
     const [t, c] = await Promise.all([sb.from('rooftop_tables').select('*').order('sort'), sb.from('rooftop_chairs').select('*')]);
     if (t.error || c.error) return;   // (the SQL for chairs may not be installed yet)
     S.roof = { tables: t.data, chairs: Object.fromEntries(c.data.map(r => [r.location, r.chairs])) }; persist(); emit();
+  },
+  // the staff schedule of last, this and next month (waiters' devices and owner; never reception)
+  async rota() {
+    if (S.role !== 'staff' && S.role !== 'owner') return;
+    const [from, to] = rotaRange();
+    try {
+      const [m, rows] = await Promise.all([
+        must(sb.from('staff_months').select('month,people,version,updated_at,updated_by').gte('month', from).lt('month', to)),
+        allRows(() => sb.from('staff_shifts').select('day,person,waiter_id,shift,sort').gte('day', from).lt('day', to).order('sort').order('day'))]);
+      const months = {}, cells = {};
+      for (const r of m) months[String(r.month).slice(0, 7)] = { version: r.version, people: r.people || [], updatedAt: r.updated_at, updatedBy: r.updated_by };
+      for (const r of rows) (cells[String(r.day).slice(0, 10)] ||= []).push({ person: r.person, shift: r.shift, sort: r.sort, waiter_id: r.waiter_id });
+      S.rota = { months, cells, range: [from, to], loadedAt: Date.now() }; persist(); emit();
+    } catch { /* table not installed yet, or offline: the schedule comes from the app (schedule.js) / the saved copy */ }
   },
   async today() {
     const { data, error } = await sb.from('orders').select('*, order_lines(*)').eq('day', today()).order('closed_at', { ascending: false });
@@ -254,6 +283,8 @@ function subscribe() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => loaders.settings())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rooftop_chairs' }, () => later('roof'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rooftop_tables' }, () => later('roof'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_months' }, () => later('rota'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_shifts' }, () => later('rota'))
     .subscribe(status => {
       if (ch !== channel) return;   // an old connection that was replaced
       if (status !== 'SUBSCRIBED') console.info('[live]', status);
@@ -280,6 +311,7 @@ export async function start() {
   setInterval(() => {
     if (!S.session || !navigator.onLine || document.hidden) return;
     flush(); loaders.tables(); loaders.stock(); loaders.today(); loaders.roof();
+    if ((S.rota.range || [])[0] !== rotaRange()[0]) loaders.rota();   // a new month started: load the new range
     if (channel && channel.state !== 'joined' && channel.state !== 'joining') resubscribeSoon();
   }, 60000);
 }

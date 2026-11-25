@@ -21,7 +21,7 @@ const REPLACE = [
   [/>Comande</g, '>Comanda Live<'],
   [/<h1>Comande<\/h1>/g, '<h1>Comanda Live</h1>'],
   // staff schedule names -> invented names
-  [/MED: 'Mehdi', ZAI: 'Zai', GAB: 'Gabri', NIK: 'Nikola', CRI: 'Cristian'/g, "MED: 'Luca', ZAI: 'Sara', GAB: 'Marco', NIK: 'Giulia', CRI: 'Paolo'"],
+  [/MED: 'Mehdi', ZAI: 'Zai', GAB: 'Gabri', NIK: 'Nikola', CRI: 'Cristian', NUO: 'Nuova risorsa'/g, "MED: 'Luca', ZAI: 'Sara', GAB: 'Marco', NIK: 'Giulia', CRI: 'Paolo', NUO: 'Nuova risorsa'"],
   [/“Mehdi”/g, '“Luca”'],
   // building codes shown as A / B
   [/\[o\.building \|\| ''/g, "[({ HCO: 'A', DEP: 'B' })[o.building] || ''"],

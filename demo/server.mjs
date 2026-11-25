@@ -117,7 +117,7 @@ async function rpc(uid, name, args) {
 const clients = new Set();
 const presence = new Map();   // device key -> meta
 function broadcast(msg) { const s = `data: ${JSON.stringify(msg)}\n\n`; for (const c of clients) c.write(s); }
-const WRITES = { open_tables: 1, stock: 1, orders: 1, menu_items: 1, settings: 1, rooftop_chairs: 1, rooftop_tables: 1 };
+const WRITES = { open_tables: 1, stock: 1, orders: 1, menu_items: 1, settings: 1, rooftop_chairs: 1, rooftop_tables: 1, staff_months: 1, staff_shifts: 1 };
 const touched = () => broadcast({ type: 'change', tables: Object.keys(WRITES) });
 
 const body = req => new Promise((ok, no) => { let b = ''; req.on('data', d => { b += d; }); req.on('end', () => { try { ok(b ? JSON.parse(b) : {}); } catch (e) { no(e); } }); });
