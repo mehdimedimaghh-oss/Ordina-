@@ -17,3 +17,9 @@ npx vite --config demo/vite.config.js      # http://localhost:5199
 ```
 Logins: staff `demo` (waiters Luca, Sara, Marco, Giulia, Paolo – PIN 1234),
 `reception@demo.app` / `demo`, `owner@demo.app` / `demo`.
+
+Staff schedule tests (demo database, after `supabase/migrations/20261126000000_staff_schedule.sql`):
+```bash
+psql -h /var/tmp/demopg -p 55432 -U postgres -d demo -f demo/staff_schedule_security.test.sql   # security, rolled back
+node demo/staff_schedule_e2e.test.cjs /tmp                                                          # owner, waiter, reception, offline
+```

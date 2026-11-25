@@ -681,3 +681,62 @@ button,a,input,label,.card,.tile{touch-action:manipulation}
 
 /* reception: preconto button on each order */
 .rc-r .rc-pc{min-height:40px;padding:0 14px;font-size:13.5px}
+
+/* ---------- staff schedule (Turni): grid like the paper sheet ---------- */
+.rota-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 10px;font-size:13px;color:var(--muted)}
+.rota-legend .rl{display:inline-flex;align-items:center;gap:6px}
+.sc{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;font-weight:800;font-size:12.5px;color:var(--ink);border:1px solid var(--line)}
+.s-M{background:rgba(242,201,51,.32)}
+.s-C{background:rgba(92,140,214,.26)}
+.s-P{background:rgba(20,34,74,.20)}
+.s-R{background:rgba(233,150,110,.45)}
+.rota-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:6px 0 14px}
+.rota{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;font-size:13px;min-width:max-content}
+.rota th,.rota td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;padding:0;height:34px;min-width:30px}
+.rota thead th{background:var(--bg);font-weight:700;font-size:12px;line-height:1.1;padding:4px 2px;position:sticky;top:0;z-index:1}
+.rota thead th small{display:block;font-weight:600;color:var(--muted);font-size:10.5px}
+.rota th.we{color:var(--gold)}
+.rota .today{box-shadow:inset 0 0 0 2px var(--gold)}
+.rota .rp{position:sticky;left:0;z-index:2;background:var(--surface);text-align:left;padding:4px 10px;min-width:118px;max-width:170px;font-weight:700;white-space:nowrap}
+.rota thead .rp{z-index:3;background:var(--bg);text-transform:capitalize;font-family:var(--display);font-size:14px}
+.rota .rp small.np{display:block;font-weight:500;font-size:10.5px;color:var(--muted)}
+.rota td.c{font-weight:800;color:var(--ink)}
+.rota tr.mine .rp{background:var(--bar);color:var(--bar-gold)}
+.rota tr.mine td{box-shadow:inset 0 2px 0 var(--gold),inset 0 -2px 0 var(--gold)}
+.rota td.empty{color:var(--muted);font-weight:500;padding:10px}
+.rota.edit td.c{padding:0}
+.rota .cb{width:100%;height:34px;min-width:30px;border:0;background:transparent;font:inherit;font-weight:800;color:inherit;cursor:pointer}
+.rota .cb:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.rota .rp{overflow:hidden}
+.rota.edit .rp{min-width:176px;max-width:176px;width:176px}
+.rota .rpin{display:flex;align-items:center;gap:6px;min-width:0}
+.rota .rpin .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.rota .rp-tools{flex:none;display:inline-flex;gap:4px}
+.rota .rpb{width:24px;height:24px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-size:13px;line-height:1;cursor:pointer}
+.rota .rpb:disabled{opacity:.35;cursor:default}
+.rota tr.rota-cov td{font-size:11px;font-weight:800;height:26px}
+.rota tr.rota-cov td.ok{color:var(--ok)}
+.rota tr.rota-cov td.bad{background:var(--out-bg);color:var(--out)}
+.rota tr.rota-cov .rp{font-size:12px;color:var(--muted)}
+.rota-top{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.rota-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rota-nav input[type=month]{min-height:44px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;padding:0 10px}
+.rota-act{display:flex;gap:8px;flex-wrap:wrap}
+.rota-st{margin:10px 0 0;font-size:13.5px;color:var(--muted)}
+.rota-st.ok{color:var(--ok)}
+.rota-st.warn{color:var(--warn);font-weight:700}
+.rota-add{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end}
+.rota-add .field{margin:0}
+.rota-add select{min-height:52px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px;padding:0 12px;width:100%}
+@media (max-width:640px){.rota-add{grid-template-columns:minmax(0,1fr)}}
+.rota-view .rota-vh{margin:12px 0 4px;font-family:var(--display);font-size:18px;text-transform:capitalize}
+.sheet.wide{max-width:min(1100px,100%)}
+/* print: the month on one landscape A4 page */
+.rota-print h1{font-family:var(--display);font-weight:400;font-size:20px;margin:0 0 6px}
+.rota-print .rota-wrap{overflow:visible;border-color:#999}
+.rota-print .rota{min-width:0;width:100%;font-size:11px;table-layout:fixed}
+.rota-print .rota th,.rota-print .rota td{min-width:0;height:28px;border-color:#999}
+.rota-print .rota .rp{position:static;min-width:0;width:104px;max-width:none;padding:2px 6px}
+.rota-print .rota thead th{position:static}
+.rota-print .rp-foot{font-size:10px;color:#666;margin-top:6px}
+@media print{.rota-print .s-M,.rota-print .s-C,.rota-print .s-P,.rota-print .s-R{-webkit-print-color-adjust:exact;print-color-adjust:exact}}

@@ -7,6 +7,7 @@ import {
 import { toast, sheet, sheetBody, openSheet, closeSheet, armed, copyText, ticketText, receptionView, buzz, printPreconto } from './ui.js';
 import { t, tServer, getLang, chooseLang, langForWaiter } from './i18n.js';
 import { turnLine, myTurnHtml } from './staffnow.js';
+import { rotaViewHtml, thisAndNextMonth, legendHtml } from './rota.js';
 
 let cur = String(LS.get('cur', '1'));
 let screen = 'map';                       // tablet only: 'map' or 'order'
@@ -215,6 +216,7 @@ export function render() {
   if (!document.getElementById('stockSheet')?.hidden) renderStock();
   if (!document.getElementById('tableSheet')?.hidden) renderTables();
   if (!document.getElementById('moreSheet')?.hidden) renderMore();
+  if (!document.getElementById('rotaSheet')?.hidden) renderRota();
   if (!document.getElementById('chairSheet')?.hidden) renderChairSheet();
 }
 export function modeChanged() { // phone <-> tablet
@@ -657,6 +659,14 @@ export function setTheme(x) {
   if (x === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = x;
 }
 export const toggleLang = () => chooseLang(getLang() === 'it' ? 'en' : 'it', S.waiter?.id);
+// the whole team's schedule, this month and next month (read only; nothing can be changed here)
+function renderRota() {
+  const s = sheet('rotaSheet', t('teamRota')), body = sheetBody(s);
+  const keep = body.scrollTop;
+  body.innerHTML = `<p class="hint">${t('teamRotaHint')}</p>${legendHtml()}${thisAndNextMonth().map(ym => rotaViewHtml(ym, S.waiter?.name)).join('')}`;
+  body.scrollTop = keep;
+  s.querySelector('.sheet')?.classList.add('wide');
+}
 function renderMore() {
   const s = sheet('moreSheet'), body = sheetBody(s), th = LS.get('theme', 'auto');
   body.innerHTML = `
@@ -664,6 +674,7 @@ function renderMore() {
     ${myTurnHtml(S.waiter?.name)}
     <div class="grp">${t('theme')}</div><div class="seg" style="grid-template-columns:repeat(3,1fr)">${['auto', 'light', 'dark'].map(x => `<button data-th="${x}" class="${x === th ? 'on' : ''}">${t(x)}</button>`).join('')}</div>
     <div class="grp">${t('waiter')}</div>
+    <div class="actions" style="grid-template-columns:1fr"><button class="btn" id="mRota">📅 ${t('teamRota')}</button></div>
     <div class="actions"><button class="btn" id="mSwitch">${t('switchWaiter')}</button><button class="btn" id="mLock">${esc(t('lock', { name: S.waiter?.name || '—' }))}</button></div>
     ${S.role === 'owner' ? `<div class="grp">${t('owner')}</div><div class="actions" style="grid-template-columns:1fr"><button class="btn primary" id="mOwner">${t('ownerDashboard')}</button></div>` : ''}
     ${installEvt ? `<div class="actions" style="grid-template-columns:1fr"><button class="btn" id="mInstall">${t('install')}</button></div>` : ''}
@@ -674,6 +685,7 @@ function renderMore() {
   body.querySelectorAll('[data-lang]').forEach(b => { b.onclick = () => { closeSheet(s); chooseLang(b.dataset.lang, S.waiter?.id); }; });
   body.querySelectorAll('[data-th]').forEach(b => { b.onclick = () => { setTheme(b.dataset.th); renderMore(); }; });
   $('#mSwitch', body).onclick = () => { closeSheet(s); openWaiterSheet(); };
+  $('#mRota', body).onclick = () => { closeSheet(s); openSheet(sheet('rotaSheet', t('teamRota'))); renderRota(); };
   $('#mLock', body).onclick = () => { closeSheet(s); waiterLogout(); langForWaiter(null); };
   const mo = $('#mOwner', body); if (mo) mo.onclick = () => { closeSheet(s); goOwner(); };
   const mi = $('#mInstall', body); if (mi) mi.onclick = async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; renderMore(); };

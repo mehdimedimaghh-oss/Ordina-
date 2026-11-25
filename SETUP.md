@@ -161,3 +161,11 @@ On each device, open the website link once:
 1. Supabase → **SQL Editor** → paste `supabase/migrations/20261125000000_daily_dishes_pinsa_stock.sql` → **Run**.
 2. Adds Spaghetti cacio e pepe and Melanzane alla parmigiana (Piatto del giorno, € 13), makes every pinsa use ONE stock counter
    ("Pinsa (basi)": set it in Stock), and sets the portions of 25/11.
+
+## Step 18 — Monthly staff schedule managed in the app (one time)
+1. Supabase → **SQL Editor** → paste all of `supabase/migrations/20261126000000_staff_schedule.sql` → **Run** → "Success".
+2. It creates the schedule tables and copies the months already in the app (November 2026, December 2026, 1 January 2027) exactly as they are.
+   A month already saved in the database is never overwritten, so the file is safe to run again.
+3. Close and reopen the app. **Owner → Turni / Schedule** now shows the months; the waiters see the whole team in **☰ → Turni del personale**.
+   Nothing changes for the reception.
+4. Before this step the app keeps using the months written in `src/schedule.js` (as before), so the order does not matter.

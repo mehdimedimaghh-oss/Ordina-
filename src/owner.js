@@ -5,6 +5,7 @@ import { S, fetchAllOrders, fetchOrders, fetchDayTotals, fetchAudit, fetchAllWai
 import { fromServer, orderCard, bindOrderCards, setTheme } from './waiter.js';
 import { toast } from './ui.js';
 import { staffNowHtml } from './staffnow.js';
+import { rotaEditor, rotaDirty } from './rota.js';
 import { buildXlsx, download } from './xlsx.js';
 import { getLang, chooseLang } from './i18n.js';
 
@@ -17,7 +18,7 @@ let root = null;
 export function mountOwner(app) {
   root = app;
   try { if (sessionStorage.getItem('ordina:open3d')) { sessionStorage.removeItem('ordina:open3d'); tab = 'rooftop'; } } catch { /* ignore */ }
-  const tabs = [['dash', L('Dashboard', 'Dashboard')], ['menu', L('Menu & prices', 'Menu e prezzi')], ['waiters', L('Waiters', 'Camerieri')],
+  const tabs = [['dash', L('Dashboard', 'Dashboard')], ['menu', L('Menu & prices', 'Menu e prezzi')], ['waiters', L('Waiters', 'Camerieri')], ['rota', L('Schedule', 'Turni')],
     ['rooftop', '<svg class="oti" aria-hidden="true"><use href="#i-stock"/></svg>' + L('3D Live Rooftop', 'Rooftop 3D live')], ['recv', '🔔 ' + L('Reception screen', 'Schermo reception')],
     ['sheet', L('Google Sheet (optional)', 'Google Sheet (facoltativo)')], ['import', L('Backup & import', 'Backup e importa')], ['log', L('Audit log', 'Registro modifiche')]];
   app.innerHTML = `<div class="own">
@@ -29,7 +30,7 @@ export function mountOwner(app) {
   $('#backTables').onclick = () => { location.hash = ''; };
   $('#ownLang').onclick = () => chooseLang(getLang() === 'it' ? 'en' : 'it', null);   // the page is drawn again in the new language
   $('#ownTheme').onclick = () => { const th = { auto: 'light', light: 'dark', dark: 'auto' }[localStorage.getItem('ordina:theme')?.replace(/"/g, '') || 'auto']; setTheme(th); toast(L('Theme: ', 'Tema: ') + ({ auto: 'Auto', light: L('Light', 'Chiaro'), dark: L('Dark', 'Scuro') }[th])); };
-  $$('.otabs button').forEach(b => { b.onclick = () => { tab = b.dataset.tab; $$('.otabs button').forEach(x => x.classList.toggle('on', x === b)); show(); }; });
+  $$('.otabs button').forEach(b => { b.onclick = () => { if (tab === 'rota' && b.dataset.tab !== 'rota' && rotaDirty() && !confirm(L('You have unsaved changes in the schedule. Leave without saving?', 'Ci sono modifiche non salvate nei turni. Uscire senza salvare?'))) return; tab = b.dataset.tab; $$('.otabs button').forEach(x => x.classList.toggle('on', x === b)); show(); }; });
   show();
 }
 export function ownerRender() {
@@ -41,7 +42,7 @@ function show() {
   const body = $('#ownBody');
   if (tab === 'rooftop') { openRooftopPage(); return; }
   if (tab === 'recv') { tab = 'dash'; location.hash = '#reception'; return; }   // the owner opens the live reception screen
-  ({ dash: dashboard, menu: menuEditor, waiters, sheet: receptionSheet, import: importer, log: auditLog })[tab](body);
+  ({ dash: dashboard, menu: menuEditor, waiters, rota: b => rotaEditor(b), sheet: receptionSheet, import: importer, log: auditLog })[tab](body);
 }
 
 // ================= Dashboard =================
@@ -351,6 +352,7 @@ function importer(body) {
 
 // ================= Audit log =================
 const ACT = {
+  schedule_save: d => L(`Schedule saved · ${(d.people || []).length} people · ${d.shifts_after} shifts (before ${d.shifts_before})`, `Turni salvati · ${(d.people || []).length} persone · ${d.shifts_after} turni (prima ${d.shifts_before})`),
   order_delete: d => L(`Deleted order · Tavolo ${d.table_no} · ${eur(d.total)} · ${d.day}${d.reason ? ' · reason: ' + d.reason : ''}`, `Ordine eliminato · Tavolo ${d.table_no} · ${eur(d.total)} · ${d.day}${d.reason ? ' · motivo: ' + d.reason : ''}`),
   order_reopen: d => L(`Reopened order · Tavolo ${d.table} · ${eur(d.total)}`, `Ordine riaperto · Tavolo ${d.table} · ${eur(d.total)}`),
   order_charged: d => L(`Charged · Tavolo ${d.table} · ${eur(d.total)}`, `Addebitato · Tavolo ${d.table} · ${eur(d.total)}`),

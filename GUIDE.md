@@ -118,3 +118,14 @@ History is **never deleted automatically**. Waiters only see **today**; you see 
 ### Analcolico su misura: add it once
 Cocktail su misura is already in the menu. To add the non-alcoholic one: **Menu & prices → Soft drinks → new dish**:
 name **Analcolico su misura**, English **Tailor-made soft drink**, your price → **Add**. The app recognises every dish with “su misura” in the name and opens the recipe form.
+
+### Staff schedule (Owner → Turni / Schedule)
+- Choose the month with **‹ ›** or the month field. Past months stay saved and can be opened and changed.
+- **Tap a cell** to change it: empty → **M** (06:30–14:30) → **C** (11:00–19:00) → **P** (17:00–01:00) → **R** (rest). On a computer you can also type M, C, P, R or Delete and move with the arrows.
+- Two or more people can have the same shift on the same day.
+- **Add a waiter** from the list, or write the name of a person without an app account (e.g. "Nuova risorsa"). **↑** moves a row up, **×** removes the person from that month only.
+- **Copy previous month** starts the new month from the last one (same day numbers); nothing is saved until **Save**.
+- The **Coverage** row shows ✓ or the missing shift (M, C, P) for every day.
+- **Save** writes the month for every device at once and in the Audit log. If another owner saved the same month in the meantime, your save is refused and you are asked to reload (nobody's work is overwritten).
+- **Print / PDF**: the month on one landscape A4 page, like the paper sheet (choose "Save as PDF" in the print window).
+- Waiters: **☰ → Turni del personale** shows the whole team, this month and next month, read only. It also works without internet (last copy).
