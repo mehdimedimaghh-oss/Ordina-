@@ -26,7 +26,7 @@ begin
     if m.id like '%-c' then   -- glass: bottle cost ÷ glasses (different per bottle)
       gl := case when m.id like 'spum%' or m.id like 'prosecco%' then 6 when m.id like 'gewurz%' then 4 else 5 end;
       bottle := round((select price from public.menu_items where id = replace(m.id, '-c', '-b')) / 1.22 * 0.36, 2);
-      perform public.owner_save_cost(jsonb_build_object('item_id', m.id, 'bottle_cost', bottle, 'glasses', gl, 'valid_from', '2026-09-01', 'invoice_date', '2026-08-28', 'supplier', sup, 'invoice_ref', 'CD-0828'));
+      perform public.owner_save_cost(jsonb_build_object('item_id', m.id, 'pack_cost', bottle, 'pack_units', gl, 'valid_from', '2026-09-01', 'invoice_date', '2026-08-28', 'supplier', sup, 'invoice_ref', 'CD-0828'));
     else
       perform public.owner_save_cost(jsonb_build_object('item_id', m.id, 'cost', round(m.price / 1.1 * f, 2), 'valid_from', '2026-09-01', 'invoice_date', '2026-08-28', 'supplier', sup, 'invoice_ref', 'F-' || upper(left(sup, 3)) || '-0828'));
     end if;

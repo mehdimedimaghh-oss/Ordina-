@@ -153,7 +153,7 @@ function openDish(id, body, correct = null) {
   const m = S.menu.find(x => x.id === id); if (!m) return;
   const s = sheet('costSheet', m.name_it), el = sheetBody(s), fin = F.finance[id] || {};
   const p = perServing(m), hist = F.costs.filter(c => c.item_id === id);
-  const glassMode = correct ? correct.glasses != null : fin.glasses_per_bottle != null;
+  const packMode = correct ? correct.pack_units != null : fin.units_per_pack != null;
   const pv = purchaseVat(m);
   el.innerHTML = `<div class="fin-dish">
     <div class="kpis fin-k"><div class="kpi"><small>${L('Selling price (VAT incl.)', 'Prezzo di vendita (IVA incl.)')}</small><b class="num">${eur(m.price)}</b></div>
@@ -167,16 +167,19 @@ function openDish(id, body, correct = null) {
         <label class="field">${L('Valid from (sales from this day)', 'Valido dal (vendite da questo giorno)')}<input type="date" id="cFrom" value="${correct ? correct.valid_from : today()}"></label>
         <label class="field">${L('Supplier', 'Fornitore')}<input type="text" id="cSup" list="supList" maxlength="80" value="${esc(correct?.supplier || costNow(id)?.supplier || '')}"></label>
         <label class="field">${L('Invoice number', 'Numero fattura')}<input type="text" id="cRef" maxlength="60" value="${esc(correct?.invoice_ref || '')}"></label></div>
-      <div class="seg fin-seg" role="tablist"><button type="button" data-cm="serv" class="${glassMode ? '' : 'on'}">${L('Cost per serving', 'Costo a porzione')}</button><button type="button" data-cm="glass" class="${glassMode ? 'on' : ''}">${L('Bottle ÷ glasses', 'Bottiglia ÷ calici')}</button></div>
-      <div id="cmServ" ${glassMode ? 'hidden' : ''}><label class="field">${L('Cost per serving · VAT EXCLUDED', 'Costo a porzione · IVA ESCLUSA')}<input type="text" inputmode="decimal" id="cCost" autocomplete="off" value="${correct && correct.glasses == null ? inVal(Number(correct.cost)) : ''}" placeholder="3,20"></label>
+      <div class="seg fin-seg" role="tablist"><button type="button" data-cm="serv" class="${packMode ? '' : 'on'}">${L('Cost per serving', 'Costo a porzione')}</button><button type="button" data-cm="pack" class="${packMode ? 'on' : ''}">${L('Pack ÷ servings', 'Confezione ÷ porzioni')}</button></div>
+      <div id="cmServ" ${packMode ? 'hidden' : ''}><label class="field">${L('Cost per serving · VAT EXCLUDED', 'Costo a porzione · IVA ESCLUSA')}<input type="text" inputmode="decimal" id="cCost" autocomplete="off" value="${correct && correct.pack_units == null ? inVal(Number(correct.cost)) : ''}" placeholder="3,20"></label>
         <details class="fin-help"><summary>${L('I only have the price with VAT', 'Ho solo il prezzo con IVA')}</summary><div class="vat-grid">
           <label class="field">${L('Price with VAT', 'Prezzo con IVA')}<input type="text" inputmode="decimal" id="cGross" autocomplete="off"></label>
           <label class="field">${L('Purchase VAT %', 'IVA acquisto %')}<input type="text" inputmode="decimal" id="cPv" autocomplete="off" value="${inVal(pv)}" placeholder="—"></label></div>
           <button type="button" class="btn" id="cConv">${L('Calculate the price without VAT', 'Calcola il prezzo senza IVA')}</button></details></div>
-      <div id="cmGlass" ${glassMode ? '' : 'hidden'}><div class="vat-grid">
-        <label class="field">${L('Bottle cost · VAT EXCLUDED', 'Costo bottiglia · IVA ESCLUSA')}<input type="text" inputmode="decimal" id="cBottle" autocomplete="off" value="${correct?.bottle_cost != null ? inVal(Number(correct.bottle_cost)) : ''}"></label>
-        <label class="field">${L('Glasses from this bottle', 'Calici da questa bottiglia')}<input type="text" inputmode="numeric" id="cGl" autocomplete="off" value="${correct?.glasses ?? fin.glasses_per_bottle ?? ''}" placeholder="—"></label></div>
-        <p class="hint" id="cGlOut">${L('Write the bottle cost and how many glasses you pour from it.', 'Scrivi il costo della bottiglia e quanti calici ne versi.')}</p></div>
+      <div id="cmPack" ${packMode ? '' : 'hidden'}>
+        <p class="hint">${L('From the invoice line: the amount <b>after the discount, purchase VAT excluded</b>, and how many servings or units it contains. E.g. 2 packs × 4 portions → 8; 24 cans → 24; a wine bottle → the glasses you pour from it.',
+          'Dalla riga della fattura: l\'importo <b>dopo lo sconto, IVA di acquisto esclusa</b>, e quante porzioni o unità contiene. Es. 2 confezioni × 4 porzioni → 8; 24 lattine → 24; una bottiglia di vino → i calici che ne versi.')}</p>
+        <div class="vat-grid">
+        <label class="field">${L('Pack amount · after discount · VAT EXCL.', 'Importo confezione · scontato · IVA ESCL.')}<input type="text" inputmode="decimal" id="cPack" autocomplete="off" value="${correct?.pack_cost != null ? inVal(Number(correct.pack_cost)) : ''}" placeholder="23,44"></label>
+        <label class="field">${L('Servings / units in it', 'Porzioni / unità contenute')}<input type="text" inputmode="numeric" id="cUnits" autocomplete="off" value="${correct?.pack_units ?? fin.units_per_pack ?? ''}" placeholder="—"></label></div>
+        <p class="hint" id="cPackOut">${L('Write the pack amount and how many servings or units it contains.', 'Scrivi l\'importo della confezione e quante porzioni o unità contiene.')}</p></div>
       <label class="field">${L('Note (optional)', 'Nota (facoltativa)')}<input type="text" id="cNote" maxlength="300" value="${esc(correct?.note || '')}"></label>
       ${correct ? `<label class="field">${L('Why do you correct it? (required)', 'Perché lo correggi? (obbligatorio)')}<input type="text" id="cWhy" maxlength="300"></label>` : ''}
       <div class="actions" style="grid-template-columns:${correct ? '1fr 2fr' : '1fr'}">${correct ? `<button type="button" class="btn" id="cCancelCorr">${L('Back', 'Indietro')}</button>` : ''}<button class="btn primary" id="cSave">${correct ? L('Save the correction', 'Salva la correzione') : L('Save the cost', 'Salva il costo')}</button></div>
@@ -186,7 +189,7 @@ function openDish(id, body, correct = null) {
         <label class="field">${L('Purchase VAT %', 'IVA acquisto %')}<input type="text" inputmode="decimal" id="dPv" value="${inVal(fin.purchase_vat)}" placeholder="—"></label></div>
       <button class="btn" id="dVat">${L('Save VAT for this dish', 'Salva IVA del piatto')}</button></details>
     <div class="panel"><h3>${L('Cost history', 'Storico costi')}</h3>${hist.length ? `<div class="hist-t">${hist.map(c => `<div class="hrow${c.voided_at ? ' void' : ''}">
-        <div><b class="num">${eurC(c.cost)}</b> ${L('from', 'dal')} <b>${fmtD(c.valid_from)}</b>${c.glasses ? ` <small>(${eurC(c.bottle_cost)} ÷ ${c.glasses} ${L('glasses', 'calici')})</small>` : ''}
+        <div><b class="num">${eurC(c.cost)}</b> ${L('from', 'dal')} <b>${fmtD(c.valid_from)}</b>${c.pack_units ? ` <small>(${eurC(c.pack_cost)} ÷ ${c.pack_units})</small>` : ''}
           <small>${[c.supplier, c.invoice_date ? L('invoice ', 'fattura ') + fmtD(c.invoice_date) : '', c.invoice_ref, c.note].filter(Boolean).map(esc).join(' · ')}</small>
           <small class="muted">${L('saved', 'salvato')} ${fmtD(c.created_at)} · ${esc(c.created_by || '')}</small>
           ${c.voided_at ? `<small class="miss">${c.replaced_by ? L('Corrected', 'Corretto') : L('Cancelled', 'Annullato')} ${fmtD(c.voided_at)} · ${esc(c.voided_by || '')}: ${esc(c.void_reason || '')}</small>` : ''}</div>
@@ -199,11 +202,12 @@ function openDish(id, body, correct = null) {
   let fromTouched = !!correct;
   $('#cFrom', el).oninput = () => { fromTouched = true; };
   $('#cInv', el).oninput = () => { if (!fromTouched && $('#cInv', el).value) $('#cFrom', el).value = $('#cInv', el).value; };
-  let mode = glassMode ? 'glass' : 'serv';
-  $$('[data-cm]', el).forEach(b => { b.onclick = () => { mode = b.dataset.cm; $$('[data-cm]', el).forEach(x => x.classList.toggle('on', x === b)); $('#cmServ', el).hidden = mode !== 'serv'; $('#cmGlass', el).hidden = mode !== 'glass'; }; });
-  const glOut = () => { const bc = numIn($('#cBottle', el).value), g = parseInt($('#cGl', el).value, 10);
-    $('#cGlOut', el).innerHTML = bc != null && !isNaN(bc) && g >= 1 && g <= 100 ? `${L('Cost per glass', 'Costo a calice')}: <b>${eurC(Math.round(bc / g * 10000) / 10000)}</b> (${eurC(bc)} ÷ ${g})` : L('Write the bottle cost and how many glasses you pour from it.', 'Scrivi il costo della bottiglia e quanti calici ne versi.'); };
-  $('#cBottle', el).oninput = glOut; $('#cGl', el).oninput = glOut; glOut();
+  let mode = packMode ? 'pack' : 'serv';
+  $$('[data-cm]', el).forEach(b => { b.onclick = () => { mode = b.dataset.cm; $$('[data-cm]', el).forEach(x => x.classList.toggle('on', x === b)); $('#cmServ', el).hidden = mode !== 'serv'; $('#cmPack', el).hidden = mode !== 'pack'; }; });
+  const unitsOk = () => { const v = $('#cUnits', el).value.trim(), u = parseInt(v, 10); return /^\d+$/.test(v) && u >= 1 && u <= 1000 ? u : null; };
+  const packOut = () => { const pc = numIn($('#cPack', el).value), u = unitsOk();
+    $('#cPackOut', el).innerHTML = pc != null && !isNaN(pc) && u ? `${L('Cost per serving', 'Costo a porzione')}: <b>${eurC(Math.round(pc / u * 10000) / 10000)}</b> (${eurC(pc)} ÷ ${u}) · ${L('VAT excl.', 'IVA escl.')}` : L('Write the pack amount and how many servings or units it contains.', 'Scrivi l\'importo della confezione e quante porzioni o unità contiene.'); };
+  $('#cPack', el).oninput = packOut; $('#cUnits', el).oninput = packOut; packOut();
   $('#cConv', el).onclick = () => {
     const g = numIn($('#cGross', el).value), r = numIn($('#cPv', el).value);
     if (g == null || isNaN(g) || r == null || isNaN(r) || r > 100) { toast(L('Write the price with VAT and the purchase VAT %', 'Scrivi il prezzo con IVA e l\'IVA di acquisto %')); return; }
@@ -215,11 +219,11 @@ function openDish(id, body, correct = null) {
     const from = $('#cFrom', el).value || $('#cInv', el).value;
     const p = { item_id: id, invoice_date: $('#cInv', el).value || null, valid_from: from || null, supplier: $('#cSup', el).value.trim(), invoice_ref: $('#cRef', el).value.trim(), note: $('#cNote', el).value.trim() };
     if (!from) { toast(L('Write the invoice date or the date the cost is valid from', 'Scrivi la data della fattura o la data da cui vale il costo')); return; }
-    if (mode === 'glass') {
-      const bc = numIn($('#cBottle', el).value), g = parseInt($('#cGl', el).value, 10);
-      if (bc == null || isNaN(bc)) { toast(L('Write the bottle cost, VAT excluded', 'Scrivi il costo della bottiglia, IVA esclusa')); return; }
-      if (!(g >= 1 && g <= 100) || String(g) !== $('#cGl', el).value.trim()) { toast(L('Write how many glasses this bottle gives', 'Scrivi quanti calici dà questa bottiglia')); return; }
-      Object.assign(p, { bottle_cost: bc, glasses: g });
+    if (mode === 'pack') {
+      const pc = numIn($('#cPack', el).value), u = unitsOk();
+      if (pc == null || isNaN(pc)) { toast(L('Write the pack amount after discount, VAT excluded (e.g. 23,44)', 'Scrivi l\'importo della confezione scontato, IVA esclusa (es. 23,44)')); return; }
+      if (!u) { toast(L('Write how many servings or units are in it (1–1000)', 'Scrivi quante porzioni o unità contiene (1–1000)')); return; }
+      Object.assign(p, { pack_cost: pc, pack_units: u });
     } else {
       const c = numIn($('#cCost', el).value);
       if (c == null || isNaN(c)) { toast(L('Write a cost like 3,20 (VAT excluded)', 'Scrivi un costo come 3,20 (IVA esclusa)')); return; }

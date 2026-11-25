@@ -58,12 +58,22 @@ select pg_temp.ok('old €3,50 kept, marked cancelled, linked to the new one',
   (select voided_at is not null and void_reason = 'typo on the invoice' and replaced_by is not null from public.item_costs where cost = 3.5));
 select pg_temp.ok('Lasagne history: 3 rows (2 valid + 1 cancelled)', (select count(*) = 3 and count(*) filter (where voided_at is null) = 2 from public.item_costs where item_id = 'lasagne'));
 -- glass helper
-select pg_temp.refused('glass helper without number of glasses → refused', $$select public.owner_save_cost('{"item_id":"merlot-c","bottle_cost":12,"valid_from":"2026-11-01"}')$$);
-select pg_temp.works('Merlot glass = bottle €12 ÷ 6 glasses', $$select public.owner_save_cost('{"item_id":"merlot-c","bottle_cost":12,"glasses":6,"valid_from":"2026-11-01","invoice_date":"2026-10-30"}')$$);
-select pg_temp.ok('glass cost = €2,0000 and 6 glasses remembered for this bottle',
-  (select c.cost = 2 and f.glasses_per_bottle = 6 from public.item_costs c join public.item_finance f using (item_id) where c.item_id = 'merlot-c'));
-select pg_temp.works('White wine glass = bottle €10 ÷ 4 glasses (other bottle, other number)', $$select public.owner_save_cost('{"item_id":"bianco-c","bottle_cost":10,"glasses":4,"valid_from":"2026-11-01"}')$$);
-select pg_temp.ok('glasses are per bottle (6 and 4)', (select string_agg(glasses_per_bottle::text, ',' order by item_id) = '4,6' from public.item_finance where glasses_per_bottle is not null));
+select pg_temp.refused('Pack ÷ servings without the number of servings → refused', $$select public.owner_save_cost('{"item_id":"merlot-c","pack_cost":12,"valid_from":"2026-11-01"}')$$);
+select pg_temp.refused('Pack ÷ 0 servings → refused', $$select public.owner_save_cost('{"item_id":"merlot-c","pack_cost":12,"pack_units":0,"valid_from":"2026-11-01"}')$$);
+select pg_temp.refused('negative pack amount → refused', $$select public.owner_save_cost('{"item_id":"merlot-c","pack_cost":-12,"pack_units":6,"valid_from":"2026-11-01"}')$$);
+select pg_temp.works('Merlot glass = bottle €12 ÷ 6 glasses (Pack ÷ servings)', $$select public.owner_save_cost('{"item_id":"merlot-c","pack_cost":12,"pack_units":6,"valid_from":"2026-11-01","invoice_date":"2026-10-30"}')$$);
+select pg_temp.ok('glass cost = €2,0000 and 6 servings remembered for this bottle',
+  (select c.cost = 2 and c.pack_cost = 12 and c.pack_units = 6 and f.units_per_pack = 6 from public.item_costs c join public.item_finance f using (item_id) where c.item_id = 'merlot-c'));
+select pg_temp.works('Tiramisù: invoice line 2 boxes × 6 = €34,92 after discount ÷ 12 servings', $$select public.owner_save_cost('{"item_id":"tiramisu","pack_cost":34.92,"pack_units":12,"valid_from":"2026-11-23","invoice_date":"2026-11-23","purchase_vat":10}')$$);
+select pg_temp.ok('Tiramisù cost = €2,91 per serving, purchase VAT 10% kept apart (not a sales rate)',
+  (select c.cost = 2.91 and c.purchase_vat = 10 from public.item_costs c where c.item_id = 'tiramisu')
+  and not exists (select 1 from public.item_finance where item_id = 'tiramisu' and sales_vat is not null));
+select pg_temp.works('a box of 120 units is accepted (€31,88 ÷ 120)', $$select public.owner_save_cost('{"item_id":"espresso","pack_cost":31.88,"pack_units":120,"valid_from":"2026-11-24"}')$$);
+select pg_temp.ok('€31,88 ÷ 120 = €0,2657 (4 decimals kept)', (select cost = 0.2657 from public.item_costs where item_id = 'espresso'));
+select pg_temp.works('old names (bottle_cost / glasses) still accepted', $$select public.owner_save_cost('{"item_id":"rosso-c","bottle_cost":10,"glasses":5,"valid_from":"2026-11-01"}')$$);
+select pg_temp.works('White wine glass = bottle €10 ÷ 4 glasses (other bottle, other number)', $$select public.owner_save_cost('{"item_id":"bianco-c","pack_cost":10,"pack_units":4,"valid_from":"2026-11-01"}')$$);
+select pg_temp.ok('servings are remembered per item (4, 6, 5, 120, 12)', (select string_agg(item_id || '=' || units_per_pack, ',' order by item_id) = 'bianco-c=4,espresso=120,merlot-c=6,rosso-c=5,tiramisu=12' from public.item_finance where units_per_pack is not null),
+  (select string_agg(item_id || '=' || units_per_pack, ',' order by item_id) from public.item_finance));
 -- a price change in the middle of the month (Ravioli: sold every day 1–12/11)
 select pg_temp.works('Ravioli €2,00 from 01/11', $$select public.owner_save_cost('{"item_id":"ravioli","cost":2,"valid_from":"2026-11-01","invoice_date":"2026-11-01"}')$$);
 select pg_temp.works('Ravioli €2,40 from 07/11 (new supplier price)', $$select public.owner_save_cost('{"item_id":"ravioli","cost":2.4,"valid_from":"2026-11-07","invoice_date":"2026-11-06","supplier":"Pasta Fresca srl"}')$$);
@@ -122,7 +132,7 @@ reset role;
 
 -- ============ AUDIT ============
 select pg_temp.ok('audit: costs saved, corrected, cancelled, VAT changes all logged',
-  (select count(*) filter (where action = 'cost_save') = 7 and count(*) filter (where action = 'cost_correct') = 1
+  (select count(*) filter (where action = 'cost_save') = 10 and count(*) filter (where action = 'cost_correct') = 1
       and count(*) filter (where action = 'cost_void') = 1 and count(*) filter (where action = 'vat_save') = 3
      from public.audit_log where id > (select v::bigint from snap where k = 'audit0')),
   (select string_agg(action || '×' || n, ' ') from (select action, count(*) n from public.audit_log where id > (select v::bigint from snap where k = 'audit0') group by 1) a));

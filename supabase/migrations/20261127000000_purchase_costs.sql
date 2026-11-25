@@ -2,7 +2,9 @@
 --  PURCHASE COSTS & MARGINS (owner only)
 --  * item_costs:       one purchase cost per serving, WITHOUT VAT, with the date it is valid from.
 --                      Never changed or deleted: a correction cancels the old row (with a reason) and adds a new one.
---  * item_finance:     per dish: sales VAT %, purchase VAT %, glasses per bottle (all optional)
+--  * item_finance:     per dish: sales VAT %, purchase VAT %, servings per pack (e.g. glasses per bottle) (all optional)
+--  * Pack ÷ servings:   cost per serving = pack amount (after discount, purchase VAT excluded) ÷ servings/units in it
+--                      (2 packs of 4 portions = 8; a box of 24 cans = 24; a wine bottle = the glasses poured from it)
 --  * finance_settings: default VAT rates per section and the "confirmed by the commercialista" flag
 --  * owner_profit():   revenue, cost and margin of a period, calculated in the database for the owner only
 --  Waiters and reception can NOT read anything of this. Menu prices, orders and order lines are NOT changed.
@@ -18,8 +20,8 @@ create table if not exists public.item_costs (
   supplier     text not null default '' check (length(supplier) <= 80),
   invoice_ref  text not null default '' check (length(invoice_ref) <= 60),
   purchase_vat numeric(5,2) check (purchase_vat between 0 and 100),           -- for information only
-  bottle_cost  numeric(10,4) check (bottle_cost >= 0),                        -- glass helper: bottle cost ÷ glasses
-  glasses      int check (glasses between 1 and 100),
+  pack_cost    numeric(10,4) check (pack_cost >= 0),                          -- Pack ÷ servings: pack amount after discount, VAT excl.
+  pack_units   int check (pack_units between 1 and 1000),                     -- servings / units in that amount (glasses for a bottle)
   note         text not null default '' check (length(note) <= 300),
   created_at   timestamptz not null default now(),
   created_by   text default (auth.jwt() ->> 'email'),
@@ -35,10 +37,25 @@ create table if not exists public.item_finance (
   item_id            text primary key references public.menu_items(id),
   sales_vat          numeric(5,2) check (sales_vat between 0 and 100),
   purchase_vat       numeric(5,2) check (purchase_vat between 0 and 100),
-  glasses_per_bottle int check (glasses_per_bottle between 1 and 100),
+  units_per_pack     int check (units_per_pack between 1 and 1000),             -- remembered from the last Pack ÷ servings
   updated_at         timestamptz not null default now(),
   updated_by         text
 );
+
+-- a database that ran an earlier draft of this file (demo): rename the old "bottle ÷ glasses" columns
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'item_costs' and column_name = 'bottle_cost') then
+    alter table public.item_costs rename column bottle_cost to pack_cost;
+    alter table public.item_costs rename column glasses to pack_units;
+    alter table public.item_costs drop constraint if exists item_costs_glasses_check;
+    alter table public.item_costs add constraint item_costs_pack_units_check check (pack_units between 1 and 1000);
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'item_finance' and column_name = 'glasses_per_bottle') then
+    alter table public.item_finance rename column glasses_per_bottle to units_per_pack;
+    alter table public.item_finance drop constraint if exists item_finance_glasses_per_bottle_check;
+    alter table public.item_finance add constraint item_finance_units_per_pack_check check (units_per_pack between 1 and 1000);
+  end if;
+end $$;
 
 create table if not exists public.finance_settings (
   key        text primary key,
@@ -79,12 +96,13 @@ revoke all on function public.cost_on(text, date) from public, anon, authenticat
 
 -- ---------------------------------------------------------------------
 -- Save a purchase cost (or correct one: p.replaces = id of the row to cancel, p.reason = why)
---   p = {item_id, cost, valid_from, invoice_date, supplier, invoice_ref, purchase_vat, bottle_cost, glasses, note, replaces, reason}
---   cost is per serving WITHOUT VAT. With bottle_cost + glasses, cost = bottle_cost ÷ glasses.
+--   p = {item_id, cost, valid_from, invoice_date, supplier, invoice_ref, purchase_vat, pack_cost, pack_units, note, replaces, reason}
+--   cost is per serving WITHOUT VAT. Pack ÷ servings: with pack_cost + pack_units, cost = pack_cost ÷ pack_units
+--   (pack_cost = the invoice line after discount, purchase VAT excluded). Old names bottle_cost / glasses are accepted too.
 -- ---------------------------------------------------------------------
 create or replace function public.owner_save_cost(p jsonb)
 returns jsonb language plpgsql security definer set search_path = public as $$
-declare m public.menu_items; v_old public.item_costs; v_cost numeric; v_from date; v_inv date; v_bottle numeric; v_gl int;
+declare m public.menu_items; v_old public.item_costs; v_cost numeric; v_from date; v_inv date; v_pack numeric; v_units int;
         v_pvat numeric; v_id bigint; v_before numeric; v_sold int; v_next date;
 begin
   perform public.require_owner();
@@ -95,13 +113,14 @@ begin
   if v_from is null then raise exception 'Write the date this cost is valid from (or the invoice date)'; end if;
   if v_from > public.rome_today() + 366 then raise exception 'The date is too far in the future'; end if;
   if v_from < date '2020-01-01' then raise exception 'The date is too old'; end if;
-  v_bottle := nullif(p->>'bottle_cost', '')::numeric;
-  v_gl     := nullif(p->>'glasses', '')::int;
-  if v_bottle is not null then
-    if v_gl is null or v_gl < 1 or v_gl > 100 then raise exception 'Write how many glasses this bottle gives (1–100)'; end if;
-    v_cost := round(v_bottle / v_gl, 4);
+  v_pack  := nullif(coalesce(p->>'pack_cost', p->>'bottle_cost'), '')::numeric;
+  v_units := nullif(coalesce(p->>'pack_units', p->>'glasses'), '')::int;
+  if v_pack is not null then
+    if v_pack < 0 or v_pack >= 1000000 then raise exception 'Write the pack amount like 23,44 (after discount, VAT excluded)'; end if;
+    if v_units is null or v_units < 1 or v_units > 1000 then raise exception 'Write how many servings or units are in this pack (1–1000)'; end if;
+    v_cost := round(v_pack / v_units, 4);
   else
-    v_cost := nullif(p->>'cost', '')::numeric; v_gl := null;
+    v_cost := nullif(p->>'cost', '')::numeric; v_units := null;
   end if;
   if v_cost is null or v_cost < 0 or v_cost >= 100000 then raise exception 'Write a cost like 3,20 (VAT excluded)'; end if;
   v_pvat := nullif(p->>'purchase_vat', '')::numeric;
@@ -119,14 +138,14 @@ begin
   end if;
 
   v_before := public.cost_on(m.id, v_from);
-  insert into public.item_costs(item_id, cost, valid_from, invoice_date, supplier, invoice_ref, purchase_vat, bottle_cost, glasses, note)
+  insert into public.item_costs(item_id, cost, valid_from, invoice_date, supplier, invoice_ref, purchase_vat, pack_cost, pack_units, note)
   values (m.id, v_cost, v_from, v_inv, left(trim(coalesce(p->>'supplier', '')), 80), left(trim(coalesce(p->>'invoice_ref', '')), 60),
-          v_pvat, v_bottle, v_gl, left(trim(coalesce(p->>'note', '')), 300))
+          v_pvat, v_pack, v_units, left(trim(coalesce(p->>'note', '')), 300))
   returning id into v_id;
   if v_old.id is not null then update public.item_costs set replaced_by = v_id where id = v_old.id; end if;
-  if v_gl is not null then   -- remember the glasses of this bottle for next time
-    insert into public.item_finance(item_id, glasses_per_bottle, updated_by) values (m.id, v_gl, auth.jwt() ->> 'email')
-    on conflict (item_id) do update set glasses_per_bottle = excluded.glasses_per_bottle, updated_at = now(), updated_by = excluded.updated_by;
+  if v_units is not null then   -- remember the servings of this pack (glasses of this bottle) for next time
+    insert into public.item_finance(item_id, units_per_pack, updated_by) values (m.id, v_units, auth.jwt() ->> 'email')
+    on conflict (item_id) do update set units_per_pack = excluded.units_per_pack, updated_at = now(), updated_by = excluded.updated_by;
   end if;
 
   -- how many servings already sold get this cost (documented in the audit log)
@@ -136,7 +155,7 @@ begin
 
   perform public.audit(case when v_old.id is null then 'cost_save' else 'cost_correct' end, 'item_cost', m.id,
     jsonb_build_object('name', m.name_it, 'cost', v_cost, 'valid_from', v_from, 'invoice_date', v_inv,
-      'supplier', coalesce(p->>'supplier', ''), 'invoice_ref', coalesce(p->>'invoice_ref', ''), 'bottle_cost', v_bottle, 'glasses', v_gl,
+      'supplier', coalesce(p->>'supplier', ''), 'invoice_ref', coalesce(p->>'invoice_ref', ''), 'pack_cost', v_pack, 'pack_units', v_units,
       'cost_before', v_before, 'sold_affected', v_sold, 'id', v_id,
       'replaces', v_old.id, 'old_cost', v_old.cost, 'old_valid_from', v_old.valid_from, 'reason', nullif(trim(coalesce(p->>'reason', '')), '')));
   return jsonb_build_object('ok', true, 'id', v_id, 'cost', v_cost, 'valid_from', v_from, 'sold_affected', v_sold);

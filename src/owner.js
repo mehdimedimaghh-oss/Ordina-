@@ -322,7 +322,7 @@ async function downloadBackup(btn, info) {
     });
     const sent = rows.filter(o => o.status === 'closed'), reopened = rows.filter(o => o.status !== 'closed');
     const stamp = today();
-    const finance = await financeBackup();   // purchase costs (full history), VAT rates, glasses per bottle
+    const finance = await financeBackup();   // purchase costs (full history), VAT rates, servings per pack
     const data = { app: 'Comande Pranzo', backupOf: 'all orders', exportedAt: new Date().toISOString(), count: sent.length, total: sent.reduce((a, o) => a + Number(o.total), 0), orders: sent.map(toImport), reopened: reopened.map(toImport), menu: S.menu, ...(finance ? { finance } : {}) };
     download(JSON.stringify(data, null, 1), `comande_BACKUP_${stamp}.json`, 'application/json');
     const ord = sent.map(fromServer);

@@ -133,7 +133,9 @@ name **Analcolico su misura**, English **Tailor-made soft drink**, your price �
 ### Purchase costs & margins (Owner → Costs & margins)
 - **One cost per serving, VAT excluded.** Tap a dish → write the supplier invoice date (the cost is valid from that day; you can change the date) → supplier, invoice number → the cost → **Save the cost**.
 - **Only the price with VAT?** Open "I only have the price with VAT", write the price and the purchase VAT %, tap **Calculate** and check the number before saving.
-- **Wine by the glass:** every glass is its own dish. Choose **Bottle ÷ glasses**, write the bottle cost and how many glasses YOU pour from that bottle. The number is remembered for that bottle only; nothing is assumed.
+- **Pack ÷ servings:** copy the invoice line as it is: the amount **after the discount, purchase VAT excluded**, and how many servings or units it contains (e.g. Ravioli: 2 packs × 4 portions = € 23,44 → 8 → € 2,93 each; 24 cans → 24). The app divides and remembers the number for that dish.
+- **Wine by the glass:** every glass is its own dish. Use **Pack ÷ servings** with the bottle amount and how many glasses YOU pour from that bottle. The number is remembered for that bottle only; nothing is assumed.
+- **Purchase VAT** (on the supplier invoice, e.g. 10%, 22%, 4%) is only information about the purchase. It is never used as the sales VAT.
 - **New price from the supplier:** add a new cost with the new date. Old sales keep the old cost; sales from the new date use the new one.
 - **Mistake?** In the dish's history tap **Correct** (write why) or **Cancel** (write why). The old cost stays in the history, crossed out, and everything is in the audit log.
 - **VAT rates:** open "VAT rates" and write the rates given by your commercialista (default, per section, or per dish). Tick "confirmed" and write who confirmed them and when. Until then all margins say **PROVISIONAL**: they are estimates, not accounting profit.

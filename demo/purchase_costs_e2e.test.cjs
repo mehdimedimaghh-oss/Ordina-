@@ -80,18 +80,38 @@ const SHIFTS_MD5 = "select md5(string_agg(s::text, ',' order by id)) from staff_
   ok(await o.p.$eval('#costSheet', s => s.querySelectorAll('.hrow.void').length === 2), 'history shows the 2 corrected/cancelled rows crossed out');
   await o.p.click('#costSheet [data-close]');
 
-  console.log('OWNER · WINE BY THE GLASS');
+  console.log('OWNER · PACK ÷ SERVINGS (food packs and wine by the glass)');
+  // an invoice line like Gioia's: 2 packs × 4 portions, € 13,02 − 10% each = € 23,44 after discount, VAT excluded
+  await o.p.click('.crow[data-cost="ravioli"]'); await o.p.waitForSelector('#cForm');
+  ok(!!(await o.p.$('[data-cm="pack"]')) && /Pack ÷ servings|Confezione ÷ porzioni/.test(await o.p.innerText('[data-cm="pack"]')), 'the form offers "Pack ÷ servings"');
+  await o.p.click('[data-cm="pack"]');
+  ok(await o.p.inputValue('#cUnits') === '', 'no number of servings saved yet → field EMPTY (never assumed)');
+  await o.p.fill('#cPack', '23,44'); await o.p.fill('#cUnits', '8');
+  ok(/2,93/.test(await o.p.innerText('#cPackOut')), 'live result: ' + (await o.p.innerText('#cPackOut')).replace(/\s+/g, ' '));
+  await o.p.fill('#cUnits', '0'); await o.p.fill('#cInv', '2026-11-04'); await o.p.fill('#cSup', 'Supplier A'); await o.p.fill('#cRef', '003636/010');
+  await o.p.click('#cSave'); const t0 = await toastText(o.p);
+  ok(/servings or units|porzioni o unità/i.test(t0), '0 servings refused: ' + t0);
+  await o.p.fill('#cUnits', '8');
+  await o.p.screenshot({ path: OUT + '/costs_pack_helper.png', fullPage: false });
+  await o.p.click('#cSave'); await toastText(o.p);
+  ok(sql("select cost||'|'||pack_cost||'|'||pack_units||'|'||valid_from||'|'||invoice_ref from item_costs where item_id='ravioli' and valid_from='2026-11-04' and voided_at is null") === '2.9300|23.4400|8|2026-11-04|003636/010', 'saved: € 23,44 ÷ 8 = € 2,93, valid from the invoice date, pack amount and servings kept');
+  ok(/23,44 ÷ 8/.test(await o.p.innerText('#costSheet .hist-t')), 'history shows how it was calculated (€ 23,44 ÷ 8)');
+  await o.p.click('#costSheet [data-close]');
+  await o.p.click('.crow[data-cost="ravioli"]'); await o.p.waitForSelector('#cForm');
+  ok(await o.p.$eval('[data-cm="pack"]', b => b.classList.contains('on')) && await o.p.inputValue('#cUnits') === '8', 'next time the dish opens on Pack ÷ servings with its 8 servings remembered');
+  await o.p.click('#costSheet [data-close]');
+  // wine by the glass is the same calculator: bottle amount ÷ glasses
   const gl = {};
-  for (const id of ['gewurz-c', 'merlot-c', 'spum-c']) { await o.p.click(`.crow[data-cost="${id}"]`); await o.p.waitForSelector('#cForm'); gl[id] = await o.p.inputValue('#cGl'); await o.p.click('#costSheet [data-close]'); }
+  for (const id of ['gewurz-c', 'merlot-c', 'spum-c']) { await o.p.click(`.crow[data-cost="${id}"]`); await o.p.waitForSelector('#cForm'); gl[id] = await o.p.inputValue('#cUnits'); await o.p.click('#costSheet [data-close]'); }
   ok(gl['gewurz-c'] === '4' && gl['merlot-c'] === '5' && gl['spum-c'] === '6', `glasses remembered per bottle: Gewürztraminer ${gl['gewurz-c']}, Merlot ${gl['merlot-c']}, Spumante ${gl['spum-c']}`);
   await o.p.click('.crow[data-cost="birra-peroni"]'); await o.p.waitForSelector('#cForm');
-  await o.p.click('[data-cm="glass"]');
-  ok(await o.p.inputValue('#cGl') === '', 'a bottle with no number saved: glasses field EMPTY (never assumed)');
-  await o.p.fill('#cBottle', '12'); await o.p.fill('#cGl', '6');
-  ok(/2,00/.test(await o.p.innerText('#cGlOut')), 'helper shows: ' + (await o.p.innerText('#cGlOut')).replace(/\s+/g, ' '));
+  await o.p.click('[data-cm="pack"]');
+  ok(await o.p.inputValue('#cUnits') === '', 'a bottle with no number saved: glasses field EMPTY (never assumed)');
+  await o.p.fill('#cPack', '12'); await o.p.fill('#cUnits', '6');
+  ok(/2,00/.test(await o.p.innerText('#cPackOut')), 'bottle € 12 ÷ 6 glasses: ' + (await o.p.innerText('#cPackOut')).replace(/\s+/g, ' '));
   await o.p.screenshot({ path: OUT + '/costs_glass_helper.png', fullPage: false });
   await o.p.fill('#cInv', '2026-11-25'); await o.p.fill('#cFrom', '2026-11-25'); await o.p.click('#cSave'); await toastText(o.p);
-  ok(sql("select cost||'|'||bottle_cost||'|'||glasses from item_costs where item_id='birra-peroni' and valid_from='2026-11-25'") === '2.0000|12.0000|6', 'saved: € 12 ÷ 6 = € 2,00 per glass, bottle and glasses kept');
+  ok(sql("select cost||'|'||pack_cost||'|'||pack_units from item_costs where item_id='birra-peroni' and valid_from='2026-11-25'") === '2.0000|12.0000|6', 'saved: € 12 ÷ 6 = € 2,00 per glass, bottle amount and glasses kept');
   await o.p.click('#costSheet [data-close]');
   // "I only have the price with VAT"
   await o.p.click('.crow[data-cost="tiramisu"]'); await o.p.waitForSelector('#cForm');
