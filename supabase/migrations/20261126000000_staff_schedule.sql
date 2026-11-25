@@ -399,7 +399,8 @@ where date_trunc('month', r.day::date)::date in (select month from ins);
 -- link the imported people to the waiters with the same name (if they have a PIN in the app)
 update public.staff_shifts s set waiter_id = w.id
 from public.waiters w
-where s.waiter_id is null and lower(w.name) = lower(s.person);
+where s.waiter_id is null and lower(w.name) = lower(s.person)
+  and s.month in (select month from public.staff_months where updated_by = 'import from app (schedule.js)');   -- never a month saved by the owner
 update public.staff_months m set people = (
   select jsonb_agg(case when w.id is null then p else p || jsonb_build_object('waiter_id', w.id) end order by ord)
   from jsonb_array_elements(m.people) with ordinality as e(p, ord)
